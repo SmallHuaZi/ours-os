@@ -1,0 +1,6 @@
+{
+    "cmake.cmakePath": "cmake",
+    "cmake.sourceDirectory": "/home/smallhuazi/Documents/Programs/ours-dev/ours-os",
+    "cmake.useCMakePresets": "always",
+    "cmake.allowCommentsInPresetsFile": true,
+}

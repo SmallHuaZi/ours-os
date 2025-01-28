@@ -1,0 +1,8 @@
+Standard: Cpp20
+ColumnLimit: 150
+SortIncludes: true
+AllowShortLoopsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+DerivePointerAlignment: true
+
+BreakInheritanceList: BILS_BeforeColon

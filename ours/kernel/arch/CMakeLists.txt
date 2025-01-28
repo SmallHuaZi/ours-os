@@ -1,0 +1,5 @@
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") 
+    add_subdirectory(x86)
+else()
+    add_subdirectory(${CMAKE_SYSTEM_PROCESSOR})
+endif()

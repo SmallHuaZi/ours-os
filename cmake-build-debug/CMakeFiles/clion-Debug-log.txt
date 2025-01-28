@@ -1,0 +1,29 @@
+/home/smallhuazi/Applications/CLion-2024.2.3/clion-2024.2.3/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/home/smallhuazi/Applications/CLion-2024.2.3/clion-2024.2.3/bin/ninja/linux/x64/ninja -DCMAKE_C_COMPILER=/usr/bin/clang-18 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-18 -G Ninja -S /home/smallhuazi/Documents/Sources/OS-dev/ours-os -B /home/smallhuazi/Documents/Sources/OS-dev/ours-os/cmake-build-debug
+CMake Error at ours/CMakeLists.txt:14 (cmake_policy):
+  Policy "CMP0167" is not known to this version of CMake.
+
+
+CMake Warning at /home/smallhuazi/Applications/CLion-2024.2.3/clion-2024.2.3/bin/cmake/linux/x64/share/cmake-3.29/Modules/FindBoost.cmake:2234 (message):
+  No header defined for intrusive; skipping header check (note: header-only
+  libraries have no designated component)
+Call Stack (most recent call first):
+  ours/CMakeLists.txt:16 (find_package)
+
+
+CMake Warning at /home/smallhuazi/Applications/CLion-2024.2.3/clion-2024.2.3/bin/cmake/linux/x64/share/cmake-3.29/Modules/FindBoost.cmake:2234 (message):
+  No header defined for align; skipping header check (note: header-only
+  libraries have no designated component)
+Call Stack (most recent call first):
+  ours/CMakeLists.txt:16 (find_package)
+
+
+CMake Error at /home/smallhuazi/Applications/CLion-2024.2.3/clion-2024.2.3/bin/cmake/linux/x64/share/cmake-3.29/Modules/FindPackageHandleStandardArgs.cmake:230 (message):
+  Could NOT find Boost (missing: Boost_INCLUDE_DIR intrusive align) (Required
+  is at least version "1.82")
+Call Stack (most recent call first):
+  /home/smallhuazi/Applications/CLion-2024.2.3/clion-2024.2.3/bin/cmake/linux/x64/share/cmake-3.29/Modules/FindPackageHandleStandardArgs.cmake:600 (_FPHSA_FAILURE_MESSAGE)
+  /home/smallhuazi/Applications/CLion-2024.2.3/clion-2024.2.3/bin/cmake/linux/x64/share/cmake-3.29/Modules/FindBoost.cmake:2393 (find_package_handle_standard_args)
+  ours/CMakeLists.txt:16 (find_package)
+
+
+-- Configuring incomplete, errors occurred!
