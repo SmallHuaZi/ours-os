@@ -18,6 +18,8 @@ namespace ustl {
     template <typename T>
     using Option = std::optional<T>;
 
+    constexpr auto NONE = std::nullopt;
+
 } // namespace ustl
 
 #endif // #ifndef USTL_OPTION_HPP

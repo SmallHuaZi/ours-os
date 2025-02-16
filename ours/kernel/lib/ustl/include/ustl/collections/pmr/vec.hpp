@@ -9,11 +9,11 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
-#include <boost/container/vector.hpp>
 #ifndef USTL_COLLECTIONS_PMR_VEC_HPP
 #define USTL_COLLECTIONS_PMR_VEC_HPP 1
 
 #include <boost/container/pmr/vector.hpp>
+#include <ustl/collections/pmr/memory_resource.hpp>
 
 namespace ustl::collections::pmr {
     template <typename T>

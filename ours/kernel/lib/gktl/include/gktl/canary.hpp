@@ -10,16 +10,14 @@
 ///
 
 #ifndef GKTL_CANARY_HPP
-#define GKTL_CANARY_HPP
+#define GKTL_CANARY_HPP 1
 
-#include <ours/types.hpp>
-#include <ours/config.hpp>
-
+#include <ours/assert.hpp>
+#include <ustl/config/types.hpp>
 #include <ustl/traits/char_traits.hpp>
 
 namespace gktl {
-    CXX20_CONSTEVAL
-    auto magic(char const *literal) -> ours::u32
+    consteval auto magic(char const *literal) -> ustl::u32
     {
         auto const n = ustl::traits::CharTraits<char>::length(literal);
         auto res = 0;
@@ -29,20 +27,19 @@ namespace gktl {
         return res;
     }
 
-    template <ours::u32 Magic>
+    template <ustl::u32 Magic>
     struct Canary
     {
-        CXX11_CONSTEXPR
-        Canary()
+        constexpr Canary()
             : magic_(Magic)
         {}
 
         auto verify() const -> void
         {
-            this->magic_ == Magic;
+            DEBUG_ASSERT(this->magic_ == Magic, "");
         }
 
-        ours::u32 const magic_;
+        uint32_t const magic_;
     };
 
 } // namespace gktl

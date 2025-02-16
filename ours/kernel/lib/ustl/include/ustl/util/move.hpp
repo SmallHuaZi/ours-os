@@ -18,17 +18,17 @@
 namespace ustl {
     template <typename T>
     USTL_FORCEINLINE USTL_CONSTEXPR 
-    traits::RemoveRefT<T> &&move(T &&lr) USTL_NOEXCEPT
+    auto move(T &&lr) USTL_NOEXCEPT -> traits::RemoveRefT<T> &&
     { return static_cast<typename traits::RemoveRefT<T> &&>(lr); }
 
     template <typename T>
     USTL_FORCEINLINE USTL_CONSTEXPR 
-    T &&forward(T &lr) USTL_NOEXCEPT
+    auto forward(traits::RemoveRefT<T> &lr) USTL_NOEXCEPT -> T &&
     { return static_cast<T &&>(lr); }
 
     template <typename T>
     USTL_FORCEINLINE USTL_CONSTEXPR 
-    T &&forward(T &&rr) USTL_NOEXCEPT
+    auto forward(traits::RemoveRefT<T> &&rr) USTL_NOEXCEPT -> T &&
     { return static_cast<T &&>(rr); }   
         
 } // namespace ustl

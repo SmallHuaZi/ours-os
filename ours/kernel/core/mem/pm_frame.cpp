@@ -1,7 +1,7 @@
 #include <ours/mem/pm_frame.hpp>
 
-#include <ggktl/counter.hpp>
+#include <gktl/counter.hpp>
 
 namespace ours::mem {
-    GKTL_COUNTER(each_role_frames_counter, )
+    GKTL_COUNTER(EACH_ROLE_FRAMES_COUNTER, )
 }

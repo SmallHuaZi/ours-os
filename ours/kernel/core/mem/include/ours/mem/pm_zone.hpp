@@ -16,71 +16,78 @@
 #include <ours/mem/pm_frame.hpp>
 #include <ours/mem/frame_cache.hpp>
 
-#include <ours/status.hpp>
-
 #include <ustl/sync/atomic.hpp>
 #include <ustl/sync/mutex.hpp>
 #include <ustl/sync/lockguard.hpp>
 #include <ustl/collections/array.hpp>
-#include <ustl/collections/intrusive/list.hpp>
+#include <ustl/collections/intrusive/slist.hpp>
 
 #include <gktl/range.hpp>
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
-    class alignas(16) PmZone
+    /// `PmZone` describes a memory zone with a specific responsibility and 
+    /// serves as the core component of the page frame allocator.
+    class PmZone
     {
         typedef PmZone     Self;
     public:
-        enum Types: usize;
-
         CXX11_CONSTEXPR
-        static usize const MAX_FRAME_ORDER = 11;
+        static usize const MAX_PCPU_FRAME_ORDER = 3;
 
-        PmZone(char const *name);
-
-        auto init(NodeId nid, ustl::views::Span<MemRegion> const &ranges) -> void;
+        auto init(NodeId nid, ZoneType ztype, Pfn start_pfn, Pfn end_pfn, usize present_frames = 0) -> void;
 
         auto contains(usize order) -> bool;
 
-        auto alloc_frame(usize order = 0) -> PmFrame *;
+        /// Allocate a frame whose order equals to |order|
+        ///
+        /// Assumptions:
+        ///     1) |order| must be lesser than `MAX_FRAME_ORDER`.
+        auto alloc_frame(Gaf gaf, usize order = 0) -> PmFrame *;
 
-        auto free_frame(PmFrame *frame) -> Status;
-
-        auto attach_range(gktl::Range<Pfn> range) -> Status;
-
-        auto detach_range(gktl::Range<Pfn> range) -> Status;
+        auto free_frame(PmFrame *frame, usize order = 0) -> void;
 
         auto find_frame(usize order) -> PmFrame *;
 
-        auto present_frames() const -> usize
+        auto which_node() const -> NodeId
+        {  return nid_;  }
+
+        auto present_frames() const volatile -> usize
         {  return this->present_frames_;  }
 
-        auto managed_frames() const -> usize
+        auto managed_frames() const volatile -> usize
         {  return this->managed_frames_;  }
 
-        auto spanned_frames() const -> usize
+        auto spanned_frames() const volatile -> usize
         {  return this->spanned_frames_;  }
 
-        auto reserved_frames() const -> usize
+        auto reserved_frames() const volatile -> usize
         {  return this->reserved_frames_;  }
 
     private:
-        auto alloc_frame_locked(usize order) -> PmFrame *;
+        FORCE_INLINE
+        static auto is_order_within_pcpu_cache_limit(usize order) -> bool
+        {  return order < MAX_PCPU_FRAME_ORDER;  }
 
-        auto alloc_frame_inner(usize order) -> PmFrame *;
+        auto init_frame_cache() -> void;
 
-        auto free_frame_locked(PmFrame *) -> Status;
+        auto remove_frame_from_free_list(PmFrame *frame, usize order) -> void;
 
-        auto release_frame_locked(PmFrame *, usize order) -> void;
+        auto remove_and_split_frame(PmFrame *frame, usize src_order, usize dst_order) -> void;
 
-        ai_unsafe auto attach_range_unchecked(gktl::Range<Pfn> range) -> Status;
+        auto merge_frame(PmFrame *frame, usize order) -> usize;
 
-        ai_unsafe auto detach_range_unchecked(gktl::Range<Pfn> range) -> Status;
-    
-        ai_unsafe auto attach_range_locked(gktl::Range<Pfn> range) -> Status;
+        auto expand_frame(PmFrame *frame, usize low_order, usize high_order) -> void;
 
-        ai_unsafe auto detach_range_locked(gktl::Range<Pfn> range) -> Status;
+        auto take_frame_from_free_list_locked(usize order) -> PmFrame *;
+        auto take_frame_from_free_list(usize order) -> PmFrame *;
+
+        auto place_frame_to_free_list_locked(PmFrame *frame, usize order) -> void;
+        auto place_frame_to_free_list(PmFrame *frame, usize order) -> void;
+
+        auto free_single_frame(PmFrame *frame, Pfn pfn, usize order) -> void;
+        auto free_large_frame_block(PmFrame *frame, Pfn pfn, usize order) -> void;
+        auto free_frame_inner(PmFrame *frame, Pfn pfn, usize order) -> void;
 
     protected:
         friend class PmNode;
@@ -107,36 +114,12 @@ namespace ours::mem {
 
         ustl::sync::AtomicUsize reserved_frames_;
 
-        ustl::sync::Mutex mutex_;
+        ai_percpu FrameCache *frame_cache_;
 
-        FrameCache minimum_frame_cache_;
+        ustl::sync::Mutex mutex_;
 
         ustl::collections::Array<FrameList<>, MAX_FRAME_ORDER> free_list_;
     };
-
-    inline auto PmZone::attach_range(gktl::Range<Pfn> range) -> Status
-    {
-        ustl::sync::LockGuard<decltype(mutex_)> lock(mutex_);
-        return this->attach_range_locked(range);
-    }
-
-    inline auto PmZone::detach_range(gktl::Range<Pfn> range) -> Status
-    {
-        ustl::sync::LockGuard<decltype(mutex_)> lock(mutex_);
-        return this->detach_range_locked(range);
-    }
-
-    inline auto PmZone::alloc_frame(usize order) -> PmFrame *
-    {
-        ustl::sync::LockGuard<decltype(mutex_)> lock(mutex_);  
-        return this->alloc_frame_locked(order);
-    }
-
-    inline auto PmZone::free_frame(PmFrame *frame) -> Status
-    {
-        ustl::sync::LockGuard<decltype(mutex_)> lock(mutex_);  
-        return this->free_frame_locked(frame);
-    }
 
 } // namespace ours::mem
 

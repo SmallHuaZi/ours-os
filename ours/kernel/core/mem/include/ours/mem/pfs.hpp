@@ -12,54 +12,104 @@
 #ifndef OURS_MEM_PF_FLAGS_HPP
 #define OURS_MEM_PF_FLAGS_HPP 1
 
-#include <ours/types.hpp>
-#include <ours/config.hpp>
+#include <ours/mem/types.hpp>
+#include <ours/mem/constant.hpp>
 #include <ours/marco_abi.hpp>
 
-#include <ustl/traits/underlying.hpp>
+#include <ustl/bit.hpp>
 #include <ustl/util/enum_bits.hpp>
 
 namespace ours::mem {
-    /// Physical frame states
-    enum class Pfs: u64 {
-        // The following fields indicate the role a PmFrame is playing (occuppied 6 bits)
-        Io = BIT(0),
+namespace pfns {
+    /// `PfStates` is a shorthand of physical frame states.
+    enum PfStatesBits {
+        ActiveBit = NR_ZONES_PER_NODE_BITS + MAX_NODES_BITS,
+        PinnedBit,
+        DirtyBit,
+        UpToDateBit,
+        ForeignBit,
+        BeingWaitingBit,
+        FolioBit,
+        ReclaimableBit,
+        MaxNumPfsBits,
+    };
+    CXX11_CONSTEXPR
+    static usize const PFSTATES_BITS = ustl::bit_width<usize>(MaxNumPfsBits);
+
+    enum PfStates: usize {
+        Active   = BIT(ActiveBit),
+        Pinned   = BIT(PinnedBit),
+        Dirty    = BIT(DirtyBit),
+        UpToDate = BIT(UpToDateBit),
+        Foreign  = BIT(ForeignBit),
+    };
+    USTL_ENABLE_ENUM_BITS(PfStates);
+
+    enum PfRole: usize {
+        Io = BIT(MaxNumPfsBits),
         Lru,
         Mmu,
+        Pmm,
         Heap,
-        RoleMask = BIT_RANGE(0, 6),
-
-        // The following fields point out the type of the current descriptor (occuppied 1 bits).
-        Frame = BIT(6),
-        Folio,
-        TypeMask = BIT_RANGE(6, 7),
-
-        // Zone index occupied 4 bits, mask as BIT_RANGE(7, 11)
-        // Node index occupied 9 bits, mask as BIT_RANGE(11, 20)
-
-        // The following fields point out the states of a PmFrame (occupping 16 bits)
-        Dirty  = BIT(20),
-        Status  = BIT(21),
-        Cache  = BIT(22),
-        Active = BIT(23),
-        Pinned = BIT(24),
-        Shared = BIT(25),
+        MaxNumPfRole,
     };
-    USTL_ENABLE_ENUM_BITS(Pfs);
+    CXX11_CONSTEXPR
+    static usize const PFROLE_BITS = ustl::bit_width<usize>(MaxNumPfRole);
 
-    CXX11_CONSTEXPR 
-    static inline auto zone_index(Pfs flags) -> usize 
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto get_role(usize flags) -> PfRole
     {
-        typedef ustl::traits::UnderlyingTypeT<Pfs> Value;
-        return (static_cast<Value>(flags) & BIT_RANGE(7, 11)) >> 7;
-    };
+        CXX11_CONSTEXPR
+        auto const rolbootmemsk = BIT_RANGE(MaxNumPfsBits, PFROLE_BITS);
+        return PfRole(flags & rolbootmemsk);
+    }
 
-    CXX11_CONSTEXPR 
-    static inline auto node_index(Pfs flags) -> usize 
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto set_role(usize &flags, PfRole role) -> void
     {
-        typedef ustl::traits::UnderlyingTypeT<Pfs> Value;
-        return (static_cast<Value>(flags) & BIT_RANGE(11, 20)) >> 11;
-    };
+        CXX11_CONSTEXPR
+        auto const rolbootmemsk = BIT_RANGE(MaxNumPfsBits, PFROLE_BITS);
+        flags &= ~rolbootmemsk; 
+        flags |= role;
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto get_zone_type(usize flags) -> ZoneType
+    {
+        CXX11_CONSTEXPR
+        auto const ztmask = BIT_RANGE(MAX_NODES_BITS, MAX_NODES_BITS + NR_ZONES_PER_NODE_BITS);
+        return ZoneType((flags & ztmask) >> MAX_NODES_BITS);
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto set_zone_type(usize &flags, ZoneType type) -> void 
+    {
+        CXX11_CONSTEXPR
+        auto const ztmask = BIT_RANGE(MAX_NODES_BITS, MAX_NODES_BITS + NR_ZONES_PER_NODE_BITS);
+        flags &= ~ztmask;
+        flags |= type << MAX_NODES_BITS;
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto get_node_id(usize flags) -> NodeId 
+    {
+        CXX11_CONSTEXPR
+        auto const nidmask = BIT_RANGE(0, MAX_NODES_BITS);
+        return NodeId(flags & nidmask);
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto set_node_id(usize &flags, NodeId nid) -> void 
+    {
+        CXX11_CONSTEXPR
+        auto const nidmask = BIT_RANGE(0, MAX_NODES_BITS);
+        flags &= ~nidmask;
+        flags |= nid;
+    }
+
+} // namespace ours::mem::pfns
+    typedef pfns::PfStates      PfStates;
+    typedef pfns::PfRole        PfRole;
 
 } // namespace ours::mem
 

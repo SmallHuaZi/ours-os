@@ -17,18 +17,33 @@
 #include <ustl/collections/array.hpp>
 
 namespace ours::mem {
-    class FrameQueue 
+    class FrameQueue
     {
     public:
         CXX11_CONSTEXPR
-        static auto const MAX_NR_LRUS = 8;
+        static usize const NR_RECLAIM_QUEUES = 8;
+
+        auto set_pinned(PmFrame *frame) -> void;
+        auto set_anonymous(PmFrame *frame) -> void;
+        auto set_reclaimable(PmFrame *frame) -> void;
+
+        auto mark_accessed(PmFrame *frame) -> void;
 
     private:
-        /// Defines a atomic-sized linked list.
-        ustl::collections::Array<FrameList<>, MAX_NR_LRUS> frame_lists_;
+        enum QueueType {
+            None,
+            Anonymous,
+            Pinned,
+            ReclaimableStart,
+            ReclaimableEnd = ReclaimableStart + NR_RECLAIM_QUEUES - 1,
+            MaxNumQueues,
+        };
 
-        ustl::sync::AtomicUsize   lru_gen_;
-        ustl::sync::AtomicUsize   mru_gen_;
+        using QueueImpl = FrameList<ustl::collections::intrusive::SizeType<ustl::sync::AtomicUsize>>;
+        ustl::collections::Array<QueueImpl, MaxNumQueues> queues;
+
+        ustl::sync::AtomicU32   lrugen;
+        ustl::sync::AtomicU32   mrugen;
     };
 
 } // namespace ours::mem

@@ -1,4 +1,4 @@
-#include <ours/early.hpp>
+#include <ours/init.hpp>
 #include <ours/console.hpp>
 
 namespace ours {
@@ -55,7 +55,7 @@ namespace ours {
         }
     }
 
-    EARLY_CODE
+    INIT_CODE
     auto EarlyConsole::print(Color back, Color fore, char c) -> void
     {
         if (c == '\n' || c == '\r' || xpos_ >= COLUMNS) {
@@ -81,10 +81,10 @@ namespace ours {
         print(default_background_, default_foreground_, c);
     }
 
-    EARLY_DATA 
+    INIT_DATA 
     static EarlyConsole S_EARLY_CONSOLE;
 
-    EARLY_DATA 
+    INIT_DATA 
     Console *G_EARLY_CONSOLE = &S_EARLY_CONSOLE;
 
     auto cls() -> void

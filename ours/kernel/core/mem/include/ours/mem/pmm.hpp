@@ -18,32 +18,36 @@
 
 #include <ours/status.hpp>
 
-namespace ours::mem {
-    [[nodiscard("alloc_frames(): Ignoring the return value will lead to memory leaks.")]] 
-    auto alloc_frame(Gaf flags, usize order = 0) -> PmFrame *;
+#define ALLOC_NODISCARD(FUNC) \
+[[nodiscard(#FUNC "(): Ignoring the return value will lead to memory leaks.")]] 
 
-    [[nodiscard("alloc_frames(): Ignoring the return value will lead to memory leaks.")]] 
-    auto alloc_frame(GafPolicy policy, Gaf flags, usize order = 0) -> PmFrame *;
+namespace ours::mem {
+    ALLOC_NODISCARD(alloc_frame)
+    auto alloc_frame(Gaf flags, usize order = 0) -> PmFrame *;
 
     /// Assumptions:
     ///     1) `addr` is not null.
-    [[nodiscard("alloc_frames(): Ignoring the return value will lead to memory leaks.")]] 
+    ALLOC_NODISCARD(alloc_frame)
     auto alloc_frame(Gaf flags, ai_out PhysAddr *addr, usize order = 0) -> PmFrame *;
 
-    [[nodiscard("alloc_frames(): Ignoring the return value will lead to memory leaks.")]] 
+    ALLOC_NODISCARD(alloc_frame_on_node)
     auto alloc_frame_on_node(NodeId id, Gaf flags, usize order = 0) -> PmFrame *;
 
-    auto free_frame(PmFrame *frame) -> Status;
+    auto free_frame(PmFrame *frame, usize order = 0) -> void;
 
-    /// Allocate `n` frames of memory and store them in the provided list.
+    auto free_frame(VirtAddr virt_addr, usize order = 0) -> void;
+
+    /// Allocate `n` frames of memory and store them in the given list.
     auto alloc_frames(Gaf flags, ai_out FrameList<> *list, usize n) -> Status;
 
-    auto free_frames(FrameList<> *list) -> Status;
+    auto free_frames(FrameList<> *list) -> void;
 
     auto pin_frame(PmFrame *frame) -> Status;
 
     auto unpin_frame(PmFrame *frame) -> Status;
 
 } // namespace ours::mem
+
+#undef ALLOC_NODISCARD
 
 #endif // #ifndef OURS_MEM_PMM_HPP

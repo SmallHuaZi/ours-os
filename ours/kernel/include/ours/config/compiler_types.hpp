@@ -1,6 +1,0 @@
-#ifndef OURS_KERNEL_LIB_CONFIG_H_
-#define OURS_KERNEL_LIB_CONFIG_H_ 1
-
-
-
-#endif // #ifndef OURS_KERNEL_LIB_CONFIG_H_

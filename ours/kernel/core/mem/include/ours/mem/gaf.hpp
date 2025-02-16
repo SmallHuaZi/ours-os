@@ -12,79 +12,72 @@
 #ifndef OURS_MEM_FLAGS_HPP
 #define OURS_MEM_FLAGS_HPP
 
-#include <ours/mem/constant.hpp>
-#include <ours/mem/memory_priority.hpp>
+#include <ours/mem/types.hpp>
+#include <ours/marco_abi.hpp>
 
 #include <ustl/util/enum_bits.hpp>
 
 namespace ours::mem {
-    /// `Gaf` is a shordhand of getting available frame flags.
+namespace gafns {
+    enum GafBits: usize {
+        DmaBit,
+        Dma32Bit,
+        ZoneRangeBit,
+        RequiredBit,
+        OnlyThisNodeBit,
+        NeverFailBit,
+        ZeroFrameBit,
+        ReclaimBit,
+        DirectlyReclaimBit,
+    };
+
+    /// `Gaf` is a shordhand of getting available frame.
     ///
-    /// The lowest 6 bits act as explantation of 
-    /// the way of a frame to be used, so it must be equal to 'PfFlags'. 
-    ///
-    /// The other bits will be used to provide more details about a allocation.
-    ///
-    enum class Gaf: u64 {
-        // __* is pre-defined member, please do not use.
+    enum Gaf: usize {
+        Dma             = BIT(DmaBit),
+        Dma32           = BIT(Dma32Bit),
+        ZoneRange       = BIT(ZoneRangeBit),
 
-        // First two bits are used to code information about priority of zone
-        __FirstBitOfFramePriority,
-        __LastBitOfFramePriority,
-        // Then five bits are used to code infomation about node id.
-        __FirstBitOfNodeId,
-        __LastBitOfNodeId = 5 + __LastBitOfFramePriority,
-        __FirstBitOfControlFlags,
-        __RequiredBit = __FirstBitOfControlFlags,
-        __OnlyThisNodeBit,
-        __RetryUntilBit,
-        __ContiguousBit,
-        __UniqueFrameBit,
-        __ReclaimBit,
-        __LastBitOfControlFlags = __ReclaimBit,
+        Required        = BIT(RequiredBit),
+        OnlyThisNode    = BIT(OnlyThisNodeBit),
+        NeverFail       = BIT(NeverFailBit),
+        ZeroFrame       = BIT(ZeroFrameBit),
 
-        /// 
-        __NrBitsOfFramePriority = __LastBitOfFramePriority - __FirstBitOfFramePriority + 1,
-        __NrBitsOfNodeId = __LastBitOfNodeId - __FirstBitOfNodeId + 1,
+        /// In process of an allocation, it indicates `PMM` under memory pressure
+        /// that it could enable the back-side thread to reclaim frames and sleep
+        /// applicant's thread to avoid wasting CPU time.
+        Reclaim         = BIT(ReclaimBit),
 
-        /// Interface fields.
-        Required     = BIT(__RequiredBit),
-        OnlyThisNode = BIT(__OnlyThisNodeBit),
-        RetryUntil   = BIT(__RetryUntilBit),
-        Contiguous   = BIT(__ContiguousBit),
-        UniqueFrame  = BIT(__UniqueFrameBit),
-
-        /// If the remaining and available memory is not enough for the request of user, 
-        /// this bit-flag allows the PMM to reclaim memory from lru list. 
-        Reclaim     = BIT(__ReclaimBit),
+        /// Allow `PMM` to directly reclaim frames under certain memory pressure,
+        /// meaning that the process of reclaim is linear so the applicant does not
+        /// wait through sleeping.
+        DirectlyReclaim = BIT(DirectlyReclaimBit),
     };
     USTL_ENABLE_ENUM_BITS(Gaf);
 
-    typedef ustl::traits::UnderlyingTypeT<Gaf>  GafVal;
-
-    static_assert(usize(Gaf::__LastBitOfControlFlags) <= 32, "");
-
     FORCE_INLINE CXX11_CONSTEXPR
-    static auto gaf_get_frame_priority(Gaf gaf) -> MemoryPriority 
+    static auto zone_type(Gaf gaf) -> ZoneType
     {
+        // ZONE_SHIFT 
         CXX11_CONSTEXPR
-        auto const shift = GafVal(Gaf::__FirstBitOfFramePriority);
+        auto const GAF_ZONE_SHIFT = MAX_ZONES_BITS - 1;
 
         CXX11_CONSTEXPR
-        auto const mask = (1 << GafVal(Gaf::__NrBitsOfFramePriority)) - 1;
-        return MemoryPriority((static_cast<GafVal>(gaf) << shift) & mask);
+        auto const GAF_ZONE_MASK = Gaf::Dma | Gaf::Dma32;
+
+        CXX11_CONSTEXPR
+        Gaf const ZONE_TABLE {
+            BIT(Gaf::Dma * GAF_ZONE_SHIFT)   |
+            BIT(Gaf::Dma32 * GAF_ZONE_SHIFT)
+        };
+
+        auto const bits = gaf & GAF_ZONE_MASK;
+        auto zone = ZONE_TABLE >> (bits * GAF_ZONE_SHIFT);
+        return ZoneType((1 << bits) - 1);
     }
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto gaf_get_node_id(Gaf gaf) -> NodeId 
-    {
-        CXX11_CONSTEXPR
-        auto const shift = GafVal(Gaf::__FirstBitOfNodeId);
-
-        CXX11_CONSTEXPR
-        auto const mask = (1 << GafVal(Gaf::__NrBitsOfNodeId)) - 1;
-        return NodeId((static_cast<GafVal>(gaf) << shift) & mask);
-    }
+} // namespace ours::mem::gafns
+    typedef gafns::Gaf        Gaf;
 
     CXX11_CONSTEXPR
     static auto const GAF_BOOT = Gaf::OnlyThisNode;

@@ -12,16 +12,12 @@
 #ifndef GKTL_STATIC_OBJECTS_HPP
 #define GKTL_STATIC_OBJECTS_HPP 1
 
-#include <ours/config.hpp>
-#include <ours/early.hpp>
+#include <ours/init.hpp>
 
 namespace gktl {
-    typedef void (*Ctor)();
-    NO_MANGLE Ctor const CTORS_START[];
-    NO_MANGLE Ctor const CTORS_END[];
-
-    /// `init_static_objects` is called only once.
-    EARLY_CODE
+    /// Initialize all static life-cycles objects.
+    /// Defined in file static_objects.cpp
+    INIT_CODE
     auto init_static_objects() -> void;
 
 } // namespace gktl

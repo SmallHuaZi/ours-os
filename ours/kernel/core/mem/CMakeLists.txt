@@ -18,7 +18,11 @@ add_library(ours::kernel::mem::headers ALIAS ours_kernel_mem_headers)
 target_include_directories(ours_kernel_mem_headers
 INTERFACE
     "include"
+)
+target_link_libraries(ours_kernel_mem_headers
+INTERFACE
     ours::kernel::common::headers
+    ours::kernel::lib::kmrd::headers
 )
 
 add_library(ours_kernel_mem INTERFACE)
@@ -29,5 +33,5 @@ INTERFACE
 )
 target_link_libraries(ours_kernel_mem
 INTERFACE
-    ours::kernel::mem::headers
+    ours::kernel::lib::kmrd
 )

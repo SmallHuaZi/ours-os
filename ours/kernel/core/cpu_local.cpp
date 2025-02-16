@@ -1,31 +1,20 @@
 #include <ours/cpu_local.hpp>
-#include <ours/mem/mod.hpp>
+#include <ours/mem/early.hpp>
 
-#include <ustl/math/log.hpp>
-#include <ustl/mem/align.hpp>
-
-#include <logz4/log.hpp>
-
-using ustl::mem::align_up;
+#include <arch/cache.hpp>
 
 namespace ours {
-    auto gktl::CpuLocal::init(CpuId id) -> Status
+    auto CpuLocal::init(CpuId cpuid) -> Status
     {
-        if (id == BOOT_CPU_ID) {
-            CPU_LOCAL_MAP[BOOT_CPU_ID] = CPU_LOCAL_START;
-        } else [[likely]] {
-            auto const size_unaligned = CPU_LOCAL_END - CPU_LOCAL_START;
-            auto const nr_frames = align_up(size_unaligned, mem::FRAME_SIZE) / mem::FRAME_SIZE;
-
-            mem::FrameList<> frame_list;
-            if (Status::Ok != mem::alloc_frames(mem::GAF_KERNEL, &frame_list, nr_frames)) {
-                return Status::OutOfMem;
-            }
-
-            log::debug("CPU-local variables on CPU {} located [{}, {}]PM", id);
+        if (cpuid._0 == BOOT_CPU_ID._0) {
+            return Status::Ok;
         }
 
+        auto const area_size = Self::CPU_LOCAL_END - Self::CPU_LOCAL_START;
+        if (auto local_area_start = mem::EarlyMem::allocate<char>(area_size, arch::CACHE_SIZE)) {
+            Self::CPU_LOCAL_OFFSET[cpuid._0] = local_area_start - Self::CPU_LOCAL_START;
+        }
         return Status::Ok;
     }
 
-} // namespace ours
+} // namespace gktl

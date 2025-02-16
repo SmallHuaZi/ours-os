@@ -63,12 +63,12 @@ namespace ustl {
 
         USTL_FORCEINLINE USTL_CONSTEXPR
         Result(Ok<T> &&ok) USTL_NOEXCEPT
-            : storage_(Inplace<Element>(), ustl::forward(ok.value_))
+            : storage_(Inplace<Element>(), ustl::forward<Element>(ok.value_))
         {}
 
         USTL_FORCEINLINE USTL_CONSTEXPR
         Result(Err<E> &&err) USTL_NOEXCEPT
-            : storage_(Inplace<Error>(), ustl::forward(err.error_))
+            : storage_(Inplace<Error>(), ustl::forward<Error>(err.error_))
         {}
 
         auto is_ok() const -> bool
@@ -234,14 +234,14 @@ namespace ustl {
 
     template <typename T>
     USTL_FORCEINLINE USTL_CONSTEXPR
-    auto ok(T &&t) -> Ok<T>
-    {  return Ok<T>(ustl::forward(t));  }
+    auto ok(T t) -> Ok<T>
+    {  return Ok<T>(ustl::forward<T>(t));  }
 
     template <typename E>
     USTL_FORCEINLINE USTL_CONSTEXPR
-    auto err(E const &e) -> Err<E>
-    {  return Err<E>(ustl::forward(e));  }
+    auto err(E e) -> Err<E>
+    {  return Err<E>(ustl::forward<E>(e));  }
 
-} // namespace ours
+} // namespace ustl 
 
 #endif // #ifndef USTL_RESULT_HPP

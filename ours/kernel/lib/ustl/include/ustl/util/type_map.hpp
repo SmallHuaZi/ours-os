@@ -22,33 +22,33 @@ namespace type_map {
     };
 
     template <typename Key, typename Val>
-    using TypeMapEntry = Entry<KeyValPair<Key, Val>>;
+    using TypbootmempEntry = Entry<KeyValPair<Key, Val>>;
 
     template <typename... Entries>
-    struct TypeMapImpl;
+    struct TypbootmempImpl;
 
     // Specilization for correct usage.
     template <typename... KvPairs>
-    struct TypeMapImpl<Entry<KvPairs>...>
+    struct TypbootmempImpl<Entry<KvPairs>...>
     {};
 
     template <typename... KvPairs>
-    using TypeMap = TypeMapImpl<Entry<KvPairs>...>;
+    using Typbootmemp = TypbootmempImpl<Entry<KvPairs>...>;
 
     template <usize I, typename T>
     struct IndexEntry;
 
     template <typename T, typename... KvPairs>
-    struct IndexEntry<0, TypeMap<T, KvPairs...>>
+    struct IndexEntry<0, Typbootmemp<T, KvPairs...>>
     { 
         typedef T       Type; 
     }; 
 
     template <usize I, typename T, typename... KvPairs>
-    struct IndexEntry<I, TypeMap<T, KvPairs...>>
+    struct IndexEntry<I, Typbootmemp<T, KvPairs...>>
     { 
         static_assert(sizeof...(KvPairs) + 1 != 0, "[ustl-error] Unsupport empty types map.\n"); 
-        typedef typename IndexEntry<I - 1, TypeMap<KvPairs...>>::Type   
+        typedef typename IndexEntry<I - 1, Typbootmemp<KvPairs...>>::Type   
             Type;
     };
 
@@ -58,7 +58,7 @@ namespace type_map {
     struct FindImpl;
 
     template <typename Key, typename KvPair>
-    struct FindImpl<0, Key, TypeMap<KvPair>>
+    struct FindImpl<0, Key, Typbootmemp<KvPair>>
     {
         typedef typename KvPair::KeyType    CurrentKey;
 
@@ -71,7 +71,7 @@ namespace type_map {
     };
 
     template <usize I, typename Key, typename KvPair, typename... KvPairs>
-    struct FindImpl<I, Key, TypeMap<KvPair, KvPairs...>>
+    struct FindImpl<I, Key, Typbootmemp<KvPair, KvPairs...>>
     {
         typedef typename KvPair::KeyType    CurrentKey;
 
@@ -79,7 +79,7 @@ namespace type_map {
         <
             traits::IsSameV<Key, CurrentKey>, 
             typename KvPair::ValType,
-            typename FindImpl<I - 1, Key, TypeMap<KvPairs...>>::Type
+            typename FindImpl<I - 1, Key, Typbootmemp<KvPairs...>>::Type
         > Type;
     };
 
@@ -87,9 +87,9 @@ namespace type_map {
     struct Find;
 
     template <typename Key, typename... KvPairs>
-    struct Find<TypeMap<KvPairs...>, Key>
+    struct Find<Typbootmemp<KvPairs...>, Key>
     {
-        typedef typename FindImpl<sizeof...(KvPairs) - 1, Key, TypeMap<KvPairs...>>::Type
+        typedef typename FindImpl<sizeof...(KvPairs) - 1, Key, Typbootmemp<KvPairs...>>::Type
             Type;
     };
 
@@ -97,9 +97,9 @@ namespace type_map {
     struct ContainsKey;
 
     template <typename Key, typename... KvPairs>
-    struct ContainsKey<TypeMap<KvPairs...>, Key>
+    struct ContainsKey<Typbootmemp<KvPairs...>, Key>
     {
-        typedef typename Find<TypeMap<KvPairs...>, Key>::Type    FoundType;
+        typedef typename Find<Typbootmemp<KvPairs...>, Key>::Type    FoundType;
 
         USTL_CONSTEXPR
         static auto const VALUE = !traits::IsSameV<NotFound, FoundType>;
@@ -121,13 +121,13 @@ namespace test {
     struct AnonymousKey4;
     struct AnonymousVal4;
 
-    typedef TypeMap
+    typedef Typbootmemp
     <
-        TypeMapEntry<AnonymousKey0, AnonymousVal0>,
-        TypeMapEntry<AnonymousKey1, AnonymousVal1>,
-        TypeMapEntry<AnonymousKey2, AnonymousVal2>,
-        TypeMapEntry<AnonymousKey3, AnonymousVal3>,
-        TypeMapEntry<AnonymousKey4, AnonymousVal4>
+        TypbootmempEntry<AnonymousKey0, AnonymousVal0>,
+        TypbootmempEntry<AnonymousKey1, AnonymousVal1>,
+        TypbootmempEntry<AnonymousKey2, AnonymousVal2>,
+        TypbootmempEntry<AnonymousKey3, AnonymousVal3>,
+        TypbootmempEntry<AnonymousKey4, AnonymousVal4>
     > TestMap;
 
     struct AnonymousKey5;
@@ -141,10 +141,10 @@ namespace test {
 } // namespace ustl::type_map::test
 } // namespace ustl::type_map
 
-    using type_map::TypeMap;
+    using type_map::Typbootmemp;
     using type_map::Find;
     using type_map::ContainsKey;
-    using type_map::TypeMapEntry;
+    using type_map::TypbootmempEntry;
 
 } // namespace ustl
 

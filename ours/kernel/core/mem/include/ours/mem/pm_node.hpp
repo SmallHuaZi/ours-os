@@ -12,52 +12,159 @@
 #ifndef OURS_MEM_PM_NODE_HPP
 #define OURS_MEM_PM_NODE_HPP 1
 
-#include <ours/mem/pm_zone.hpp>
+#include <ours/mem/gaf.hpp>
 #include <ours/mem/node_mask.hpp>
+#include <ours/mem/gaf_policy.hpp>
 #include <ours/mem/frame_queue.hpp>
-#include <ours/mem/memory_priority.hpp>
 
 #include <ours/assert.hpp>
 #include <ours/cpu.hpp>
-#include <ours/early.hpp>
+#include <ours/init.hpp>
 #include <ours/marco_abi.hpp>
 
+#include <ustl/result.hpp>
 #include <ustl/views/span.hpp>
 #include <ustl/sync/atomic.hpp>
+#include <ustl/function/fn.hpp>
+#include <ustl/function/bind.hpp>
 #include <ustl/function/invoke.hpp>
 #include <ustl/collections/array.hpp>
+#include <ustl/collections/vec.hpp>
+#include <ustl/collections/intrusive/slist.hpp>
+#include <ustl/traits/is_same.hpp>
 #include <ustl/traits/is_invocable.hpp>
+#include <ustl/mem/address_of.hpp>
+#include <ustl/util/pair.hpp>
 
 #include <gktl/canary.hpp>
 
+#include <kmrd/damon.hpp>
+
 namespace ours::mem {
-    class ZoneListPerNode
+    using NodePath = ustl::collections::Array<NodeId, MAX_NODES>;
+
+    struct NodeStates
     {
-        typedef ZoneListPerNode   Self;
-    public:
-        typedef ustl::collections::Array<PmZone *, MAX_NR_ZONES>            ZoneList;
-        typedef ustl::collections::Array<PmZone, MAX_NR_ZONES_PER_NODE>     LocalZoneSet;
+        enum NodeStateType {
+            DmaMemory = ZoneType::Dma,
 
-        auto pick_zone(Gaf flags, usize order) -> PmZone *;
-    
-        auto pick_zone_list_by_gaf(Gaf flags) -> ZoneList *;
+            Dma32Memory = ZoneType::Dma32,
 
-    private:
-        enum ZoneListType { LocalZoneList, GlobalZoneList, ZoneListCount };
-        ZoneList zone_list_[ZoneListCount];
+            NormalMemory = ZoneType::Normal,
 
-        LocalZoneSet local_zones_;
+            // When a node created but not initialized, it's state is possible,
+            // Meaning that it become a online probablely during system runtime.
+            Possible,
+
+            // When a node created and initialized, it's state is online.
+            // Meaning that it is active in system, so the de/allocation requests
+            // on it is feasible.
+            Online,
+            MaxNumStateType,
+        };
+
+        FORCE_INLINE
+        static auto is_state(NodeId nid, NodeStateType state) -> bool
+        {  return NODE_STATES[state].test(nid);  }
+
+        FORCE_INLINE
+        static auto is_online(NodeId nid) -> bool
+        {  return is_state(nid, Online);  }
+
+        FORCE_INLINE
+        static auto is_offline(NodeId nid) -> bool
+        {  return !is_online(nid);  }
+
+        FORCE_INLINE
+        static auto is_possible(NodeId nid) -> bool
+        {  return is_state(nid, Possible);  }
+
+        FORCE_INLINE
+        static auto set_state(NodeId nid, NodeStateType state) -> void
+        {  NODE_STATES[state].set(nid);  }
+
+        FORCE_INLINE
+        static auto set_online(NodeId nid) -> void
+        {  set_state(nid, Online);  }
+
+        FORCE_INLINE
+        static auto set_offline(NodeId nid) -> void
+        {  NODE_STATES[Online].set(nid, 0);  }
+
+        FORCE_INLINE
+        static auto set_possible(NodeId nid) -> void
+        {  set_state(nid, Possible);  }
+
+        template <typename F>
+            requires ustl::traits::Invocable<F, NodeId>
+        FORCE_INLINE
+        static auto for_each_online(F &&functor)
+        {  NODE_STATES[Online].for_each(functor);  }
+
+        template <typename F>
+            requires ustl::traits::Invocable<F, NodeId>
+        FORCE_INLINE
+        static auto for_each_possible(F &&functor)
+        {  NODE_STATES[Possible].for_each(functor);  }
+
+        using Inner = ustl::collections::Array<Nodbootmemsk, MaxNumStateType>;
+        static Inner NODE_STATES;
     };
 
-    inline auto ZoneListPerNode::pick_zone_list_by_gaf(Gaf flags) -> ZoneList *
+    /// `ZoneQueues` is a helper class separated from `PmNode`, specifically 
+    /// designed to manage zones of different priorities within a node and provide 
+    /// cross-node zone access and communication capabilities.
+    struct ZoneQueues
     {
-        auto index = ZoneListType::GlobalZoneList;
-        if (bool(flags & Gaf::OnlyThisNode)) {
-            index = ZoneListType::LocalZoneList;
-        }
+        struct ZoneRef {
+            PmZone *zone;
+            ZoneType type;
+        };
+        typedef ustl::collections::Array<ZoneRef, MAX_ZONES>           GlobalQueue;
+        typedef ustl::collections::Array<ZoneRef, NR_ZONES_PER_NODE>   LocalQueue;
 
-        return &zone_list_[index];
-    }
+        static_assert(ustl::traits::IsSameV<GlobalQueue::IterMut, LocalQueue::IterMut>);
+
+        /// `Iterator` 
+        template <typename Inner>
+        struct Iterator;
+        typedef Iterator<GlobalQueue::IterMut>      IterMut;
+        typedef Iterator<GlobalQueue::RevIterMut>   RevIterMut;
+
+        enum QueueType {
+            NodeAffinity,
+            ZonePriority,
+            MaxNumGlobalQueue,
+            Local = MaxNumGlobalQueue,
+        };
+
+        ZoneQueues(NodeId nid);
+
+        auto emplace(PmZone *zone, ZoneType ztype) -> void;
+
+        auto insert_queue(LocalQueue const &queue) -> void;
+
+        auto remove(PmZone *zone) -> void;
+
+        auto local_zone(ZoneType) -> PmZone *;
+
+        auto iter(QueueType type) -> IterMut;
+
+        auto rev_iter(QueueType type) -> RevIterMut;
+
+    private:
+        template <QueueType Type>
+        auto priv_insert_queue(LocalQueue const &queue) -> void;
+
+        template <QueueType Type>
+        auto priv_remove(PmZone *zone) -> void;
+
+        NodeId nid_;
+        ustl::collections::Array<PmZone *, NR_ZONES_PER_NODE>   local_zones_;
+        ustl::collections::Array<ZoneRef, NR_ZONES_PER_NODE>    local_queue_;
+        ustl::collections::Array<ZoneRef, MAX_ZONES>            node_affinity_queue_;
+        ustl::collections::Array<PmZone *, NR_ZONES_PER_NODE, MAX_NODES> zone_priority_queue_;
+    };
 
     /// `PmNode` is a class that describes a NUMA domain.
     ///
@@ -70,70 +177,66 @@ namespace ours::mem {
     public:
         FORCE_INLINE
         static auto node(NodeId nid) -> PmNode *
-        {  return Self::ALL_NODE_LIST[nid.inner];  }
+        {  return Self::GLOBAL_NODE_LIST[nid];  }
+
+        FORCE_INLINE
+        static auto distance(NodeId x, NodeId y) -> isize
+        {  return Self::NODE_DISTANCE[x][y];  }
 
         FORCE_INLINE
         static auto distance(Self const &x, Self const &y) -> isize
-        {  return Self::NODE_DISTANCE[x.id_.inner][y.id_.inner];  }
+        {  return Self::distance(x.nid(), y.nid());  }
 
-        /// Check if the given address `addr` is been managing by physcal memory manager(PmNode)
-        static auto is_address_managed(PhysAddr addr) -> bool;
+        static auto make_optimal_path(NodeId nid, NodePath &nodepath) -> void;
 
-        template <typename Functor> 
-            requires ustl::traits::IsInvocableV<Functor, Self *>
-        static auto for_each_all_online_nodes(Functor functor) -> void;
-
-        template <typename Functor> 
-            requires ustl::traits::IsInvocableV<Functor, Self *>
-        static auto for_each_all_possible_node(Functor functor) -> void;
-
-        /// Initialize the node by 
+        /// Initialize this node. The primary task involves verifying the existence of the 
+        /// specified PFN range.
         ///
         /// Requires:
-        ///     1). `ranges` is sorted by address.
-        auto init(NodeId id) -> Status;
+        ///     1). Range [start, end) is sorted by address.
+        auto init(Pfn start, Pfn end) -> Status;
 
-        /// Attach a memory range to the node.
+        /// This allows this node to share with another node whose id is equal to |nid| its local memory.
         ///
-        /// This method is used in the HOTPLUG memory management to dynamically
-        /// add memory to a node.
-        auto attach_range(PhysAddr base, usize len, MemoryPriority = MemoryPriority::Max) -> Status;
+        auto share_with(NodeId nid) -> Status;
 
-        auto attach_range_unchecked(PhysAddr base, usize len, MemoryPriority = MemoryPriority::Max) -> Status;
+        auto alloc_frame(Gaf flags, usize order, GafPolicy *policy) -> ustl::Result<PmFrame *, Status>;
 
-        /// Detach a memory range from the node.
-        ///
-        /// This method is used in the HOTPLUG memory management to dynamically
-        /// remove memory from a node.
-        auto detach_range(PhysAddr base, usize len) -> Status;
+        auto alloc_frame(Gaf flags, usize order = 0) -> ustl::Result<PmFrame *, Status>;
 
-        auto alloc_frame(Gaf flags, usize order = 0) -> ustl::Result<PmFrame *>;
+        auto free_frame(PmFrame *frame, usize order) -> void;
 
-        auto free_frame(PmFrame *) -> Status;
+        auto alloc_frames(Gaf flags, usize n, ai_out FrameList<> *out) -> Status;
 
-        template <typename... Options>
-        auto alloc_frames(Gaf flags, usize n, ai_out FrameList<Options...> *out) -> Status;
+        auto free_frames(FrameList<> *list) -> void;
 
-        template <typename... Options>
-        auto free_frames(FrameList<Options...> *list) -> Status;
+        auto contains(usize order, ZoneType type) -> bool;
 
-        auto contains(Gaf flags, usize order) -> bool;
-
-        auto nid() -> NodeId
+        FORCE_INLINE
+        auto nid() const -> NodeId
         {  return this->id_;  }
 
-        auto gaf() -> Gaf
-        {  return this->allowed_gaf_;  }
+        FORCE_INLINE
+        auto zone_queues() -> ZoneQueues *
+        {  return &zone_queues_;  }
+
+        auto recalculate_present_frames();
+
+        PmNode(NodeId nid);
 
     private:
-        auto find_best_zone(Gaf flags, usize order) -> PmZone *;
-
-        static auto rebuild_zone_list(Self *node) -> void;
+        /// This method is marked `template` to avoid giving the concrete type in the header.
+        /// We put the implementation on source files
+        template <typename Inner>
+        auto alloc_frame_core(ZoneQueues::Iterator<Inner>, Gaf, usize) -> ustl::Result<PmFrame *, Status>;
 
     private:
         GKTL_CANARY(PmNode, canary_);
 
-        /// (NodeId) It points out which cpu the node is going on.
+        ZoneQueues zone_queues_;
+
+        Nodbootmemsk shared_nodes_;
+
         NodeId id_;
 
         Pfn start_pfn_;
@@ -147,90 +250,15 @@ namespace ours::mem {
 
         ustl::sync::AtomicUsize reserved_frames_;
 
-        Gaf allowed_gaf_;
-
         FrameQueue lru_queue_;
 
-        ZoneListPerNode zone_set_;
-        ustl::collections::Array<PmZone, MAX_NR_ZONES_PER_NODE> native_zones_;
-
-        static NodeMask ONLINE_NODE_MASK;
-        static ustl::collections::Array<PmNode *, MAX_NR_NODES> ALL_NODE_LIST;
+        using NodeList = ustl::collections::Array<PmNode *, MAX_NODES>;
+        static NodeList GLOBAL_NODE_LIST;
 
         // Th fields bottom is readonly after initializing logically.
-        static ustl::collections::Array<ustl::collections::Array<usize, MAX_NR_NODES>, MAX_NR_NODES> NODE_DISTANCE;
+        using DisMap = ustl::collections::Array<usize, MAX_NODES, MAX_NODES>;
+        static DisMap NODE_DISTANCE;
     };
-
-    template <typename Functor>
-        requires ustl::traits::IsInvocableV<Functor, PmNode *>
-    auto PmNode::for_each_all_online_nodes(Functor functor) -> void
-    {
-        auto const n = ONLINE_NODE_MASK.size();
-        for (auto i = 0; i < n; ++i) {
-            if (ONLINE_NODE_MASK[i]) {
-                ustl::function::invoke(functor, ALL_NODE_LIST[i]);
-            }
-        }
-    }
-
-    template <typename Functor> 
-        requires ustl::traits::IsInvocableV<Functor, PmNode *>
-    auto PmNode::for_each_all_possible_node(Functor functor) -> void
-    {}
-
-    template <typename... Options>
-    auto PmNode::alloc_frames(Gaf flags, usize n, ai_out FrameList<Options...> *list) -> Status
-    {
-        DEBUG_ASSERT(list != nullptr, "");
-        for (usize order = 0; n > 0; order += 1) {
-            if ((n & 1) == 0) {
-                continue;
-            }
-
-            ustl::Result<PmFrame *> frame = this->alloc_frame(flags, order);
-            if (frame) {
-                list->push_back(frame.unwrap());
-                n >>= 1;
-            } else {
-                this->free_frames(list);
-                return frame.error();
-            }
-        }
-
-        return Status::Ok;
-    }
-
-    template <typename... Options>
-    auto PmNode::free_frames(FrameList<Options...> *list) -> Status
-    {
-        for (auto first = list->begin(), last = list->end(); first != last; ++first) {
-            auto frame = std::addressof(*first);
-            free_frame(frame);
-        }
-        
-        return Status::Ok;
-    }
-
-    inline auto PmNode::is_address_managed(PhysAddr addr) -> bool
-    {
-        bool ans = false;
-        PmNode::for_each_all_online_nodes([addr, &ans] (PmNode *node) {
-            auto pfn = phys_to_pfn(addr);
-            ans |= node->start_pfn_ <= pfn && pfn < (node->start_pfn_ + node->spanned_frames_);
-        });
-
-        return ans;
-    }
-
-    inline auto PmNode::attach_range(PhysAddr base, usize len, MemoryPriority priority) -> Status
-    {
-        DEBUG_ASSERT(usize(priority) <= usize(MemoryPriority::Max));
-
-        if (Self::is_address_managed(base) || Self::is_address_managed(base + len - 1)) {
-            return Status::Fail;
-        }
-        return this->attach_range_unchecked(base, len, priority);
-    }
 
 } // namespace ours::mem
 

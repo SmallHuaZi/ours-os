@@ -31,7 +31,7 @@ namespace ustl::collections {
         typedef typename Base::reverse_iterator         RevIterMut;
         typedef typename Base::const_reverse_iterator   RevIter;
         typedef typename Base::allocator_type           AllocatorType;
-        typedef typename Base::allocator_traits         AllocatorTraits;
+        typedef typename Base::allocator_traits_t       AllocatorTraits;
 
         using Base::Base;
 

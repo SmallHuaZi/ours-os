@@ -12,19 +12,20 @@
 #ifndef OURS_MEM_INIT_HPP
 #define OURS_MEM_INIT_HPP 1
 
-#include <ours/mem/types.hpp>
-#include <ours/mem/memory_priority.hpp>
-
-#include <ours/early.hpp>
+#include <ours/init.hpp>
 #include <ours/status.hpp>
 
 #include <ustl/views/span.hpp>
 
+#include <bootmem/bootmem.hpp>
+
 #include <gktl/range.hpp>
 
 namespace ours::mem {
-    /// Perform the initialization of physical memory manager.
-    /// \p `zpis` gives out of the priority topology among non-overlapping memory 
+    /// Perform the initialization of physical memory manager. Call this function after
+    /// invoking the `setup_nodes`.
+    ///
+    /// |zpis| gives out of the priority topology among non-overlapping memory 
     /// regions. Such as the following example showed:
     ///     [0x0, 0xFFFF]           MemoryPriority::Low,
     ///     [0x10000, 0x1FFFF]      MemoryPriority::Normal,
@@ -33,15 +34,15 @@ namespace ours::mem {
     ///     [0x60000, 0x7FFFF]      MemoryPriority::Normal,
     /// But it is not required, 
     ///
-    EARLY_CODE
-    auto init_pmm(ustl::views::Span<ZonePriorityInfo> = {}) -> Status;
+    INIT_CODE
+    auto init_pmm(bootmem::IBootMem *bootmem, ustl::views::Span<Pfn> pfn = {}) -> Status;
 
     /// Perform the initialization of virtual memory manager.
-    EARLY_CODE
+    INIT_CODE
     auto init_vmm() -> Status;
 
     /// Perform the initialization of heap memory allocation.
-    EARLY_CODE
+    INIT_CODE
     auto init_heap() -> Status;
 
     enum class RemTag {
@@ -50,7 +51,7 @@ namespace ours::mem {
         Task,
         Sched,
     };
-    EARLY_CODE
+    INIT_CODE
     auto reclaim_early_memory(RemTag = RemTag::All) -> Status;
 
 } // namespace ours::mem

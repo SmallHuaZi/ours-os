@@ -2,8 +2,8 @@ add_library(ours_kernel_object_headers INTERFACE)
 add_library(ours::kernel::object::headers ALIAS ours_kernel_object_headers)
 target_sources(ours_kernel_object_headers
 INTERFACE
-    "kernel_object.hpp"
-    "thread_dispatcher.hpp"
+    "include/ours/object/kernel_object.hpp"
+    "include/ours/object/thread_dispatcher.hpp"
 )
 target_include_directories(ours_kernel_object_headers
 INTERFACE

@@ -13,8 +13,17 @@
 #ifndef OURS_PANIC_HPP
 #define OURS_PANIC_HPP 1
 
+#include <logz4/log.hpp>
+
 namespace ours {
-    auto panic(...) -> void;
+    auto panic() -> void;
+
+    template <typename... Args> 
+    auto panic(char const *fmt, Args&&... args) -> void
+    {
+        log::error(fmt, args...);
+        panic();
+    }
 
 } // namespace ours
 

@@ -18,7 +18,10 @@
 namespace ours::mem {
     class VmObjectPaged
         : public VmObject
-    {};
+    {
+    private:
+        
+    };
 
 } // namespace ours::mem
 

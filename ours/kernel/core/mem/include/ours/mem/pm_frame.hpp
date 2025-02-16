@@ -25,7 +25,7 @@ namespace ours::mem {
     {
         typedef PmFrame     Self;
     public:
-        auto set_flags(Pfs flags) -> void
+        auto set_flags(PfStates flags) -> void
         {  this->flags_ |= flags;  }
 
         auto map_count() const -> usize
@@ -35,15 +35,33 @@ namespace ours::mem {
         {  return this->reference_count_;  }
 
         auto is_active() const -> bool
-        {  return bool(flags_ & Pfs::Active);  }
+        {  return flags_ & PfStates::Active;  }
 
         auto is_pinned() const -> bool
-        {  return bool(flags_ & Pfs::Pinned);  }
+        {  return flags_ & PfStates::Pinned;  }
+
+        auto is_role(PfRole role) const -> bool
+        {  return flags_ & role;  }
+
+        auto role() -> PfRole
+        {  return pfns::get_role(flags_);  }
+
+        auto set_role(PfRole role) -> void
+        {  return pfns::set_role(flags_, role);  }
+
+        auto zone_type() -> ZoneType 
+        {  return pfns::get_zone_type(flags_);  }
+
+        auto set_zone_type(ZoneType type) -> void 
+        {  return pfns::set_zone_type(flags_, type);  }
+
+        auto node_id() -> NodeId
+        {  return pfns::get_node_id(flags_);  }
 
     private:
-        Pfs flags_;
+        usize flags_;
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
-
+        
         /// Maybe simultaneously held by multi-VmPage.
         mutable ustl::sync::AtomicU32 mapped_count_;
         mutable ustl::sync::AtomicU32 reference_count_;
@@ -51,13 +69,15 @@ namespace ours::mem {
     public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedListOptions);
     };
-
     USTL_DECLARE_LIST_TEMPLATE(PmFrame, FrameList, PmFrame::ManagedListOptions);
+    static_assert(sizeof(PmFrame) == MAX_FRAME_DESCRIPTOR_NUM_BYTES, "");
 
-    inline auto operator==(PmFrame const &x, PmFrame const &y) -> bool
+    FORCE_INLINE
+    auto operator==(PmFrame const &x, PmFrame const &y) -> bool
     {  return &x == &y;  }
 
-    inline auto operator!=(PmFrame const &x, PmFrame const &y) -> bool
+    FORCE_INLINE
+    auto operator!=(PmFrame const &x, PmFrame const &y) -> bool
     {  return &x != &y;  }
 
 } // namespace ours::mem

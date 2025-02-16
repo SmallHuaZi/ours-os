@@ -16,6 +16,8 @@
 #include <ours/config.hpp>
 #include <ours/marker.hpp>
 
+#include <ours/mem/gaf.hpp>
+
 namespace ours {
     /// `Scope<T>` is a strong type allocator designed for managing the lifetime of objects.
     /// If an object is marked as `KernelObject` or `UserObject` by the macro `OURS_IMPL_MARKER_FOR`,
@@ -42,10 +44,17 @@ namespace ours {
     struct Scope<T>
     {
         CXX23_STATIC
-        auto operator new(usize n, usize alignment = alignof(usize)) -> void *;
+        auto operator new(usize n, usize align = alignof(T)) -> void *
+        {  return operator new(n, mem::GAF_KERNEL, align);  }
+
+        CXX23_STATIC
+        auto operator new(usize n, mem::Gaf gaf, usize align = alignof(T)) -> void *;
 
         CXX23_STATIC
         auto operator delete(void *ptr) -> void;
+
+        auto raw() -> T *
+        {  return static_cast<T *>(this);  }
     };
 
     template <typename T>
@@ -57,6 +66,9 @@ namespace ours {
 
         CXX23_STATIC
         auto operator delete(void *ptr) -> void;
+
+        auto raw() -> T *
+        {  return static_cast<T *>(this);  }
     };
 
 } // namespace ours

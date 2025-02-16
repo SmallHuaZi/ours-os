@@ -12,6 +12,7 @@
 #ifndef OURS_SCHED_SCHED_OBJECT_HPP
 #define OURS_SCHED_SCHED_OBJECT_HPP
 
+#include <ours/cpu_mask.hpp>
 #include <ours/sched/sched_states.hpp>
 
 #include <ustl/collections/intrusive/any_hook.hpp>
@@ -19,11 +20,10 @@
 namespace ours::sched {
     class Scheduler;
 
-    // Classes Process, Thread and SchedGroup Derived from this class.
+    // Classes `Process`, `Thread` and `SchedGroup` Derived from this class.
     class SchedObject 
     {
         typedef SchedObject         Self;
-
     public:
         // auto state() -> State
         // {  return this->_state;  }
@@ -48,15 +48,17 @@ namespace ours::sched {
         Self        *parent_;
         Scheduler   *scheduler_;
         SchedTime    runtime_;
+        CpuMask      cpumask_;
         // State        _state;
         // LoadWeight   _weight;
-
-        ustl::collections::intrusive::AnyHook<> managed_hook_;
+        ustl::collections::intrusive::AnyMemberHook<> managed_hook_;
 
     public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOption);
     };
 
 } // namespace ours::sched
+
+#define SCHED_OBJECT_INTERFACE
 
 #endif // #ifndef OURS_CORE_TASK_SCHED_OBJECT_HPP

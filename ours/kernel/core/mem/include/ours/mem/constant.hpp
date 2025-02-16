@@ -1,4 +1,4 @@
-/// Copyright(C) 2024 smallhuazi
+// Copyright(C) 2024 smallhuazi
 ///
 /// This program is free software; you can redistribute it and/or modify
 /// it under the terms of the GNU General Public License as published
@@ -18,6 +18,8 @@
 
 #include <ours/mem/cfg.hpp>
 
+#include <ustl/bit.hpp>
+
 namespace ours::mem {
     CXX11_CONSTEXPR
     static usize const FRAME_SHIFT = OURS_CONFIG_FRAME_SHIFT;
@@ -26,16 +28,37 @@ namespace ours::mem {
     static usize const FRAME_SIZE = BIT(FRAME_SHIFT);
 
     CXX11_CONSTEXPR
+    static usize const MAX_FRAME_DESCRIPTOR_NUM_BYTES = 64;
+
+    CXX11_CONSTEXPR
     static usize const PAGE_SHIFT = FRAME_SHIFT;
 
     CXX11_CONSTEXPR
     static usize const PAGE_SIZE = BIT(PAGE_SHIFT);
 
     CXX11_CONSTEXPR 
-    static usize const MAX_NR_NODES = OURS_CONFIG_MAX_NR_NODES;
+    static usize const MAX_NODES = OURS_CONFIG_MAX_NODES;
+
+    CXX11_CONSTEXPR 
+    static usize const MAX_NODES_BITS = ustl::bit_width(MAX_NODES);
 
     CXX11_CONSTEXPR
-    static usize const MAX_NR_ZPIS = OURS_CONFIG_MAX_NR_ZPIS;
+    static usize const NR_ZONES_PER_NODE = OURS_CONFIG_NR_ZONES_PER_NODE;
+
+    CXX11_CONSTEXPR
+    static usize const NR_ZONES_PER_NODE_BITS = ustl::bit_width(NR_ZONES_PER_NODE);
+
+    CXX11_CONSTEXPR
+    static usize const MAX_ZONES = MAX_NODES * NR_ZONES_PER_NODE;
+
+    CXX11_CONSTEXPR
+    static usize const MAX_ZONES_BITS = ustl::bit_width(MAX_ZONES);
+
+    CXX11_CONSTEXPR
+    static usize const NR_FRAME_ORDERS  = OURS_CONFIG_NR_FRAME_ORDERS;
+
+    CXX11_CONSTEXPR
+    static usize const MAX_FRAME_ORDER  = NR_FRAME_ORDERS - 1;
 
 } // namespace ours::mem
 

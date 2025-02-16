@@ -59,12 +59,12 @@ namespace ustl {
               typename Allocator = mem::Allocator<T>,
               typename Size = usize>
     class RefCounter
-        : public util::EboOptimizer<Disposer>,
-          public util::EboOptimizer<Allocator>
+        : public EboOptimizer<Disposer>,
+          public EboOptimizer<Allocator>
     {
         typedef RefCounter                      Self;
-        typedef util::EboOptimizer<Disposer>    Base1;
-        typedef util::EboOptimizer<Allocator>   Base2;
+        typedef EboOptimizer<Disposer>    Base1;
+        typedef EboOptimizer<Allocator>   Base2;
         typedef ustl::sync::Atomic<Size>        AtomciSize;
 
     protected:

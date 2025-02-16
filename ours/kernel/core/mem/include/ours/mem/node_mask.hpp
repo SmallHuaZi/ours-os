@@ -12,12 +12,29 @@
 #ifndef OURS_MEM_NODE_MASK_HPP
 #define OURS_MEM_NODE_MASK_HPP 1
 
-#include <ours/mem/cfg.hpp>
+#include <ours/mem/types.hpp>
 
-#include <bitset>
+#include <ustl/bitset.hpp>
+#include <ustl/function/invoke.hpp>
+#include <ustl/traits/is_invocable.hpp>
 
 namespace ours::mem {
-    struct NodeMask: std::bitset<OURS_CONFIG_MAX_NR_NODES> {};
+    struct Nodbootmemsk
+        : public ustl::BitSet<MAX_NODES>
+    {
+        typedef ustl::BitSet<MAX_NODES>      Base;
+        using Base::Base;
+
+        template <typename F>
+            requires ustl::traits::Invocable<F, NodeId>
+        auto for_each(F &&functor) const -> void
+        {
+            auto const n = this->size();
+            for (NodeId nid = 0; nid < n; ++nid) {
+                ustl::function::invoke(functor, nid);
+            }
+        }
+    };
 
 } // namespace ours::mem
 

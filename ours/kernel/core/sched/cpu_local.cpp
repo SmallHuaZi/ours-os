@@ -7,13 +7,10 @@
 using ours::sched::MainScheduler;
 using ustl::lazy::LazyInit;
 
-namespace ours {
-    CPU_LOCAL
-    static LazyInit<MainScheduler>  LOCAL_SCHEDULER;
+CPU_LOCAL
+static LazyInit<MainScheduler>  LOCAL_SCHEDULER;
 
-    template <>
-    auto gktl::CpuLocal::access<MainScheduler>(CpuId cpuid) -> MainScheduler * {
-        return Self::access(LOCAL_SCHEDULER.data(), cpuid);
-    }
-
-} // namespace ours
+template <>
+auto CpuLocal::access<MainScheduler>(CpuId cpuid) -> MainScheduler * {
+    return Self::access(LOCAL_SCHEDULER.data(), cpuid);
+}

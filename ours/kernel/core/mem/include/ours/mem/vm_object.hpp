@@ -12,9 +12,9 @@
 #ifndef OURS_MEM_VM_OBJECT_HPP
 #define OURS_MEM_VM_OBJECT_HPP
 
-#include <ours/prelude.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/vm_area.hpp>
+#include <ours/status.hpp>
 
 #include <ustl/option.hpp>
 #include <ustl/collections/intrusive/list.hpp>
@@ -38,10 +38,10 @@ namespace ours::mem {
         virtual auto release_pages(PhysAddr, usize) -> Status = 0;
 
         ///
-        virtual auto commit(gktl::Range<VirtAddr> range) -> Status = 0;
+        virtual auto commit(usize offset, usize len) -> Status = 0;
 
         ///
-        virtual auto decommit(gktl::Range<VirtAddr> range) -> Status = 0;
+        virtual auto decommit(usize offset, usize len) -> Status = 0;
 
         ///
         virtual auto take_pages(gktl::Range<VirtAddr> range) -> Status = 0;
@@ -53,11 +53,11 @@ namespace ours::mem {
     private:
         GKTL_CANARY(VmObject, canary_);
 
-        VmAreaList  vma_list_;
+        VmAreaList  mapping_list_;
     
-        stl::intrusive::ListMemberHook<>      children_hook_;
+        ustl::collections::intrusive::ListMemberHook<>      children_hook_;
         USTL_DECLARE_HOOK_OPTION(Self, children_hook_, ChildrenOptions);
-        stl::intrusive::List<Self, ChildrenOptions>     children_;
+        ustl::collections::intrusive::List<Self, ChildrenOptions>  children_;
     };
 
 } // namespace ours::mem 

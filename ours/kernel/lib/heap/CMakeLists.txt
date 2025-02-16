@@ -16,10 +16,10 @@ target_sources(heap
 PUBLIC
     "scope.cpp"
 )
-
 target_link_libraries(heap
 PUBLIC
     ours::kernel::common::headers
     ours::kernel::mem::headers
     ours::kernel::lib::heap::headers
+    ours::kernel::lib::ktl::headers
 )

@@ -18,6 +18,36 @@
 #include <ustl/views/span.hpp>
 
 namespace ours::mem {
+    enum ZoneType {
+        Dma OURS_IF_NOT_CFG(ZONE_DMA, = -1),
+        Dma32 OURS_IF_NOT_CFG(ZONE_DMA32, = Dma),
+        Normal,
+        MaxNumZoneType,
+    };
+    static_assert(MaxNumZoneType < NR_ZONES_PER_NODE, "");
+
+    FORCE_INLINE CXX11_CONSTEXPR 
+    static auto to_string(ZoneType type) -> char const *
+    {
+        switch (type) {
+            case ZoneType::Dma:     return "Dma";
+            case ZoneType::Dma32:   return "Dma32";
+            case ZoneType::Normal:  return "Normal";
+            default: return "Anonymous type";
+        }
+    }
+
+    typedef usize   Pfn;
+    typedef isize   NodeId;
+
+    FORCE_INLINE CXX11_CONSTEXPR 
+    static auto pfn_to_phys(Pfn pfn) -> PhysAddr
+    {  return PhysAddr(pfn << FRAME_SHIFT);  }
+
+    FORCE_INLINE CXX11_CONSTEXPR 
+    static auto phys_to_pfn(PhysAddr phys_addr) -> Pfn
+    {  return Pfn(phys_addr >> FRAME_SHIFT);  }
+
     /// Forward declarations.
     /// Main classes for physical memory management.
     class PmFrame;
@@ -27,7 +57,6 @@ namespace ours::mem {
 
     /// Auxiliary classes for physical memory management.
     class FrameQueue;
-    class ZoneListPerNode;
 
     /// Main classes for virtual memory management.
     class ArchVmAspace;
@@ -46,23 +75,5 @@ OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmNode);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmArea);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmAspace);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmObject);
-
-namespace ours::mem {
-    typedef usize   VirtAddr;
-    typedef usize   PhysAddr;
-    typedef usize   Pfn;
-
-    CXX11_CONSTEXPR
-    static inline auto pfn_to_phys(Pfn pfn) -> PhysAddr
-    {  return PhysAddr(pfn << FRAME_SHIFT);  }
-
-    CXX11_CONSTEXPR
-    static inline auto phys_to_pfn(PhysAddr phys_addr) -> Pfn
-    {  return Pfn(phys_addr >> FRAME_SHIFT);  }
-
-    struct NodeId { isize inner; };
-
-
-} // namespace ours::mem
 
 #endif // #ifndef OURS_MEM_TYPES_HPP

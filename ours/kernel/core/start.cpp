@@ -1,20 +1,20 @@
-#include <ours/types.hpp>
-#include <ours/status.hpp>
-#include <ours/cpu_local.hpp>
-#include <ours/kernel_entry.hpp>
-
+#include <ours/start.hpp>
+#include <ours/init.hpp>
 #include <ours/task/thread.hpp>
+#include <ours/mem/init.hpp>
 
 #include <logz4/log.hpp>
 
-namespace ours {
-    /// Initialize all static life-cycles objects.
-    /// Defined in file static_objects.cpp
-    auto init_static_objects() -> void;
+#include <ours/cpu_local.hpp>
+#include <gktl/static_objects.hpp>
 
+namespace ours {
     static auto labour_routine() -> void
     {
         // Reclaim memories occupied by the early infomation.
+        init_arch();
+
+        init_platform();
     }
 
     /// Called from arch-code.
@@ -22,21 +22,32 @@ namespace ours {
     /// Assumptions:
     ///     1). The early memory allocator has been initialized.
     NO_MANGLE
-    auto start_kernel(KernelParam *params) -> Status
+    auto start_kernel(PhysAddr handoff) -> Status
     {
-        init_static_objects();
-        gktl::CpuLocal::init(params->cpuid);
+        gktl::init_static_objects();
+        CpuLocal::init(BOOT_CPU_ID);
+
+        init_arch_early();
+
+        init_platform_early();
+
+        mem::init_vmm();
+
+        // Start from here, memory allocator is alive.
+        // First thing we should do is to initialize our system logger.
+        log::init();
 
         auto laborer = task::Thread::spawn("laborer", labour_routine);
+        laborer->detach();
         laborer->resume();
 
         return Status::Ok;
     }
 
     NO_MANGLE
-    auto start_nonboot_cpu() -> Status
+    auto start_nonboot_cpu(CpuId cpuid) -> Status
     {
-        // gktl::CpuLocal::init();
+        CpuLocal::init(cpuid);
         return Status::Ok;
     }
 }

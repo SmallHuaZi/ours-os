@@ -13,6 +13,7 @@
 #define OURS_TASK_THREAD_HPP 1
 
 #include <ours/cpu.hpp>
+#include <ours/cpu_mask.hpp>
 #include <ours/task/types.hpp>
 #include <ours/arch/thread.hpp>
 
@@ -23,15 +24,14 @@
 #include <ours/object/thread_dispatcher.hpp>
 
 #include <ustl/rc.hpp>
-#include <ustl/function/function.hpp>
 #include <ustl/collections/intrusive/list.hpp>
 
 namespace ours::task {
     class Process;
 
     enum class ThreadFlags {
-        // All request from a thread tagged it to allocate memory
-        // will not be allowed.
+        // All request from a thread which tagged it to allocate memory
+        // will not be accepted.
         MemoryAllocationDisabled,
     };
 
@@ -39,6 +39,8 @@ namespace ours::task {
         : public sched::SchedObject
     {
         typedef Thread      Self;
+
+        SCHED_OBJECT_INTERFACE;
     public:
         /// Creates a thread with `name` that will execute `entry` at `priority`. |arg|
         /// will be passed to `entry` when executed, the return value of `entry` will be
@@ -73,9 +75,11 @@ namespace ours::task {
 
         class Current;
     private:
-        CpuId       this_cpu_;
+        CpuId  this_cpu_;
+        CpuMask  cpu_mask_;
         ArchThread  arch_thread_;
-        ustl::Rc<object::ThreadDispatcher>         user_thread_;
+        ustl::Rc<mem::VmAspace>  aspace_;
+        ustl::Rc<object::ThreadDispatcher>  user_thread_;
         ustl::collections::intrusive::ListMemberHook<>  managed_hook_;
         ustl::collections::intrusive::ListMemberHook<>  proclist_hook_;   // Used by process
 
@@ -92,6 +96,8 @@ namespace ours::task {
         typedef Thread::Current     Self;
     public:
         static auto aspace() -> mem::VmAspace *;
+
+        static auto exit(isize retcode) -> void;
     };
     
 } // namespace ours::task

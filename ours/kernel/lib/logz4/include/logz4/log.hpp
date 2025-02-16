@@ -9,46 +9,78 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
+#include "ustl/util/move.hpp"
 #ifndef LOGZ4_LOG_HPP
 #define LOGZ4_LOG_HPP 1
 
 #include <logz4/level.hpp>
+#include <logz4/logger.hpp>
+
 #include <ustl/fmt/format_to.hpp>
 
 namespace logz4 {
     auto init() -> void;
 
-    template <typename... Args>
-    using FormatString = ustl::fmt::FormatString<Args...>;
+    auto get_global_logger() -> Logger &;
+
+    auto set_global_logger(Logger &logger);
 
     template <typename... Args>
-    auto log(Level level, FormatString<Args...> fmt, Args &&...args) -> void
+    using FormatString = ustl::fmt::FormatString<Args...>;
+    
+    template <typename... Args>
+    auto log(Logger &logger, Level level, FormatString<Args...> fmt, Args &&...args) -> void
     {
         // auto record = new Record();
         // if (!ustl::fmt::format_to(record.begin(), fmt, args)) {  }
     }
 
     template <typename... Args>
+    inline auto debug(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void
+    {  return logz4::log<Args...>(logger, Level::Debug, fmt, ustl::forward<Args>(args)...);  }
+
+    template <typename... Args>
+    inline auto info(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void
+    {  return logz4::log<Args...>(logger, Level::Info, fmt, ustl::forward<Args>(args)...);  }
+
+    template <typename... Args>
+    inline auto trace(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void
+    {  return logz4::log<Args...>(logger, Level::Trace, fmt, ustl::forward<Args>(args)...);  }
+
+    template <typename... Args>
+    inline auto warn(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void
+    {  return logz4::log<Args...>(logger, Level::Warn, fmt, ustl::forward<Args>(args)...);  }
+
+    template <typename... Args>
+    inline auto error(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void
+    {  return logz4::log<Args...>(logger, Level::Error, fmt, ustl::forward<Args>(args)...);  }
+
+
+    template <typename... Args>
+    auto log(Level level, FormatString<Args...> fmt, Args &&...args) -> void
+    {  return log(get_global_logger(), level, fmt, ustl::forward<Args>(args)...);  }
+
+    template <typename... Args>
     inline auto debug(FormatString<Args...> fmt, Args &&...args) -> void
-    {  return logz4::log<Args...>(Level::Debug, fmt, ustl::forward(args)...);  }
+    {  return logz4::log<Args...>(Level::Debug, fmt, ustl::forward<Args>(args)...);  }
 
     template <typename... Args>
     inline auto info(FormatString<Args...> fmt, Args &&...args) -> void
-    {  return logz4::log<Args...>(Level::Info, fmt, ustl::forward(args)...);  }
+    {  return logz4::log<Args...>(Level::Info, fmt, ustl::forward<Args>(args)...);  }
 
     template <typename... Args>
     inline auto trace(FormatString<Args...> fmt, Args &&...args) -> void
-    {  return logz4::log<Args...>(Level::Trace, fmt, ustl::forward(args)...);  }
+    {  return logz4::log<Args...>(Level::Info, fmt, ustl::forward<Args>(args)...);  }
 
     template <typename... Args>
     inline auto warn(FormatString<Args...> fmt, Args &&...args) -> void
-    {  return logz4::log<Args...>(Level::Warn, fmt, ustl::forward(args)...);  }
+    {  return logz4::log<Args...>(Level::Error, fmt, ustl::forward<Args>(args)...);  }
 
     template <typename... Args>
     inline auto error(FormatString<Args...> fmt, Args &&...args) -> void
-    {  return logz4::log<Args...>(Level::Status, fmt, ustl::forward(args)...);  }
+    {  return logz4::log<Args...>(Level::Error, fmt, ustl::forward<Args>(args)...);  }
 
-} // namespace log
+} // namespace logz4
 
 #define LOG_DEBUG(FMT, ...)     log::debug(FMT, __VA_ARGS__)
 #define LOG_INFO(FMT, ...)      log::info(FMT, __VA_ARGS__)

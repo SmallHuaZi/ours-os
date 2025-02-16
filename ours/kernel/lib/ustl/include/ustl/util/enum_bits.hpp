@@ -13,9 +13,9 @@
 #define USTL_UTIL_ENUM_BITS_HPP 1
 
 #include <ustl/config.hpp>
-#include <ustl/traits/underlying_type.hpp>
+#include <ustl/traits/underlying.hpp>
 
-#define USTL_ENABLE_ENUM_BITS(T)             \
+#define USTL_ENABLE_ENUM_BITS(T)    \
 USTL_FORCEINLINE USTL_CONSTEXPR     \
 auto operator|(T a, T b) -> T       \
 {\

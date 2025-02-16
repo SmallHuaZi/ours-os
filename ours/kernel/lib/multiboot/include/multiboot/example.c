@@ -252,9 +252,9 @@ static void itoa(char *buf, int base, int d)
   /*  Divide UD by DIVISOR until UD == 0. */
   do
     {
-      int remainder = ud % divisor;
+      int rbootmeminder = ud % divisor;
       
-      *p++ = (remainder < 10) ? remainder + '0' : remainder + 'a' - 10;
+      *p++ = (rbootmeminder < 10) ? rbootmeminder + '0' : rbootmeminder + 'a' - 10;
     }
   while (ud /= divisor);
 

@@ -12,30 +12,17 @@
 #ifndef OURS_CPU_HPP
 #define OURS_CPU_HPP
 
-#include <ours/types.hpp>
-#include <ours/config.hpp>
+#if !__has_include(<ours/arch/cpu.hpp>)
+#   error "The header <ours/arch/cpu.hpp> is required by the protocol [kernel.cpu]"
+#endif
 
-#include <ustl/bitset.hpp>
-
-#ifndef OURS_CONFIG_MAX_CPU_NUM 
-#   define OURS_CONFIG_MAX_CPU_NUM 32
-#endif // #ifndef OURS_MAX_CPU_NUM
-
-#ifndef OURS_CONFIG_BOOT_CPU_ID
-#   define OURS_CONFIG_BOOT_CPU_ID 0
-#endif //#ifndef OURS_BOOT_CPU_ID
+#include <ours/arch/cpu.hpp>
 
 namespace ours {
-    /// Logical cpu identifier
-    struct CpuId { u32 _0; };
+    struct Cpu
+    {
 
-    CXX11_CONSTEXPR
-    static u32 const MAX_CPU_NUM = OURS_CONFIG_MAX_CPU_NUM;
-
-    using CpuMask = ustl::BitSet<MAX_CPU_NUM>;
-
-    CXX11_CONSTEXPR
-    static CpuId const BOOT_CPU_ID{ OURS_CONFIG_BOOT_CPU_ID };
+    };
 
 } // namespace ours
 

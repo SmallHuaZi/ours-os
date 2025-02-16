@@ -104,7 +104,6 @@
         static const bool VALUE = sizeof(test<Class>(0, 0)) == sizeof(FoundTag);        \
     };
 
-
 namespace ustl::traits {
     USTL_MPL_CREATE_METHOD_DETECTOR(operator-, Sub);
     USTL_MPL_CREATE_METHOD_DETECTOR(operator-=, SubAssign);
@@ -115,7 +114,7 @@ namespace ustl::traits {
     USTL_MPL_CREATE_METHOD_DETECTOR(operator/, Div);
     USTL_MPL_CREATE_METHOD_DETECTOR(operator/=, DivAssign);
     USTL_MPL_CREATE_METHOD_DETECTOR(operator%, Rem);
-    USTL_MPL_CREATE_METHOD_DETECTOR(operator%=, RemAssign);
+    USTL_MPL_CREATE_METHOD_DETECTOR(operator%=, Rbootmemssign);
 
     USTL_MPL_CREATE_METHOD_DETECTOR(operator++, Inc);
     USTL_MPL_CREATE_METHOD_DETECTOR(operator--, Dec);

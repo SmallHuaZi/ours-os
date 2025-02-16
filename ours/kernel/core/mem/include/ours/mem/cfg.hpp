@@ -16,24 +16,29 @@
 #include <ours/arch/cfg_mem.hpp>
 #endif
 
-#ifndef OURS_CONFIG_MAX_NR_NODES
-#   if OURS_CONFIG_NUMA == 1
-#       define OURS_CONFIG_MAX_NR_NODES 32
+#ifndef OURS_CONFIG_MAX_NODES
+#   if OURS_CONFIG_NUMA == 1 || OURS_CONFIG_NUMA_EMULATION == 1
+#       define OURS_CONFIG_MAX_NODES 32
 #   else
-#       define OURS_CONFIG_MAX_NR_NODES 1
+#       define OURS_CONFIG_MAX_NODES 1
 #   endif
 #endif
 
 /// [Node.MaxZoneNum]
-#ifndef OURS_CONFIG_MAX_NR_ZONES_PER_NODE
-#   define OURS_CONFIG_MAX_NR_ZONES_PER_NODE 4
-#elif OURS_CONFIG_MAX_NR_ZONES_PER_NODE > 4
+#ifndef OURS_CONFIG_NR_ZONES_PER_NODE
+#   define OURS_CONFIG_NR_ZONES_PER_NODE 4
+#elif OURS_CONFIG_NR_ZONES_PER_NODE > 4
 #   error ""
 #endif
 
 /// [Frame.Shift]
 #ifndef OURS_CONFIG_FRAME_SHIFT
 #   define OURS_CONFIG_FRAME_SHIFT   12
+#endif
+
+/// [Frame.NrOrders]
+#ifndef OURS_CONFIG_NR_FRAME_ORDERS
+#   define OURS_CONFIG_NR_FRAME_ORDERS  11
 #endif
 
 /// [PhysMap.PhysBase]
@@ -47,12 +52,8 @@
 #endif
 
 /// [PhysMap.Size]
-#ifndef OURS_CONFIG_PHYS_MAP_START
+#ifndef OURS_CONFIG_PHYS_MAP_SIZE
 #   define OURS_CONFIG_PHYS_MAP_SIZE   0x80000000
-#endif
-
-#ifndef OURS_CONFIG_MAX_NR_ZPIS
-#   define OURS_CONFIG_MAX_NR_ZPIS 8 
 #endif
 
 #endif // #ifndef OURS_MEM_CFG_HPP

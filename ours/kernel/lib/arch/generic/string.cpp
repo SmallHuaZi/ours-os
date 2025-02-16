@@ -6,8 +6,8 @@ using namespace ours;
 NO_MANGLE 
 auto memcpy(void *d, void const *s, usize len) -> void *
 {
-    char *md =  static_cast<char *>(d);
-    char const  *ms =  (char const *)s;
+    auto md = static_cast<char *>(d);
+    auto ms = static_cast<char const *>(s);
 
     while (len--) {
         *md++ = *ms++;
@@ -19,8 +19,8 @@ auto memcpy(void *d, void const *s, usize len) -> void *
 NO_MANGLE 
 auto memmove(void *d, const void *s, usize n) -> void *
 {
-    char *md =  static_cast<char *>(d);
-    char const  *ms =  static_cast<char const *>(s);
+    auto md = static_cast<char *>(d);
+    auto ms = static_cast<char const *>(s);
 
     if (usize(ms) > usize(md)) {
         while (n--) {
@@ -63,7 +63,7 @@ auto memcmp(void const *x, void const *y, usize len) -> int
 NO_MANGLE 
 auto memchr(void const *x, char const f, usize len) -> void *
 {
-    auto mx =  static_cast<char const *>(x);
+    auto mx = static_cast<char const *>(x);
     auto range_end = static_cast<char const *>(x) + len;
 
     while (f != *mx && mx != range_end) {

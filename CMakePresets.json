@@ -12,7 +12,6 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/target/install/${presetName}",
                 "CMAKE_PREFIX_PATH": "~/Documents/Programs/ours-dev/ustl/target/install/Clang-18-x86_64-pc-linux-gnu/lib/cmake",
-                "ustl_DIR": "~/Documents/Programs/ours-dev/ustl/target/install/Clang-18-x86_64-pc-linux-gnu/lib/cmake/ustl-0.0.1"
             }
         }
     ]

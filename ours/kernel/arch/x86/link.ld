@@ -57,10 +57,10 @@ SECTIONS {
         KEEP(*(SORT_BY_INIT_PRIORITY( .init_array.* )));
         CTORS_END = .;
         
-        KERNEL_EARLY_CODE_START = .;
+        KERNEL_INIT_CODE_START = .;
         *(.early.text)
         *(.early.text.*)
-        KERNEL_EARLY_CODE_END = .;
+        KERNEL_INIT_CODE_END = .;
 
         /* gktl::init_hook */
         KERNEL_INIT_HOOK_START = .;
@@ -68,10 +68,10 @@ SECTIONS {
         *(.kernel.init_hook.*)
         KERNEL_INIT_HOOK_END = .;
 
-        KERNEL_EARLY_DATA_START = .;
+        KERNEL_INIT_DATA_START = .;
         *(.early.data)
         *(.early.data.*)
-        KERNEL_EARLY_DATA_END = .;
+        KERNEL_INIT_DATA_END = .;
 
         KERNEL_EARLY_RODATA_START = .;
         *(.early.rodata)

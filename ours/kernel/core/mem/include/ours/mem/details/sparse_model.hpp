@@ -13,44 +13,49 @@
 #define OURS_MEM_DETAILS_SPARSE_MODEL_HPP 1
 
 #include <ours/status.hpp>
-
 #include <ours/mem/types.hpp>
-#include <ours/mem/memory_priority.hpp>
 
 namespace ours::mem {
     class SparseMemoryModel
     {
         typedef SparseMemoryModel       Self;
     public:
-        static auto init(ustl::views::Span<ZonePriorityInfo> zpis) -> Status;
+        static auto init() -> Status;
 
-        static auto phys_to_frame(PhysAddr phys_addr) -> PmFrame *;
+        static auto exist(Pfn frame) -> bool;
 
-        static auto frame_to_phys(PmFrame *frame) -> PhysAddr;
+        static auto exist(Pfn start, Pfn end) -> bool;
+
+        static auto phys_to_frame(PhysAddr phys_addr) -> PmFrame *
+        {  return Self::pfn_to_frame(phys_to_pfn(phys_addr));  }
+
+        static auto frame_to_phys(PmFrame *frame) -> PhysAddr
+        {  return pfn_to_phys(Self::frame_to_pfn(frame));  }
+
+        static auto pfn_to_frame(Pfn pfn) -> PmFrame *;
+
+        static auto frame_to_pfn(PmFrame *frame) -> Pfn;
 
         static auto populate_range(Pfn start_pfn, Pfn end_pfn) -> Status;
+
+        static auto populate_range(Pfn start_pfn, Pfn end_pfn, Altmap *altmap) -> Status;
 
         static auto depopulate_range(Pfn start_pfn, Pfn end_pfn) -> Status;
     
     private:
-        struct Entry 
+        struct Entry
         {
-            Entry   *subentries;
-            PmFrame *frame_array;
+            usize ptr_plus_flags;
         };
 
-        static auto get_entry(PhysAddr pfn) -> Self::Entry *
-        {}
-    
         CXX11_CONSTEXPR
-        static auto const MAX_NR_ROOT_NODES = 32;
-        static Entry ROOT_NODE[MAX_NR_ROOT_NODES];
-    };
+        static usize const NR_ROOT_NODES = 32;
 
-    auto SparseMemoryModel::phys_to_frame(PhysAddr phys_addr) -> PmFrame *
-    {
-        Pfn pfn = phys_to_pfn(phys_addr);
-    }
+        CXX11_CONSTEXPR
+        static usize const NR_FRAMES_PER_ROOT = FRAME_SIZE / MAX_FRAME_DESCRIPTOR_NUM_BYTES;
+
+        static Entry ROOT_NODE[NR_ROOT_NODES][NR_FRAMES_PER_ROOT];
+    };
 
 } // namespace ours::mem
 

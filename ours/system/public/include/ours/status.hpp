@@ -19,6 +19,7 @@ namespace ours {
         OutOfMem,
         InvalidArguments,
         Unimplemented,
+        Unsupported,
         Unreachable,
         Error,
         MaxCount,

@@ -12,37 +12,29 @@
 #ifndef OURS_TYPES_HPP
 #define OURS_TYPES_HPP 1
 
-#include <cstddef>
-#include <cstdint>
+#include <ustl/config/types.hpp>
 
 namespace ours {
-    // typedef ::ustl::i8        i8;
-    // typedef ::ustl::i16       i16;
-    // typedef ::ustl::i32       i32;
-    // typedef ::ustl::i64       i64;
-    // typedef ::ustl::isize     isize;
+    typedef ::ustl::i8        i8;
+    typedef ::ustl::i16       i16;
+    typedef ::ustl::i32       i32;
+    typedef ::ustl::i64       i64;
+    typedef ::ustl::isize     isize;
 
-    // typedef ::ustl::u8        u8;
-    // typedef ::ustl::u16       u16;
-    // typedef ::ustl::u32       u32;
-    // typedef ::ustl::u64       u64;
-    // typedef ::ustl::usize     usize;
-    typedef int8_t      i8;
-    typedef int16_t     i16;
-    typedef int32_t     i32;
-    typedef int64_t     i64;
-    typedef ptrdiff_t   isize;
+    typedef ::ustl::u8        u8;
+    typedef ::ustl::u16       u16;
+    typedef ::ustl::u32       u32;
+    typedef ::ustl::u64       u64;
+    typedef ::ustl::usize     usize;
 
-    typedef uint8_t     u8;
-    typedef uint16_t    u16;
-    typedef uint32_t    u32;
-    typedef uint64_t    u64;
-    typedef size_t      usize;
+    typedef usize   CpuId;
+    typedef usize   VirtAddr;
+    typedef usize   PhysAddr;
 
     /// For type check.
-    typedef struct { usize inner_; } Handle;
-    typedef struct { usize inner_; } Signal;
-    typedef struct { usize inner_; } KoId;
+    struct Handle   { usize _0; };
+    struct Signal   { usize _0; };
+    struct KoId     { usize _0; };
 
 } // namespace ours
 

@@ -1,5 +1,5 @@
 #include <arch/x86/descriptor.hpp>
-#include <ours/early.hpp>
+#include <ours/init.hpp>
 #include <ours/cpu_local.hpp>
 
 using namespace arch;
@@ -23,7 +23,7 @@ namespace ours {
     // Gdt pointer.
     extern "C" Gdt G_GDT { S_GDT_SELECTORS, sizeof(S_GDT_SELECTORS) };
 
-    extern "C" EARLY_CODE auto setup_gdt() -> void
+    extern "C" INIT_CODE auto setup_gdt() -> void
     {
         // auto x = Gdt::current();
         // Log::debug("Before loading, Current GDT {%d, %p}\n", x.length, x.table);

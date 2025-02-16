@@ -29,7 +29,7 @@ namespace arch {
             return out;
         }
 
-        static auto write(usize in, char const *asm_) -> void 
+        static auto write(usize in) -> void 
         {
             asm volatile("mov %%cr3, %0" :: "m"(in): "memory");
         }

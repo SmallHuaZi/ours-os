@@ -13,16 +13,19 @@
 #define HEAP_NEW_HPP 1
 
 #include <ours/types.hpp>
-#include <ours/config/lang_items.hpp>
 
-namespace heap {
-    template <typename T, typename... Options> 
-    struct ObjectCache;
-} // namespace heap
+#include <ktl/object_cache.hpp>
 
 auto operator new(ours::usize size, ours::usize align) -> void *;
 
-template <typename T, typename... Options> 
-auto operator new(ours::usize size, ours::usize align, heap::ObjectCache<T, Options...> *) -> void *;
+auto operator delete(void *ptr, ours::usize n) -> void;
+
+template <typename T, typename... Options>
+auto operator new(ours::usize size, ours::usize align, ktl::ObjectCache<T, Options...> *object_cache) -> void *
+{}
+
+template <typename T, typename... Options>
+auto operator delete(void *ptr, ours::usize n, ktl::ObjectCache<T, Options...> *object_cache) -> void
+{}
 
 #endif // #ifndef HEAP_NEW_HPP

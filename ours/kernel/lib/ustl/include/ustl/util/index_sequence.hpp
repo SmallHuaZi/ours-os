@@ -9,6 +9,7 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
+#include <utility>
 #ifndef USTL_UTIL_INDEX_SEQUENCE_HPP
 #define USTL_UTIL_INDEX_SEQUENCE_HPP 1
 
@@ -39,17 +40,17 @@
 ///    integers from 0 to 4.
 
 namespace ustl {
-
     /// @brief 
     /// @tparam Integer 
     /// @tparam ...N 
     template <typename Integer, Integer... N>
     struct IntegerSequence
     {
-        typedef Integer          value_type;   
-        typedef IntegerSequence  type;
+        typedef Integer          Element;
+        typedef IntegerSequence  Type;
 
-        USTL_FORCEINLINE USTL_CONSTEXPR static value_type size()
+        USTL_FORCEINLINE USTL_CONSTEXPR 
+        static auto size() -> Element
         {  return sizeof...(N);  }
     };
 
@@ -68,8 +69,8 @@ namespace ustl {
 
     template <usize N>
     struct MakeIndexSequence
-        : MergeAndRenumber<typename MakeIndexSequence<N / 2>::type,
-                           typename MakeIndexSequence<N - N / 2>::type>
+        : MergeAndRenumber<typename MakeIndexSequence<N / 2>::Type,
+                           typename MakeIndexSequence<N - N / 2>::Type>
     {};
 
     template<> struct MakeIndexSequence<0>: IndexSequence<> {};

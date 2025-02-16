@@ -4,12 +4,12 @@
 #include <ours/mem/memory_model.hpp>
 #include <ours/assert.hpp>
 
-#include <gktl/cpu_local.hpp>
+#include <ours/cpu_local.hpp>
 
 namespace ours::mem {
     auto alloc_frame(Gaf flags, usize order) -> PmFrame *
     {
-        auto local_node = gktl::CpuLocal::access<PmNode>();
+        auto local_node = CpuLocal::access<PmNode>();
         DEBUG_ASSERT(local_node != nullptr);
         if (auto result = local_node->alloc_frame(flags, order)) {
             return result.unwrap();
@@ -20,7 +20,7 @@ namespace ours::mem {
 
     auto alloc_frame(Gaf flags, ai_out PhysAddr *phys_addr, usize order) -> PmFrame *
     {
-        auto local_node = gktl::CpuLocal::access<PmNode>();
+        auto local_node = CpuLocal::access<PmNode>();
         DEBUG_ASSERT(local_node != nullptr);
         if (auto result = local_node->alloc_frame(flags, order)) {
             auto frame = result.unwrap();
@@ -34,7 +34,7 @@ namespace ours::mem {
 
     auto alloc_frame_on_node(NodeId nid, Gaf flags, usize order) -> PmFrame *
     {
-        DEBUG_ASSERT(nid.inner < MAX_NR_NODES);
+        DEBUG_ASSERT(nid < MAX_NODES);
         if (auto node = PmNode::node(nid)) {
             if (auto result = node->alloc_frame(flags | Gaf::OnlyThisNode, order)) {
                 return result.unwrap(); 
@@ -44,23 +44,23 @@ namespace ours::mem {
         return nullptr;
     }
 
-    auto free_frame(PmFrame *frame) -> Status 
+    auto free_frame(PmFrame *frame, usize order) -> void
     {
-        auto local_node = gktl::CpuLocal::access<PmNode>();
-        DEBUG_ASSERT(local_node != nullptr);
-        return local_node->free_frame(frame);
+        auto node = PmNode::node(frame->nid());
+        DEBUG_ASSERT(node);
+        return node->free_frame(frame, order);
     }
 
     auto alloc_frames(Gaf flags, ai_out FrameList<> *list, usize n) -> Status
     {
-        auto local_node = gktl::CpuLocal::access<PmNode>();
+        auto local_node = CpuLocal::access<PmNode>();
         DEBUG_ASSERT(local_node != nullptr);
         return local_node->alloc_frames(flags, n, list);
     }
 
-    auto free_frames(FrameList<> *list) -> Status 
+    auto free_frames(FrameList<> *list) -> void
     {
-        auto local_node = gktl::CpuLocal::access<PmNode>();
+        auto local_node = CpuLocal::access<PmNode>();
         DEBUG_ASSERT(local_node != nullptr);
         return local_node->free_frames(list);
     }

@@ -21,6 +21,7 @@ namespace ustl::algorithms {
     using std::max_element;
     using std::minmax;
     using std::minmax_element;
+    using std::clamp;
 
 } // namespace ustl::algorithms
 

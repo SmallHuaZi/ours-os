@@ -37,11 +37,9 @@ namespace gktl {
 
 #define GKTL_INIT_HOOK(NAME, HOOK, LEVEL) \
 GKTL_INIT_HOOK_LINK_SECTION(0) \
-static const ours::InitHook GKTL_INIT_HOOK_##NAME = { \
+static const gktl::InitHook GKTL_INIT_HOOK_##NAME = { \
     HOOK,   \
     #NAME   \
 };
 
-GKTL_INIT_HOOK(CacheInit, [](){}, 0);
-
-#endif // #ifndef HOOK_HOOK_HPP
+#endif // GKTL_HOOK_HPP

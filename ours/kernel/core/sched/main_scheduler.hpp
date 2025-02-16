@@ -8,8 +8,8 @@
 #include <ustl/sync/atomic.hpp>
 #include <ustl/collections/array.hpp>
 
-#ifndef MAX_NR_SCHEDULER
-#   define MAX_NR_SCHEDULER 4
+#ifndef NR_SCHEDULER
+#   define NR_SCHEDULER 4
 #endif
 
 namespace ours::sched {
@@ -38,7 +38,7 @@ namespace ours::sched {
     private:
         CpuId this_cpu_;
 
-        typedef ustl::collections::Array<Scheduler *, MAX_NR_SCHEDULER> SchedulerSet;
+        typedef ustl::collections::Array<Scheduler *, NR_SCHEDULER> SchedulerSet;
         SchedulerSet schedulers_;
 
         SchedCommonData common_data_;

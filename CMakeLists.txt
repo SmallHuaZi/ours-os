@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(ours-os 
     VERSION 0.0.1 
     LANGUAGES C CXX
-    DESCRIPTION "ours is a mircokernel"
+    DESCRIPTION "ours is a microkernel"
 )
 
 set(USTL_VERSION ${PROJECT_VERSION})

@@ -12,27 +12,17 @@
 #ifndef USTL_COLLECTIONS_INTRUSIVE_SLIST_HPP
 #define USTL_COLLECTIONS_INTRUSIVE_SLIST_HPP 1
 
-#include <boost/intrusive/options.hpp>
-#include <boost/intrusive/slist_hook.hpp>
 #include <boost/intrusive/slist.hpp>
 
+#include <ustl/collections/intrusive/options.hpp>
+#include <ustl/collections/intrusive/slist_hook.hpp>
+
 namespace ustl::collections::intrusive {
-    using namespace boost::intrusive;
-
-    template <typename Parent, typename MemberHook, MemberHook Parent::*PtrToMember>
-    using MemberHook = member_hook<Parent, MemberHook, PtrToMember>;
-
-    template <typename... T>
-    using SlistBaseHook = slist_base_hook<T...>;
-
-    template <typename... T>
-    using SlistMemberHook = slist_member_hook<T...>;
-
     template<class T, class ...Options>
     class Slist
-        : public slist<T, Options...>
+        : public internal::slist<T, Options...>
     {
-        typedef slist<T, Options...>     Base;
+        typedef internal::slist<T, Options...>     Base;
     public:
         typedef typename Base::value_type               Element;
         typedef typename Base::pointer                  PtrMut;
@@ -46,5 +36,17 @@ namespace ustl::collections::intrusive {
     };
 
 } // namespace ustl::collections::intrusive
+
+#ifndef USTL_DECLARE_SLIST
+#   define USTL_DECLARE_SLIST(OWNER, ALIAS, ...) \
+        typedef ustl::collections::intrusive::Slist<OWNER, __VA_ARGS__>\
+            ALIAS;
+#endif
+
+#ifndef USTL_DECLARE_SLIST_TEMPLATE
+#   define USTL_DECLARE_SLIST_TEMPLATE(OWNER, ALIAS, ...)                                    \
+        template <typename... Options>                                                      \
+        using ALIAS = ustl::collections::intrusive::Slist<OWNER, Options..., __VA_ARGS__>;
+#endif
 
 #endif // USTL_COLLECTIONS_INTRUSIVE_SLIST_HPP

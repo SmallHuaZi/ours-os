@@ -22,8 +22,11 @@ namespace ustl::collections {
             boost::container::throw_on_overflow<false>
         > StaticVecOptions;
     
+    template <typename T, std::size_t... Capacities>
+    struct Array;
+    
     template <typename T, std::size_t Capacity>
-    struct Array 
+    struct Array<T, Capacity>
         : public ::boost::container::static_vector<T, Capacity, StaticVecOptions>
     {
         typedef ::boost::container::static_vector<T, Capacity, StaticVecOptions>    Base;
@@ -39,6 +42,11 @@ namespace ustl::collections {
 
         using Base::Base;
     };
+
+    template <typename T, std::size_t N, std::size_t... Capacities>
+    struct Array<T, N, Capacities...>
+        : public Array<Array<T, Capacities...>, N>
+    {};
 
 } // namespace ours
 

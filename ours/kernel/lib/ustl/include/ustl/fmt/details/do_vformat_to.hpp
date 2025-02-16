@@ -158,7 +158,6 @@ namespace details {
                 compile_time_visit_format_arg(parse_context, context, type);
             }
         } else {
-
             // Runtime logic.
             auto const visitor = [&] (auto &arg) -> Result<void> {
                 USTL_IF_CONSTEXPR(traits::IsSameV<decltype(arg), Monostate>) {

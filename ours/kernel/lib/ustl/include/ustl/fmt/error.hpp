@@ -27,8 +27,6 @@ namespace ustl::fmt {
 
     template <typename T> 
     using Result = Result<T, FmtErr>;
-
-    result::StorageTrivial<void, FmtErr> x;
 }
 
 #endif // #ifndef USTL_FMT_ERROR_HPP

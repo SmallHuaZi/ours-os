@@ -30,7 +30,7 @@ namespace ustl::fmt::details {
 
     public:
         template <typename T>
-        // requires std::convertible_to<T const &, views::BasicStringView<Char>> 
+            requires traits::IsConvertibleV<T const &, views::BasicStringView<Char>> 
         USTL_FORCEINLINE USTL_CONSTEXPR
         BasicFormatString(T const &str)
             : str_(str)

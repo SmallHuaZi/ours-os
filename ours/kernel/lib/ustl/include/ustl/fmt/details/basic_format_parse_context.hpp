@@ -54,7 +54,7 @@ namespace ustl::fmt::details {
             // Throws an exception to make the expression a non core constant
             // expression as required by:
             // [format.parse.ctx]/8
-            //   Remarks: Let cur-arg-id be the value of next_arg_id_ prior to this
+            //   Rbootmemrks: Let cur-arg-id be the value of next_arg_id_ prior to this
             //   call. Call expressions where cur-arg-id >= num_args_ is true are not
             //   core constant expressions (7.7 [expr.const]).
             // Note: the Throws clause [format.parse.ctx]/9 doesn't specify the
@@ -80,7 +80,7 @@ namespace ustl::fmt::details {
             // Throws an exception to make the expression a non core constant
             // expression as required by:
             // [format.parse.ctx]/11
-            //   Remarks: Call expressions where id >= num_args_ are not core constant
+            //   Rbootmemrks: Call expressions where id >= num_args_ are not core constant
             //   expressions ([expr.const]).
             // Note: the Throws clause [format.parse.ctx]/10 doesn't specify the
             // behavior when id >= num_args_.

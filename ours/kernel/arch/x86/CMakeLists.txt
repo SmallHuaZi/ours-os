@@ -1,12 +1,9 @@
-add_library(ours_kernel_arch_headers INTERFACE)
-add_library(ours::kernel::arch::headers ALIAS ours_kernel_arch_headers)
+add_subdirectory("mem")
 target_include_directories(ours_kernel_arch_headers
 INTERFACE
     "include"
 )
 
-add_library(ours_kernel_arch INTERFACE)
-add_library(ours::kernel::arch ALIAS ours_kernel_arch)
 target_link_libraries(ours_kernel_arch
 INTERFACE
     ours::kernel::arch::headers
@@ -31,9 +28,6 @@ INTERFACE
     "init.cpp"
     "descriptor.cpp"
     "early_console.cpp"
-    "vm_aspace.cpp"
-
-    # "${CMAKE_CURRENT_SOURCE_DIR}/page_table.cpp"
 )
 
 target_compile_options(ours_kernel_arch

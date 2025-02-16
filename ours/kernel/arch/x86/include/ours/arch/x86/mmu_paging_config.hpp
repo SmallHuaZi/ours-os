@@ -106,7 +106,7 @@ namespace ours::mem {
         : CommonPagingConfig
     {
         CXX11_CONSTEXPR static auto const PAGE_LEVEL = 4;
-        CXX11_CONSTEXPR static auto const MAX_NR_PTE = 512;
+        CXX11_CONSTEXPR static auto const NR_PTE = 512;
 
         CXX11_CONSTEXPR static auto const PGD_SHIFT = 39;
         CXX11_CONSTEXPR static auto const PGD_MASK = 0x1FF;
@@ -147,7 +147,7 @@ namespace ours::mem {
         : CommonPagingConfig
     {
         CXX11_CONSTEXPR static auto const PAGE_LEVEL = 5;
-        CXX11_CONSTEXPR static auto const MAX_NR_PTE = 512;
+        CXX11_CONSTEXPR static auto const NR_PTE = 512;
 
         CXX11_CONSTEXPR static auto const PGD_SHIFT = 47;
         CXX11_CONSTEXPR static auto const PGD_MASK = 0x1FF;

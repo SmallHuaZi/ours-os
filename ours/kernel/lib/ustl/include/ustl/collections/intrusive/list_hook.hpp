@@ -14,15 +14,27 @@
 
 #include <boost/intrusive/options.hpp>
 #include <boost/intrusive/list_hook.hpp>
+#include <ustl/collections/intrusive/options.hpp>
 
 namespace ustl::collections::intrusive {
     using namespace boost::intrusive;
+
     template <typename Parent, typename MemberHook, MemberHook Parent::*PtrToMember>
     using MemberHook = member_hook<Parent, MemberHook, PtrToMember>;
+
+    template <typename... T>
+    using ListBaseHook = list_member_hook<T...>;
 
     template <typename... T>
     using ListMemberHook = list_member_hook<T...>;
 
 } // namespace ustl::collections::intrusive
+
+#ifndef USTL_DECLARE_HOOK_OPTION
+#   define USTL_DECLARE_HOOK_OPTION(OWNER, MEMBER, ALIAS) \
+        typedef ustl::collections::intrusive::MemberHook<OWNER, \
+                decltype(OWNER::MEMBER), &OWNER::MEMBER> \
+            ALIAS;
+#endif
 
 #endif // #ifndef USTL_COLLECTIONS_INTRUSIVE_LIST_HOOK_HPP

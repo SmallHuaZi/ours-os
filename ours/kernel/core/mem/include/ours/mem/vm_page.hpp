@@ -12,7 +12,6 @@
 #ifndef OURS_MEM_VM_PAGE_HPP
 #define OURS_MEM_VM_PAGE_HPP 1
 
-#include <ours/prelude.hpp>
 #include <ours/mem/types.hpp>
 
 #include <ustl/collections/intrusive/set.hpp>
@@ -25,7 +24,7 @@ namespace ours::mem {
 
     protected:
         PmFrame *frame_;
-        stl::intrusive::SetMemberHook<> managed_hook_;
+        ustl::collections::intrusive::SetMemberHook<> managed_hook_;
 
     public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOptions);

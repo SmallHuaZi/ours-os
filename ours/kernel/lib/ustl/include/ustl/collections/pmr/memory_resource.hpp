@@ -12,10 +12,24 @@
 #ifndef USTL_COLLECTIONS_PMR_MEMORY_RESOURCE_HPP
 #define USTL_COLLECTIONS_PMR_MEMORY_RESOURCE_HPP 1
 
+#include <ustl/config.hpp>
 #include <boost/container/pmr/memory_resource.hpp>
 
 namespace ustl::collections::pmr {
-    using MemoryResource = boost::container::pmr::memory_resource;
+    struct MemoryResource
+        : public boost::container::pmr::memory_resource
+    {
+        typedef boost::container::pmr::memory_resource  Base;
+
+        virtual auto do_allocate(usize bytes, usize align) -> void *
+        {  return 0;  }
+
+        virtual auto do_deallocate(void *p, usize bytes, usize align) -> void
+        {  return; }
+
+        virtual auto do_is_equal(Base const &other) const USTL_NOEXCEPT -> bool
+        {  return this == &other;  }
+    };
 
 } // namespace ustl::collections::pmr
 

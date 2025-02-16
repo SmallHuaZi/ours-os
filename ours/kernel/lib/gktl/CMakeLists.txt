@@ -3,27 +3,29 @@ cmake_minimum_required(VERSION 3.20)
 # Generic kernel tools library
 project(gktl VERSION "${OURS_VERSION}" LANGUAGES CXX)
 
-add_library(gktl)
-add_library(ours::kernel::lib::gktl ALIAS gktl)
-
-target_include_directories(gktl 
-PUBLIC "include"
-)
-
-target_sources(gktl
-PUBLIC
+add_library(gktl_headers INTERFACE)
+add_library(ours::kernel::lib::gktl::headers ALIAS gktl_headers)
+target_sources(gktl_headers
+INTERFACE
     "include/gktl/canary.hpp"
     "include/gktl/counter.hpp"
-    "include/gktl/cpu_local.hpp"
     "include/gktl/init_hook.hpp"
     "include/gktl/range.hpp"
+)
+target_include_directories(gktl_headers
+INTERFACE "include"
+)
 
+add_library(gktl)
+add_library(ours::kernel::lib::gktl ALIAS gktl)
+target_sources(gktl
 PRIVATE
-    "cpu_local.cpp"
     "static_objects.cpp"
+    "cpp_dependencies.cpp"
 )
 
 target_link_libraries(gktl
 PUBLIC
+    gktl_headers
     ours::kernel::common::headers
 )

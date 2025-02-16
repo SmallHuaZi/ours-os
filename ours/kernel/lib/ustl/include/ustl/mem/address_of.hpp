@@ -1,5 +1,5 @@
-#ifndef USTL_MEM_ADDRESS_OF_H
-#define USTL_MEM_ADDRESS_OF_H 1
+#ifndef USTL_MEM_ADDRESS_OF_HPP
+#define USTL_MEM_ADDRESS_OF_HPP 1
 
 #include <ustl/config.hpp>
 
@@ -16,4 +16,4 @@ namespace ustl::mem {
 
 } // namespace ustl::mem
 
-#endif // #ifndef USTL_MEM_ADDRESS_OF_H
+#endif // #ifndef USTL_MEM_ADDRESS_OF_HPP

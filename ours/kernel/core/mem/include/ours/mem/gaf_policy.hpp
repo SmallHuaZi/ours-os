@@ -12,20 +12,22 @@
 #ifndef OURS_MEM_GAF_POLICY_HPP
 #define OURS_MEM_GAF_POLICY_HPP 1
 
+#include <ours/mem/types.hpp>
 #include <ours/mem/node_mask.hpp>
 
 namespace ours::mem {
     enum class GafPolicyType {
         PreferNodeAffinity,
-        PreferFramePriority,
+        PreferZonePriority,
 
         Default,
     };
 
     struct GafPolicy
     {
-        GafPolicyType policy;
-        NodeMask expected_nodes;
+        NodeId local_node;
+        Nodbootmemsk nodes;
+        GafPolicyType type;
     };
 
 } // namespace ours::mem

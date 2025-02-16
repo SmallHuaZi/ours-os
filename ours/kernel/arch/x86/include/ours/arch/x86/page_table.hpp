@@ -9,13 +9,15 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
+#include "ours/mem/types.hpp"
 #ifndef OURS_ARCH_X86_PAGE_TABLE_HPP
 #define OURS_ARCH_X86_PAGE_TABLE_HPP 1
 
-#include <ours/mem/mmu_flags.hpp>
+#include <ours/mem/vm_aspace_traits.hpp>
 #include <ours/mem/details/mapping_context.hpp>
 #include <ours/arch/x86/mmu_paging_config.hpp>
 
+#include <ours/init.hpp>
 #include <ours/status.hpp>
 
 #ifdef OURS_CONFIG_X86_ENABLE_EPT
@@ -77,15 +79,6 @@ namespace ours::mem {
         return Pte(pte._0 & static_cast<Type>(flags));
     }
 
-    enum class X86PtFlags: usize {
-        Shared,
-        Independent,
-
-        User = (1 << 4),
-        Ept = (1 << 7),
-    };
-    USTL_ENABLE_ENUM_BITS(X86PtFlags);
-
     class IX86PageTable
     {
         typedef IX86PageTable   Self;
@@ -95,23 +88,24 @@ namespace ours::mem {
 
         /// Maps `n` frames of physical memory starting from `phys_addr` to the virtual address `virt_addr`,
         /// and the mapping is done with the specified `flags`.
-        virtual auto map_pages(VirtAddr virt_addr, PhysAddr phys_addr, usize n, MmuFlags flags) 
-            -> Status = 0;
+        virtual auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags) -> Status = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
-        virtual auto unmap_pages(VirtAddr virt_addr, usize n) -> Status = 0;
+        virtual auto unmap_pages(VirtAddr va, usize n) -> Status = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
-        virtual auto protect_pages(VirtAddr virt_addr, usize n, MmuFlags flags) -> Status = 0;
+        virtual auto protect_pages(VirtAddr va, usize n, MmuFlags flags) -> Status = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
-        virtual auto query_mapping(VirtAddr virt_addr) -> ustl::Option<Pte> = 0;
+        virtual auto query_mapping(VirtAddr va, ai_out PhysAddr *pa, ai_out MmuFlags *flags) -> Status = 0;
+
+        virtual auto harvest_accessed(VirtAddr va, usize n, HarvestAction action) -> Status = 0;
 
         auto page_usage() const -> usize
         {  return pages_.load();  }
 
     protected:
-        X86PtFlags flags_;
+        usize flags_;
         Pte *table_phys_addr_;
         Pte *table_virt_addr_;
 
@@ -122,23 +116,25 @@ namespace ours::mem {
 
     /// Class `X86PageTable` is a high-level implementation of architecturelly page table.
     template <typename PagingConfig>
-    class X86PageTable
+    class X86PageTableImpl
         : public IX86PageTable
     {
-        typedef X86PageTable      Self;
-        typedef typename PagingConfig::ArchMmuFlags     ArchMmuFlags;
+        typedef X86PageTableImpl      Self;
     public:
-        /// Sees X86PageTableInterface::map_pages.
-        virtual auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags) -> Status override;
+        /// Sees IX86PageTable::map_pages.
+        auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags) -> Status override;
 
-        /// Sees X86PageTableInterface::unmap_pages.
-        virtual auto unmap_pages(VirtAddr, usize) -> Status override;
+        /// Sees IX86PageTable::unmap_pages.
+        auto unmap_pages(VirtAddr, usize) -> Status override;
 
-        /// Sees X86PageTableInterface::protect_pages.
-        virtual auto protect_pages(VirtAddr, usize, MmuFlags) -> Status override;
+        /// Sees IX86PageTable::protect_pages.
+        auto protect_pages(VirtAddr, usize, MmuFlags) -> Status override;
 
-        /// Sees X86PageTableInterface::query_mapping.
-        virtual auto query_mapping(VirtAddr) -> ustl::Option<Pte> override;
+        /// Sees IX86PageTable::query_mapping.
+        auto query_mapping(VirtAddr, ai_out PhysAddr *, ai_out MmuFlags *) -> Status override;
+
+        /// Sees IX86PageTable::harvest_accessed.
+        auto harvest_accessed(VirtAddr, usize, HarvestAction) -> Status override;
 
         static auto level() -> usize
         {  return PagingConfig::PageLevel;  }
@@ -164,16 +160,28 @@ namespace ours::mem {
         auto populate_entry(Pte *, MappingContext *) -> Status;
 
         auto refresh(Pte *) -> void;
-
-    private:
-        GKTL_CANARY(X86PageTable, canary_);
     };
 
-    typedef X86PageTable<X86PagingConfig>  PageTable;
+    class X86PageTableMmu
+        : public X86PageTableImpl<X86PageTableMmu>
+    {
+        typedef X86PageTableMmu     Self;
+    public:
+        auto init() -> Status;
 
-#ifdef OURS_CONFIG_X86_ENABLE_EPT
-    typedef X86PageTable<X86ExtentPagingConfig>   ExtentPageTable;
-#endif // #ifdef OURS_CONFIG_X86_ENABLE_EPT
+        INIT_CODE
+        auto init_kernel() -> Status;
+
+        auto alias_kernel_mappings() -> Status;
+    };
+
+    class X86PageTableEpt
+        : public X86PageTableImpl<X86PageTableEpt>
+    {
+        typedef X86PageTableMmu     Self;
+    public:
+        auto init() -> Status;
+    };
 
 } // namespace ours::mem
 

@@ -1,4 +1,4 @@
-#include <ours/kernel_entry.hpp>
+#include <ours/start.hpp>
 #include <ours/mem/constant.hpp>
 
 #include <logz4/log.hpp>
@@ -32,7 +32,7 @@ namespace ours {
             //         type_to_string[entry->type]
             // );
             
-            mem::MemRegion const section{ usize(entry->addr), usize(entry->addr) + usize(entry->len) - 1 };
+            mem::Region const section{ usize(entry->addr), usize(entry->addr) + usize(entry->len) - 1 };
             // Log::debug("{ 0x%x, 0x%x, %s }\n", section.base_, section.end_, type_to_string[entry->type]);
             switch (entry->type) {
                 case MultibootMmapEntry::Available:

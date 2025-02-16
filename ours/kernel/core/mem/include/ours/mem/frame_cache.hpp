@@ -12,9 +12,40 @@
 #ifndef OURS_MEM_FRAME_CACHE_HPP
 #define OURS_MEM_FRAME_CACHE_HPP 1
 
+#include <ours/mem/pm_frame.hpp>
+
+#include <ours/cpu_cfg.hpp>
+#include <ours/cpu_local.hpp>
+
+#include <ustl/option.hpp>
+#include <ustl/sync/mutex.hpp>
+
+#include <ktl/pcp_cache.hpp>
+
 namespace ours::mem {
-    class FrameCache
-    {};
+    struct FrameCacheConfig
+        : public ktl::DefaultCacheConfig
+    {
+        typedef FrameList<>     ObjectContainer;
+
+        struct ObjectAllocator
+        {
+            auto alloc_object() -> PmFrame *;
+
+            auto free_object(PmFrame *object) -> void;
+
+            usize order;
+            usize cpuid;
+        };
+    };
+
+    struct FrameCache
+        : public ktl::PcpCache<PmFrame, FrameCacheConfig>
+    {
+        typedef ktl::PcpCache<PmFrame, FrameCacheConfig>     Base;
+        using Base::Base;
+    };
+
 } // namespace ours::mem
 
 #endif // #ifndef OURS_MEM_FRAME_CACHE_HPP

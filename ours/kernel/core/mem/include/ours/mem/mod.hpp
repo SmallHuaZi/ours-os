@@ -15,8 +15,6 @@
 #include <ours/mem/pmm.hpp>
 #include <ours/mem/vmm.hpp>
 
-#include <ours/cpu.hpp>
-
 namespace ours::mem {
     auto bind_cpu_to_node(CpuId cpuid, NodeId nid) -> void;
 
