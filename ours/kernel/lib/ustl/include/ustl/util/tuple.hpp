@@ -241,25 +241,25 @@ namespace details {
 
         USTL_FORCEINLINE USTL_CONSTEXPR usize 
         size() USTL_NOEXCEPT
-        {  return TypesList<Ts...>::size();  }
+        {  return TypeList<Ts...>::size();  }
     };
 
 
     template <usize I, typename... Ts>
     USTL_FORCEINLINE USTL_CONSTEXPR
-    TypesListValueTypeT<I, TypesList<Ts...>> &
+    TypeListAtT<I, TypeList<Ts...>> &
     get(Tuple<Ts...> &t) USTL_NOEXCEPT
     { 
-        typedef TypesListValueTypeT<I, TypesList<Ts...>> ValueType;
+        typedef TypeListAtT<I, TypeList<Ts...>> ValueType;
         return details::TupleImpl<I, ValueType>::_S_value(t); 
     }
 
     template <usize I, typename... Ts>
     USTL_FORCEINLINE USTL_CONSTEXPR
-    TypesListValueTypeT<I, TypesList<Ts...>> const &
+    TypeListAtT<I, TypeList<Ts...>> const &
     get(Tuple<Ts...> const &t) USTL_NOEXCEPT
     { 
-        typedef TypesListValueTypeT<I, TypesList<Ts...>> ValueType;
+        typedef TypeListAtT<I, TypeList<Ts...>> ValueType;
         return details::TupleImpl<I, ValueType>::_S_value(t); 
     }
 
@@ -292,7 +292,7 @@ namespace details {
     template <typename... Ts>
     USTL_FORCEINLINE USTL_CONSTEXPR bool operator==(Tuple<Ts...> const &x, Tuple<Ts...> const &y)
     {
-        USTL_CONSTEXPR long const LENGTH = TypesList<Ts...>::size();
+        USTL_CONSTEXPR long const LENGTH = TypeList<Ts...>::size();
         static_assert(LENGTH != 0, "[ustl-error] Empty tuple cause undefined behavior.\n");
 
         return TupleEqualImpl<LENGTH - 1, Ts...>{}(x, y);

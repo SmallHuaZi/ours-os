@@ -2,8 +2,8 @@
 
 namespace gktl {
     typedef void (*Ctor)();
-    NO_MANGLE Ctor const CTORS_START[];
-    NO_MANGLE Ctor const CTORS_END[];
+    extern Ctor const CTORS_START[] LINK_NAME("__ctors_start");
+    extern Ctor const CTORS_END[] LINK_NAME("__ctors_end");
 
     INIT_CODE
     auto init_static_objects() -> void

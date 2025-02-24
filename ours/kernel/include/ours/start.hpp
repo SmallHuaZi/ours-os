@@ -12,12 +12,34 @@
 #ifndef OURS_KERNEL_START_HPP
 #define OURS_KERNEL_START_HPP 1
 
-#include <ours/cpu.hpp>
 #include <ours/types.hpp>
 #include <ours/status.hpp>
 #include <ours/config.hpp>
+#include <ours/init.hpp>
+
+#include <ours/phys/handoff.hpp>
 
 namespace ours {
+    INIT_DATA
+    extern phys::Handoff *PHYS_HANDOFF; 
+
+    /// Set up `|handoff|` 
+    INIT_CODE
+    auto setup_handoff(PhysAddr handoff) -> void;
+
+    /// Perform every set up routine required before heap/MMU is available.
+    NO_MANGLE
+    auto init_arch_early() -> void;
+
+    NO_MANGLE
+    auto init_platform_early() -> void;
+
+    // Perform every set up routine required after heap/MMU is available.
+    NO_MANGLE
+    auto init_arch() -> void;
+
+    NO_MANGLE
+    auto init_platform() -> void;
     NO_MANGLE
     auto start_kernel(PhysAddr handoff) -> Status;
 

@@ -11,7 +11,7 @@ INTERFACE
 )
 target_link_libraries(kmrd_headers 
 INTERFACE
-    ours::kernel::task::headers
+    ours::kernel::main::task::headers
     ours::kernel::common::headers
 )
 

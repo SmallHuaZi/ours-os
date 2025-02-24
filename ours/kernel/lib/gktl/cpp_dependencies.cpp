@@ -21,7 +21,7 @@ extern "C" auto __cxa_finalize(void *f) -> void
 __extension__ typedef int guard __attribute__((mode(__DI__)));
 
 extern "C" int __cxa_guard_acquire(guard *g)
-{}
+{ return 0; }
 
 extern "C" void __cxa_guard_release(guard *g)
 {}

@@ -22,9 +22,12 @@
 #define ai_percpu
 
 /// Indicates a pointer pointing to virtual address
-#define ai_virt_addr
+#define ai_virt
 
 ///
-#define ai_phys_addr
+#define ai_phys
+
+/// Indicates a pointer pointing to virtual address
+#define ai_aligned
 
 #endif // #ifndef OURS_CONFIG_AUXILIARY_IDENTIFIERS_HPP

@@ -17,4 +17,5 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/scripts/cmake)
 include(PreDefines)
 # include(OursKernelModule)
 
+add_subdirectory("third_party")
 add_subdirectory("ours")

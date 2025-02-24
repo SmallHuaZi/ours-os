@@ -46,7 +46,10 @@ namespace ustl::collections {
     template <typename T, std::size_t N, std::size_t... Capacities>
     struct Array<T, N, Capacities...>
         : public Array<Array<T, Capacities...>, N>
-    {};
+    {
+        typedef Array<Array<T, Capacities...>, N>   Base;
+        using Base::Base;
+    };
 
 } // namespace ours
 

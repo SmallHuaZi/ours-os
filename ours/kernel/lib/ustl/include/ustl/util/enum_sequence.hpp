@@ -19,7 +19,7 @@ namespace ustl {
 
     template <typename Enum, int Min, int Max, int... Next>
     struct MakeEnumSequence 
-        : MakeEnumSequence<Enum, Min, Max - 1, Max - 1, Next...>
+        : public MakeEnumSequence<Enum, Min, Max - 1, Max - 1, Next...>
     {};
 
     template <typename Enum, int Min, int ... Next>

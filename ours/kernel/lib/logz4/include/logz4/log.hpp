@@ -9,7 +9,6 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
-#include "ustl/util/move.hpp"
 #ifndef LOGZ4_LOG_HPP
 #define LOGZ4_LOG_HPP 1
 

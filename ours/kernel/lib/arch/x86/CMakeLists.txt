@@ -1,4 +1,8 @@
 target_sources(arch 
-    PRIVATE 
-            # "interrupt.S"
+PRIVATE 
+    "page_table.cpp"
+)
+target_include_directories(arch_headers
+INTERFACE
+    "include"
 )

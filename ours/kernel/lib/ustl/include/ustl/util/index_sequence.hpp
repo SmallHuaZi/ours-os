@@ -9,7 +9,6 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
-#include <utility>
 #ifndef USTL_UTIL_INDEX_SEQUENCE_HPP
 #define USTL_UTIL_INDEX_SEQUENCE_HPP 1
 

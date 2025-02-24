@@ -25,20 +25,4 @@
 /// The read only data marked this just read on boot time.
 #define INIT_CONST     INIT_SECTION("rodata")
 
-namespace ours {
-    /// Arch -> Platform -> Target
-    NO_MANGLE
-    auto init_arch_early() -> void;
-
-    NO_MANGLE
-    auto init_platform_early() -> void;
-
-    NO_MANGLE
-    auto init_arch() -> void;
-
-    NO_MANGLE
-    auto init_platform() -> void;
-
-} // namespace ours
-
 #endif // #ifndef OURS_INIT_HPP

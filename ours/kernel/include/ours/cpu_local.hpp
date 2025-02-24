@@ -71,10 +71,13 @@ namespace ours {
 
         template <typename T, typename F>
         static auto for_each(T *object, F &&f) -> void;
-
     private:
-        static char CPU_LOCAL_START[] LINK_NAME("KERNEL_CPU_LOCAL_START");
-        static char CPU_LOCAL_END[] LINK_NAME("KERNEL_CPU_LOCAL_END");
+        FORCE_INLINE
+        static auto area_size() -> usize
+        {  return Self::CPU_LOCAL_END - Self::CPU_LOCAL_START;  }
+
+        static char CPU_LOCAL_START[] LINK_NAME("__cpu_local_start");
+        static char CPU_LOCAL_END[] LINK_NAME("__cpu_local_end");
         static ustl::collections::Array<isize, MAX_CPU_NUM> CPU_LOCAL_OFFSET;
     };
 
@@ -83,7 +86,7 @@ namespace ours {
     auto CpuLocal::access(T *object, CpuId cpuid) -> T *
     {
         auto addr = reinterpret_cast<char *>(object);
-        return reinterpret_cast<T *>(Self::CPU_LOCAL_OFFSET[cpuid._0] + addr);
+        return reinterpret_cast<T *>(Self::CPU_LOCAL_OFFSET[cpuid] + addr);
     }
 
     /// Invoker prototype of `F` like --void f(T *)-- 

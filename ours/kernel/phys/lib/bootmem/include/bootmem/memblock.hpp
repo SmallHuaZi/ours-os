@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef BOOTMEM_MEMBLOCK_HPP
 #define BOOTMEM_MEMBLOCK_HPP 1
 
@@ -18,172 +17,93 @@
 #include <ustl/util/pair.hpp>
 #include <ustl/fmt/formatter.hpp>
 #include <ustl/mem/align.hpp>
-#include <ustl/traits/is_invocable.hpp>
 #include <ustl/collections/pmr/vec.hpp>
+#include <ustl/algorithms/copy.hpp>
 
 namespace bootmem {
-    struct MemBlock;
-    struct RegionList;
-
-    struct BootstrapMemoryResource
-        : public ustl::collections::pmr::MemoryResource
-    {
-        virtual auto do_allocate(usize bytes, usize align) -> void *
-        {  return 0;  }
-
-        virtual auto do_deallocate(void *p, usize bytes, usize align) -> void
-        {  return; }
-
-        constexpr static usize const NR_INITIAL_REGIONS = 8;
-
-        auto allocate(usize n, usize alignment) -> Region *;
-
-        auto deallocate(Region* p, usize n) -> void;
-
-        auto commit_booking() -> void;
-
-        auto book(usize base, usize size) -> void;
-
-        MemBlock *memblock_;
-        bool should_commit_;
-        usize booking_base_;
-        usize booking_size_;
-        Region initial_regions_[NR_INITIAL_REGIONS];
-    };
-
-    class RegionList
-    {
-        using Self = RegionList;
-        using Inner = ustl::collections::pmr::Vec<Region>;
-
-    public:
-        typedef Inner::Iter         Iter;
-        typedef Inner::IterMut      IterMut;
-
-        RegionList(char const *name, BootstrapMemoryResource &allocator)
-            : inner_(BootstrapMemoryResource::NR_INITIAL_REGIONS, allocator),
-              total_(0),
-              name_(name)
-        {}
-
-        auto add(usize base, usize size, flags flags = {}) -> Status;
-
-        auto remove(usize base, usize size) -> Status;
-
-        auto isolate(usize base, usize size) -> ustl::Pair<IterMut, IterMut>;
-
-        auto begin() -> IterMut
-        {  return inner_.begin();  }
-
-        auto end() -> IterMut
-        {  return inner_.end();  }
-    
-    private:
-        auto insert(usize index, usize base, usize size, Flags flags) -> void;
-
-        auto push_back(usize base, usize size, Flags flags) -> void;
-
-        auto try_merge(usize first, usize last) -> Status;
-
-        Inner inner_;
-        usize total_;
-        char const *name_;
-    };
-
     class MemBlock
         : public IBootMem
     {
-        typedef MemBlock   Self;
-    public:
-        MemBlock(BootstrapMemoryResource *bootstrap)
-            : available_list_("Available memory", *memory_resource_),
-              occupied_list_("Occupied memory", *memory_resource_),
-              memory_resource_(bootstrap),
-              default_lowest_limit_(0),
-              default_uppest_limit_(SIZE_MAX)
-        {  bootstrap->memblock_ = this;  }
-
-        auto add(usize base, usize size, Flags flags = NO_FLAGS) -> Status
-        { return available_list_.add(base, size, flags); }
-
-        auto remove(usize base, usize size) -> Status
-        { return available_list_.remove(base, size); }
-
-        auto protect(usize base, usize size, Flags flags = NO_FLAGS) -> Status
-        {  return occupied_list_.add(base, size, flags);  }
-
-        auto allocate_bounded(usize size, usize align, usize lower_limit, usize upper_limit) -> usize;
-
-        auto allocate(usize size, usize align) -> usize
-        {  return allocate_bounded(size, align, default_lowest_limit_, default_uppest_limit_);  }
-
-        auto deallocate(void *ptr, usize size) -> void;
-
-        struct Cursor
+        struct RegionList
         {
-            Cursor(MemBlock *memblock)
-                : memblock_(memblock),
-                  free_iter_(memblock_->available_list_.begin()),
-                  busy_iter_(memblock_->occupied_list_.begin())
+            typedef Region const* Iter;
+            typedef Region *      IterMut;
+
+            RegionList(MemBlock *holder)
+                : holder_(holder)
             {}
 
-            auto move_next() -> ustl::Option<Region>;
+            auto add(PhysAddr base, usize size, RegionType type, NodeId nid) -> Status;
+            auto remove(PhysAddr base, usize size) -> Status;
+            auto isolate(PhysAddr base, usize size) -> ustl::Pair<IterMut, IterMut>;
 
-            auto move_prev() -> ustl::Option<Region>;
+            auto begin() const -> Iter
+            {  return regions_;  }
 
-            auto reset() -> void
+            auto end() const -> Iter
+            {  return regions_ + count_;  }
+
+            auto begin() -> IterMut
+            {  return regions_;  }
+
+            auto end() -> IterMut
+            {  return regions_ + count_;  }
+
+            auto grow(usize capacity) -> bool;
+
+            auto erase(IterMut pos) -> void
+            { ustl::algorithms::copy(pos + 1, end(), pos); }
+
+            auto erase(IterMut first, IterMut last) -> void
             {
-                free_iter_ = memblock_->available_list_.begin();
-                busy_iter_ = memblock_->occupied_list_.begin();
-            }
-
-            MemBlock *memblock_;
-            RegionList::IterMut free_iter_;
-            RegionList::IterMut busy_iter_;
-        };
-
-        template <typename F>
-        auto find_if(F &&matcher, usize size, usize align, Flags flags = NO_FLAGS) -> usize
-        {
-            Cursor cursor{this};
-            while (auto region = cursor.move_next()) {
-                auto const base_aligned = ustl::mem::align_up(region->base, align);
-                auto const size_aligned = region->size - (base_aligned - region->base);
-                if (size_aligned < size || flags != region->flags) {
-                    continue;
-                } else if (matcher(base_aligned, size_aligned, flags)) {
-                    return base_aligned;
+                if (last == end()) {
+                    count_ -= last - first;
+                } else {
+                    ustl::algorithms::copy(last + 1, end(), first); 
                 }
             }
 
-            return 0;
-        }
+            auto insert(usize index, Region const &region) -> void;
 
-        template <typename F>
-        constexpr static bool InvocableWithBlock = ustl::traits::Invocable<F, usize, usize, Flags>;
+            auto push_back(Region const &region) -> void;
 
-        template <typename F>
-            requires InvocableWithBlock<F>
-        auto for_each_all_block(F &&functor) -> void
+            auto try_merge(usize first, usize last) -> Status;
+
+            MemBlock *holder_;
+            Region *regions_;
+            usize capacity_;
+            usize count_;
+            usize total_;
+        };
+    public:
+        MemBlock()
+            : memories_(this),
+              reserved_(this)
         {}
 
-        template <typename F>
-            requires InvocableWithBlock<F>
-        auto for_each_available_block_in_range(usize base, usize size, F &&functor) -> void;
+        auto init(PhysAddr base, usize size) -> void;
 
-        template <typename F>
-            requires InvocableWithBlock<F>
-        auto for_each_occupied_block_in_range(usize base, usize size, F &&functor) -> void;
+        auto name() const -> char const * override
+        {  return "memblock";  }
 
+        auto add(PhysAddr base, usize size, RegionType type, NodeId nid = MAX_NODES) -> Status override
+        { return memories_.add(base, size, type, nid); }
+
+        auto remove(PhysAddr base, usize size) -> void override
+        { memories_.remove(base, size); }
+
+        auto protect(PhysAddr base, usize size) -> Status override
+        {  return reserved_.add(base, size, RegionType::AllType, 0);  }
+
+        auto allocate_bounded(usize size, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> PhysAddr override;
+
+        auto deallocate(PhysAddr ptr, usize size) -> void override;
+
+        auto iterate(IterationContext &context) const -> ustl::Option<Region> override;
     private:
-        BootstrapMemoryResource *memory_resource_;
-        bool alloc_from_bottom_to_up_;
-        usize default_lowest_limit_;
-        usize default_uppest_limit_;
-        RegionList   available_list_;
-        RegionList   occupied_list_;
+        RegionList   memories_;
+        RegionList   reserved_;
     }; // class MemBlock
-
 
 } // namespace bootmem
 

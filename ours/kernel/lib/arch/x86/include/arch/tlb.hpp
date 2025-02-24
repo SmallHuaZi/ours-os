@@ -12,13 +12,12 @@
 #ifndef ARCH_X86_TLB_HPP
 #define ARCH_X86_TLB_HPP 1
 
-#include <ours/types.hpp>
-#include <ours/config.hpp>
+#include <arch/types.hpp>
 
 namespace arch {
     struct Tlb
     {
-        static auto flush(ours::usize address) -> void
+        static auto flush(usize address) -> void
         {  asm volatile("invlpg %0" :: "m"(address): "memory");  }
 
         static auto flush_all() -> void

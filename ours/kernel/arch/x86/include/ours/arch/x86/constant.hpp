@@ -1,6 +1,0 @@
-#define OURS_GDT_KERNEL_CODE64    (1 << 3) 
-#define OURS_GDT_KERNEL_CODE32    (2 << 3) 
-#define OURS_GDT_KERNEL_DATA      (3 << 3) 
-#define OURS_GDT_USER_CODE64      (4 << 3) 
-#define OURS_GDT_USER_CODE32      (5 << 3)
-#define OURS_GDT_USER_DATA        (6 << 3)

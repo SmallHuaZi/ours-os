@@ -14,6 +14,7 @@
 
 #include <ours/types.hpp>
 #include <ours/config.hpp>
+#include <ours/status.hpp>
 
 #include <ours/mem/types.hpp>
 #include <ours/mem/constant.hpp>
@@ -21,6 +22,7 @@
 #include <ustl/bit.hpp>
 
 namespace bootmem {
+    using ours::Status;
     using ours::u16;
     using ours::isize;
     using ours::usize;
@@ -32,6 +34,8 @@ namespace bootmem {
 
     enum class RegionType: u16 {
         Normal,
+        Unused,
+        Reserved,
         ReservedAndNoInit,
         AllType,
         MaxNumType,
@@ -39,6 +43,15 @@ namespace bootmem {
 
     struct Region
     {
+        Region() = default;
+
+        Region(PhysAddr base, usize size, RegionType type, NodeId nid) 
+            : base(base), size(size)
+        {
+            set_nid(nid);
+            set_type(type);
+        }
+
         CXX11_CONSTEXPR
         static usize const NID_SHIFT = ustl::bit_width(usize(RegionType::MaxNumType));
 
@@ -49,7 +62,7 @@ namespace bootmem {
         static usize const NID_MASK = ~TYPE_MASK;
 
         CXX11_CONSTEXPR
-        auto nid() const -> usize
+        auto nid() const -> isize
         {  return (flags & NID_MASK) >> NID_SHIFT;  }
 
         CXX11_CONSTEXPR

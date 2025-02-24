@@ -12,6 +12,7 @@
 #ifndef OURS_PHYS_HANDOFF_HPP
 #define OURS_PHYS_HANDOFF_HPP 1
 
+#include <ours/assert.hpp>
 #include <bootmem/bootmem.hpp>
 
 #include <ustl/views/span.hpp>
@@ -19,13 +20,28 @@
 namespace ours::phys {
     struct MemoryHandoff
     {
-        PhysAddr bootmem_base;
-        PhysAddr bootmem_size;
-        bootmem::IBootMem *bootmem ai_virt_addr;
+        PhysAddr const bootmem_phys_base;
+        usize const bootmem_phys_size;
+
+        /// During the transition from `phys` to `main`, employing polymorphism is highly inadvisable. 
+        /// This would forcibly require the `main` module's page tables to maintain stub entries for 
+        /// the physical memory regions occupied by `phys`. Although perilous, this approach remains 
+        /// feasible.
+        ///
+        /// It serve as the heart of `EarlyMem`
+        ai_virt mutable bootmem::IBootMem *bootmem;
     };
 
+    /// 
     struct Handoff
     {
+        CXX11_CONSTEXPR
+        static u32 const MAGIC = 0xA1B2C3D4;
+
+        auto verify() const -> void
+        {  DEBUG_ASSERT(magic == MAGIC, "Invalid handoff."); }
+
+        u32 const magic = MAGIC;
         MemoryHandoff mem;
     };
 

@@ -10,22 +10,10 @@ INTERFACE
     ours::kernel::lib::ktl::headers
     ours::kernel::lib::gktl::headers
     ours::kernel::lib::ustl::headers
+    ours::kernel::lib::logz4::headers
 )
 
-add_subdirectory("arch")
-
-add_subdirectory("core")
-
+add_subdirectory("main")
 add_subdirectory("lib")
-
 add_subdirectory("object")
-
 add_subdirectory("phys")
-
-add_executable(ours_kernel)
-add_executable(ours::kernel ALIAS ours_kernel)
-target_link_libraries(ours_kernel
-PRIVATE
-    ours::kernel::arch
-    ours::kernel::core
-)

@@ -57,16 +57,16 @@
 #   define USTL_NOEXCEPT_IF(expr)
 #endif
 
-/// USTL_NORETURN
+/// USTL_NO_RETURN
 #if __cplusplus >= 201103L
-#   define USTL_NORETURN   [[noreturn]]
+#   define USTL_NO_RETURN   [[NO_RETURN]]
 #elif defined(__GNUC__)
-#   define USTL_NORETURN   __attribute__((noreturn))
+#   define USTL_NO_RETURN   __attribute__((NO_RETURN))
 #elif defined(_MSC_VER)
-#   define USTL_NORETURN   __declspec(noreturn)
+#   define USTL_NO_RETURN   __declspec(NO_RETURN)
 #else
-#   warning "Marco `USTL_NORETURN` is invaild." 
-#   define USTL_NORETURN
+#   warning "Marco `USTL_NO_RETURN` is invaild." 
+#   define USTL_NO_RETURN
 #endif
 
 /// USTL_FORCEINLINE, USTL_PACKED and USTL_NAKED

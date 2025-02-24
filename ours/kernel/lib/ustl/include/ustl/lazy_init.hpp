@@ -12,13 +12,22 @@
 #ifndef USTL_LAZY_INIT_HPP
 #define USTL_LAZY_INIT_HPP 1
 
+#include <ustl/util/move.hpp>
+
 namespace ustl {
     template <typename T, int Alignment = alignof(T)>
     union LazyInit
     {
-        auto data() -> T *
-        {  static_cast<T *>(data_); }
+        template <typename... Args> 
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto init(Args&&... args) -> T *
+        {  return new (data()) T(ustl::forward<Args>(args)...);  }
 
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto data() -> T *
+        {  return reinterpret_cast<T *>(data_); }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto operator->() -> T *
         {  return this->data();  }
 

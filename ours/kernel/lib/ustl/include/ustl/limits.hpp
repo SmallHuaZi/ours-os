@@ -17,7 +17,14 @@
 
 namespace ustl {
     template <typename T>
-    using NumericLimits = ::std::numeric_limits<T>;
+    struct NumericLimits 
+        : public ::std::numeric_limits<T>
+    {
+        typedef ::std::numeric_limits<T>    Base;
+
+        constexpr static auto DIGITS = Base::digits;
+        constexpr static auto DIGITS10 = Base::digits10;
+    };
 
 } // namespace ustl
 

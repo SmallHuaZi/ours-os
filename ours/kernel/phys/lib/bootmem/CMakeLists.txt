@@ -10,7 +10,7 @@ INTERFACE
 target_link_libraries(bootmem_headers
 INTERFACE
     ours::kernel::common::headers
-    ours::kernel::mem::headers
+    ours::kernel::main::mem::headers
 )
 
 add_library(bootmem)

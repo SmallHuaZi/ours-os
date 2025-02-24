@@ -13,11 +13,22 @@
 #define USTL_BIT_HPP 1
 
 #include <bit>
+#include <ustl/traits/integral.hpp>
+#include <ustl/traits/integral_constant.hpp>
 
 namespace ustl {
     using std::bit_ceil;
     using std::bit_floor;
     using std::bit_width;
+
+    template <typename Int, Int StartBit, Int Size>
+    struct MakeBitMask
+        : public traits::IntegralConstant<Int, ((Int(1) << Size) - 1) << StartBit>
+    {  static_assert(traits::IsIntegralV<Int>, "`Int` is not a valid integer");  };
+
+    template <typename Int, Int StartBit, Int Size>
+    auto make_bitmask() -> Int
+    {  return MakeBitMask<Int, StartBit, Size>::VALUE;  }
 
 } // namespace ustl
 

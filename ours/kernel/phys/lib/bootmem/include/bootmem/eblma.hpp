@@ -29,10 +29,7 @@ namespace bootmem {
         {
             typedef Region          Base;
             typedef BlockUnit       Self;
-
-            BlockUnit(usize b, usize s, usize f)
-                : Region(b, s, f), managed_hook()
-            {}
+            using Base::Base;
 
             ustl::collections::intrusive::SlistBaseHook<> managed_hook;
             USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedOptions);

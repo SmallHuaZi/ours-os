@@ -8,15 +8,17 @@ target_include_directories(arch_headers
 INTERFACE
     "include"
 )
+target_link_libraries(arch_headers
+INTERFACE
+    ours::kernel::common::headers
+    ours::kernel::main::mem::headers
+)
 
 add_library(arch)
 add_library(ours::kernel::lib::arch ALIAS arch)
 target_link_libraries(arch
-INTERFACE
+PUBLIC
     arch_headers
-PRIVATE
-    ours::kernel::common::headers
-    ustl
 )
 
 add_subdirectory(x86)

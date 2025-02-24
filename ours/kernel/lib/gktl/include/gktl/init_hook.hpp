@@ -18,11 +18,13 @@
 #define GKTL_INIT_HOOK_LINK_SECTION(PRIORITY) \
     LINK_SECTION(".kernel.init_hook." #PRIORITY)
 
-#define GKTL_SYSTEM_INIT_STATE_PHYSBOOT 0
-
 namespace gktl {
-    enum class SystemInitState {
-
+    enum class InitLevel {
+        ArchEarly,
+        PlatformEarly,
+        VmmInitialized,
+        Arch,
+        Platform,
     };
 
     struct InitHook
@@ -30,16 +32,22 @@ namespace gktl {
         typedef auto (*Callback)() -> void;
 
         Callback    hook_;
+        InitLevel   level_;
         char const *name_;
     };
+
+    auto set_init_level(InitLevel level) -> void;
 
 } // namespace gktl
 
 #define GKTL_INIT_HOOK(NAME, HOOK, LEVEL) \
+namespace init_hook { \
 GKTL_INIT_HOOK_LINK_SECTION(0) \
-static const gktl::InitHook GKTL_INIT_HOOK_##NAME = { \
-    HOOK,   \
-    #NAME   \
-};
+static const gktl::InitHook GKTL_INIT_HOOK_##NAME##_LEVEL = { \
+    HOOK,  \
+    LEVEL, \
+    NAME   \
+}; \
+}
 
 #endif // GKTL_HOOK_HPP

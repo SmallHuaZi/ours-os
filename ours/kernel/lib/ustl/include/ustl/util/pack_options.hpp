@@ -39,50 +39,61 @@ struct OPTION_NAME                                                          \
 };
 
 namespace ustl {
-    template <typename TypesList>
+    template <typename TypeList>
     struct DoPackOptions;
 
     // Only default options.
     template <typename DefaultOption>
-    struct DoPackOptions<TypesList<DefaultOption>>
-    {
-        typedef DefaultOption  Type;
-    };
+    struct DoPackOptions<TypeList<DefaultOption>>
+    {  typedef DefaultOption  Type;  };
 
     // Pack two options, `Option1` has higher priority than `Option2`.
     template <typename Option1, typename Option2>
-    struct DoPackOptions<TypesList<Option1, Option2>>
-    {
-        typedef typename Option1::template Pack<Option2>   Type;
-    };
+    struct DoPackOptions<TypeList<Option1, Option2>>
+    {  typedef typename Option1::template Pack<Option2>   Type;  };
 
     // Remove unable options.
     template <typename... Options>
-    struct DoPackOptions<TypesList<void, Options...>>
-    {
-        typedef typename DoPackOptions<TypesList<Options...>>::Type  Type;
-    };
+    struct DoPackOptions<TypeList<void, Options...>>
+    {  typedef typename DoPackOptions<TypeList<Options...>>::Type  Type;  };
 
     // Do pack.
     template <typename Option, typename... OtherOptions>    
-    struct DoPackOptions<TypesList<Option, OtherOptions...>>
+    struct DoPackOptions<TypeList<Option, OtherOptions...>>
     {
         typedef typename Option::template Pack<
-            typename DoPackOptions<TypesList<OtherOptions...>>::Type>   Type;
+            typename DoPackOptions<TypeList<OtherOptions...>>::Type
+        > Type;
     };
 
-
-    //! @brief Custom attribute packaging by inheriting subclass attributes 
-    //!        with higher priority than basic attributes.
-    //! @tparam DefaultOptions The default, which is the configuration option 
-    //!         with the lowest priority.
-    //! @tparam CustomOptions  User-specified, high-priority options
-    template <typename DefaultOptions, typename... CustomOptions>    
+    /// `PackOptions` 
+    ///
+    /// `CustomOptions` should be user-specified, and it is higher priority than `DefaultOptions`.
+    /// `DefaultOptions` is used to give out the default configuration, usually open to lib-developer.
+    ///
+    /// The effect as the following code showed:
+    ///  ```cpp 
+    /// struct DefaultHttpConfig
+    /// {
+    ///     enum { Port = 7890 };
+    ///     enum { MaxNumConnections = 32 };
+    /// };
+    /// 
+    /// struct MyHttpConfig
+    /// {
+    ///     enum { MaxNumConnections = 64 };
+    /// };
+    ///
+    /// typedef typename PackOptions<DefaultHttpConfig, MyHttpConfig>::Type PackedOptions;
+    /// static_assert(PackedOption == 64); // It will pass compile
+    /// static_assert(PackedOption == 32); // static assert error.
+    ///
+    template <typename DefaultOptions, typename... CustomOptions>
     struct PackOptions
     { 
-        typedef TypesList<DefaultOptions, CustomOptions...>   OptionsList;
-        typedef InvertTypesListT<OptionsList>  InvertedOptionsList; 
-        typedef typename DoPackOptions<InvertedOptionsList>::Type  Type;
+        typedef TypeList<DefaultOptions, CustomOptions...>   OptionsList;
+        typedef TypeListInvertT<OptionsList>  OptionsListInverted; 
+        typedef typename DoPackOptions<OptionsListInverted>::Type  Type;
     };
 
 } // namespace ustl

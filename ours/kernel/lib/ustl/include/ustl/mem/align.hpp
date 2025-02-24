@@ -22,6 +22,11 @@ namespace ustl::mem {
     USTL_FORCEINLINE USTL_CONSTEXPR 
     auto align_up(usize n, usize a) USTL_NOEXCEPT -> usize
     { return (n + a - 1) & ~(a - 1); }
+
+    USTL_FORCEINLINE USTL_CONSTEXPR 
+    auto is_aligned(usize n, usize a) USTL_NOEXCEPT -> usize
+    { return n & (a - 1); }
+
 } // namespace ustl::mem
 
 #endif // #ifndef USTL_MEM_ALIGN_HPP

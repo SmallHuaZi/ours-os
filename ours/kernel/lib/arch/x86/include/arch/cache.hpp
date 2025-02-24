@@ -12,20 +12,26 @@
 #ifndef ARCH_X86_CACHE_HPP
 #define ARCH_X86_CACHE_HPP 1
 
-#include <ours/types.hpp>
-#include <ours/config.hpp>
+#include <arch/types.hpp>
+
+#ifndef ARCH_CONFIG_CACHE_SIZE
+#   define ARCH_CONFIG_CACHE_SIZE   64
+#endif // #ifndef ARCH_CONFIG_CACHE_SIZE
 
 namespace arch {
+    CXX11_CONSTEXPR 
+    static usize const CACHE_SIZE = ARCH_CONFIG_CACHE_SIZE;
+
     struct Cache
     {
-        static auto flush(ours::usize phys_addr) -> void
+        static auto flush_line(PhysAddr phys_addr) -> void
         {
-            ours::usize const dirty_line = phys_addr & CACHE_LINE_MASK;
+            usize const dirty_line = phys_addr & CACHE_LINE_MASK;
             asm volatile("clflush %0" :: "m"(dirty_line): "memory");
         }
 
     private:
-        static ours::usize const CACHE_LINE_MASK;
+        static usize const CACHE_LINE_MASK;
     };
 
 } // namespace arch

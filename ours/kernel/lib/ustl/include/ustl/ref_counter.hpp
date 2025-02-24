@@ -63,18 +63,13 @@ namespace ustl {
           public EboOptimizer<Allocator>
     {
         typedef RefCounter                      Self;
-        typedef EboOptimizer<Disposer>    Base1;
-        typedef EboOptimizer<Allocator>   Base2;
+        typedef EboOptimizer<Disposer>          Base1;
+        typedef EboOptimizer<Allocator>         Base2;
         typedef ustl::sync::Atomic<Size>        AtomciSize;
 
     protected:
         USTL_FORCEINLINE
-        RefCounter(Disposer disposer) USTL_NOEXCEPT
-            : Self(PRE_ENABLE_SENTINEL, disposer, Allocator())
-        {}
-
-        USTL_FORCEINLINE
-        RefCounter(Allocator allocator) USTL_NOEXCEPT
+        RefCounter(Allocator allocator={}) USTL_NOEXCEPT
             : Self(PRE_ENABLE_SENTINEL, Disposer(), allocator)
         {}
 
