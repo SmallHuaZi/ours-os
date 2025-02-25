@@ -12,10 +12,10 @@
 #ifndef OURS_TASK_TYPES_HPP
 #define OURS_TASK_TYPES_HPP 1
 
-#include <ustl/function/fn.hpp>
+// #include <ustl/function/fn.hpp>
 
 namespace ours::task {
-    using ThreadStartEntry = ustl::function::Fn<auto () -> void>;
+    using ThreadStartEntry = auto () -> void;// ustl::function::Fn<auto () -> void>;
 
     class Thread;
     

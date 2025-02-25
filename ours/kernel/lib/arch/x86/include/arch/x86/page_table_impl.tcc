@@ -1,4 +1,3 @@
-#include "ustl/result.hpp"
 #ifndef ARCH_X86_PAGE_TABLE_IMPL_HPP
 #   include <arch/x86/page_table_impl.hpp>
 #endif // #ifndef ARCH_X86_PAGE_TABLE_IMPL_HPP
@@ -20,7 +19,8 @@ namespace arch::x86 {
     auto X86_PAGE_TABLE::make_mapping_context(MappingContext *context, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags) -> Status
     {
         auto const derived = static_cast<Derived *>(this);
-        ustl::mem::construct_at(context, va, &pa, n, flags, 4096);
+        ustl::mem::construct_at(context, va, pa, n, flags, 4096);
+        return Status::Ok;
     }
 
     TEMPLATE FORCE_INLINE
@@ -37,11 +37,11 @@ namespace arch::x86 {
             return Status::InvalidArguments;
         }
 
-        return make_mapping_context(va, &pa, 1, flags, context);
+        return make_mapping_context(context, va, &pa, 1, flags);
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) 
+    auto X86_PAGE_TABLE::map_pages_with_altmap(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control, Altmap *altmap) 
         -> ustl::Result<usize, Status>
     {
         canary_.verify();
@@ -86,7 +86,7 @@ namespace arch::x86 {
 
 
     TEMPLATE
-    auto X86_PAGE_TABLE::map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control)
+    auto X86_PAGE_TABLE::map_pages_bulk_with_altmap(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control, Altmap *altmap)
         -> ustl::Result<usize, Status>
     {
         canary_.verify();
@@ -158,6 +158,8 @@ namespace arch::x86 {
 
             this->create_mapping(level - 1, derived->get_next_table_unchecked(entry), context, control);
         }
+
+        return Status::Ok;
     }
 
     TEMPLATE
@@ -189,6 +191,8 @@ namespace arch::x86 {
             auto const [phys, virt] = context->take(page_size);
             update_entry(entry, phys, virt, context->flags());
         }
+
+        return Status::Ok;
     }
 
     TEMPLATE
@@ -210,20 +214,24 @@ namespace arch::x86 {
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::unmap_pages(VirtAddr va, usize n) -> Status
-    {}
+    auto X86_PAGE_TABLE::unmap_entry(Pte volatile*, usize level) -> Status
+    {  return Status::Unimplemented;  }
+
+    TEMPLATE
+    auto X86_PAGE_TABLE::unmap_pages(VirtAddr va, usize n, UnMapControl) -> Status
+    {  return Status::Unimplemented;  }
 
     TEMPLATE
     auto X86_PAGE_TABLE::protect_pages(VirtAddr va, usize n, MmuFlags flags) -> Status
-    {}
+    {  return Status::Unimplemented;  }
 
     TEMPLATE
     auto X86_PAGE_TABLE::query_mapping(VirtAddr va, ai_out PhysAddr *pa, ai_out MmuFlags *flags) -> Status
-    {}
+    {  return Status::Unimplemented;  }
 
     TEMPLATE
     auto X86_PAGE_TABLE::harvest_accessed(VirtAddr va, usize n, HarvestControl action) -> Status
-    {}
+    {  return Status::Unimplemented;  }
 
 } // namespace arch::x86
 

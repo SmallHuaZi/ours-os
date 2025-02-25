@@ -66,9 +66,11 @@ namespace ktl {
               container_()
         {}
 
-        auto take_object() -> CachedObject *;
+        auto take_object() -> CachedObject *
+        {  return 0;  }
 
-        auto return_object(CachedObject *) -> void; 
+        auto return_object(CachedObject *) -> void
+        {}
 
         Mutex mutex_;
         size_t capacity_;
@@ -121,7 +123,7 @@ namespace ktl {
         struct CurrentCpu
         {
             static auto current_cpu() -> size_t
-            {  return ours::CpuLocal::cpuid()._0;  }
+            {  return ours::CpuLocal::cpuid();  }
         };
     };
 } // namespace ktl

@@ -30,6 +30,7 @@ namespace arch {
     using ours::PhysAddr;
     using ours::VirtAddr;
     using ours::mem::MapControl;
+    using ours::mem::UnMapControl;
     using ours::mem::HarvestControl;
     using ours::mem::VmasFlags;
     using ours::mem::MmuFlags;

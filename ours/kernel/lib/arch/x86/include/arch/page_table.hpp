@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef ARCH_X86_PAGE_TABLE_HPP
 #define ARCH_X86_PAGE_TABLE_HPP 1
 
@@ -37,7 +36,8 @@ namespace x86 {
     public:
         auto init(VmasFlags flags) -> Status;
 
-        ai_unsafe auto init(PhysAddr pa_table, VirtAddr va_table, VmasFlags flags) -> Status;
+        ai_unsafe auto init(PhysAddr pa_table, VirtAddr va_table, VmasFlags flags) -> Status 
+        {  return pimpl_->init((Pte volatile *)pa_table, (Pte volatile *)va_table, flags);  }
 
         /// Sees IX86PageTable::map_pages.
         FORCE_INLINE
@@ -46,8 +46,8 @@ namespace x86 {
 
         /// Sees IX86PageTable::unmap_pages.
         FORCE_INLINE
-        auto unmap_pages(VirtAddr va, usize n) -> Status
-        {  return pimpl_->unmap_pages(va, n);  }
+        auto unmap_pages(VirtAddr va, usize n, UnMapControl control) -> Status
+        {  return pimpl_->unmap_pages(va, n, control);  }
 
         /// Sees IX86PageTable::protect_pages.
         FORCE_INLINE
@@ -65,15 +65,35 @@ namespace x86 {
         {  return pimpl_->harvest_accessed(va, n, action);  }
 
     private:
-        union Storage {
-            using Mmu = x86::X86PageTableMmu<Options>;
-            using Ept = x86::X86PageTableEpt<Options>;
+        using Mmu = x86::X86PageTableMmu<Options>;
+        using Ept = x86::X86PageTableEpt<Options>;
 
+        union Storage {
             alignas(Mmu) char mmu_[sizeof(Mmu)];
             alignas(Ept) char ept_[sizeof(Ept)];
         } storage_;
         x86::IX86PageTable *pimpl_;
     };
+
+    template <typename Options>
+    auto X86PageTable<Options>::init(VmasFlags flags) -> Status
+    {
+        if (bool(flags & VmasFlags::Guest)) {
+            Ept *ept= new (&storage_.ept_) Ept();
+            auto status = ept->init();
+            if (status != Status::Ok) {
+                return status;
+            }
+        } else {
+            Mmu *mmu = new (&storage_.mmu_) Mmu();
+            auto status = mmu->init();
+            if (status != Status::Ok) {
+                return status;
+            }
+        }
+
+        return Status::Ok;
+    }
 
     struct PageTableDefaultOptions
     {

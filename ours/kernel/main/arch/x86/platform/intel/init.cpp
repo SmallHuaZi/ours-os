@@ -2,11 +2,11 @@
 
 namespace ours {
     NO_MANGLE INIT_CODE
-    auto init_arch() -> void
+    auto intel_init_arch() -> void
     {}
 
     NO_MANGLE INIT_CODE
-    auto init_platform() -> void
+    auto intel_init_platform() -> void
     {}
 
 } // namespace ours

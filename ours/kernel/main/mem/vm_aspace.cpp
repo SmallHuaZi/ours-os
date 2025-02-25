@@ -5,7 +5,13 @@
 #include <ustl/lazy_init.hpp>
 #include <ustl/sync/lockguard.hpp>
 
+#include <heap/scope.hpp>
+
 namespace ours::mem {
+    VmAspace *VmAspace::KERNEL_ASPACE_;
+    VmAspace::AspaceList VmAspace::ALL_ASPACE_LIST_;
+    ustl::sync::Mutex VmAspace::ALL_ASPACE_LIST_MUTEX_;
+
     /// Manage the lifetime manually.
     /// The global-unique address sapce.
     static ustl::LazyInit<VmAspace>       S_KERNEL_ASPACE;
@@ -27,9 +33,11 @@ namespace ours::mem {
     auto VmAspace::sync_kernel_aspace() -> void
     {}
 
+    auto VmAspace::switch_aspace(Self *, Self *) -> void
+    {}
+
     auto VmAspace::clone(VmasFlags flags) -> ustl::Rc<VmAspace>
-    {
-    }
+    {  return nullptr;  }
 
     auto VmAspace::create(VmasFlags flags, char const *name) 
         -> ustl::Rc<VmAspace>

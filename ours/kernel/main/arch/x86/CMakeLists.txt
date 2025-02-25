@@ -12,39 +12,15 @@ INTERFACE
 target_sources(ours_kernel_main_arch
 INTERFACE
     # Sources
+    "gdt.S"
     "start.S"
+    "context.S"
+    "smp.cpp"
     "init.cpp"
+    "thread.cpp"
     "vm_aspace.cpp"
 )
 
-target_compile_options(ours_kernel_main_arch
-INTERFACE
-    "-O0"
-    "-fno-use-cxa-atexit"
-    "-fno-builtin"
-    # "-fno-leading-underscore"
-    "-fno-exceptions"
-    "-ffreestanding"
-    "-fno-rtti"
-    "-fno-stack-protector"
-    "-Wno-write-strings"
-    "-stdlib=libc++"
-
-    # For clang
-    "-Xclang" 
-    "-fdefault-calling-conv=cdecl"
-)
-
-target_link_options(ours_kernel_main_arch
-INTERFACE
-    "-m32"
-    "-nodefaultlibs;"
-    "-no-pie;"
-    "-Wl,--build-id=none;"
-    "-nostartfiles"
-    "-ffreestanding"
-    "-fno-register-global-dtors-with-atexit"
-    "-T${CMAKE_CURRENT_SOURCE_DIR}/link.ld"
-)
+add_subdirectory("platform")
 
 message("Leave kerenl/arch/x86")

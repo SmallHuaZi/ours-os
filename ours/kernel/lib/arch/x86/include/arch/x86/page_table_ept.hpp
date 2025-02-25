@@ -20,19 +20,32 @@ namespace arch::x86 {
         : public X86PageTableImpl<X86PageTableEpt<Options>, Options>
     {
         typedef X86PageTableEpt     Self;
-        typedef X86PageTableImpl<X86PageTableEpt<Options>, Options> Base;
+        typedef X86PageTableImpl<Self, Options> Base;
     public:
-        auto init() -> Status;
+        ~X86PageTableEpt() override = default;
 
-        static auto check_phys_addr(PhysAddr) -> bool;
-        static auto check_virt_addr(VirtAddr) -> bool;
-        static auto is_flags_allowed(MmuFlags) -> bool;
+        auto init() -> Status
+        { return Status::Unimplemented;  }
 
-        static auto is_large_page_mapping(Pte pte) -> bool;
-        static auto is_present(Pte pte) -> bool;
-        static auto has_supported_page_size(usize level) -> bool;
-        static auto make_pte(PhysAddr phys, MmuFlags flags) -> Pte;
-        static auto get_next_table_unchecked(ai_virt Pte volatile *pte) -> Pte volatile *;
+        static auto check_phys_addr(PhysAddr) -> bool
+        { return false;  }
+        static auto check_virt_addr(VirtAddr) -> bool
+        { return false;  }
+        static auto is_flags_allowed(MmuFlags) -> bool
+        { return false;  }
+
+        static auto is_large_page_mapping(Pte pte) -> bool
+        { return false;  }
+
+        static auto is_present(Pte pte) -> bool
+        { return false;  }
+        static auto has_supported_page_size(usize level) -> bool
+        { return false;  }
+        static auto make_pte(PhysAddr phys, MmuFlags flags) -> Pte
+        { return {};  }
+
+        static auto get_next_table_unchecked(ai_virt Pte volatile *pte) -> Pte volatile *
+        { return {};  }
     };
 
 } // namespace arch::x86

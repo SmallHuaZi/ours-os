@@ -31,7 +31,7 @@ namespace ustl::mem {
         {  return operator delete(ptr);  }
 
         auto deallocate(PtrMut ptr, usize n) -> void
-        {  return operator delete[](ptr, n);  }
+        {  return operator delete[](ptr);  }
     };
 
 } // namespace ustl::mem

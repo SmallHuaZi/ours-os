@@ -13,10 +13,18 @@ INTERFACE
 add_executable(ours_kernel_phys)
 add_executable(ours::kernel::phys ALIAS ours_kernel_phys)
 target_link_libraries(ours_kernel_phys
-PUBLIC
+PRIVATE
     ours::kernel::phys::headers
     ours::kernel::phys::arch
 )
+
+add_dependencies(ours_kernel_phys ours::kernel::main::image)
+
+add_custom_command(
+    TARGET ours_kernel_phys PRE_BUILD
+    COMMAND echo "#define MAIN_MODULE_IMAGE ${CMAKE_BINARY_DIR}/ours_kernel_main_image" > arch/${OURS_ARCH}/main-module-image.hpp
+)
+
 
 add_subdirectory("lib")
 add_subdirectory("arch")

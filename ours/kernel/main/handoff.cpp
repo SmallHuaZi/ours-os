@@ -1,6 +1,7 @@
 #include <ours/phys/handoff.hpp>
 #include <ours/mem/physmap.hpp>
 #include <ours/init.hpp>
+#include <ours/start.hpp>
 #include <ours/panic.hpp>
 
 namespace ours {
@@ -9,7 +10,7 @@ namespace ours {
     using phys::MemoryHandoff;
 
     INIT_DATA
-    phys::Handoff *PHYS_HANDOFF; 
+    phys::Handoff *PHYS_HANDOFF;
 
     INIT_CODE
     auto setup_handoff(PhysAddr phys_addr) -> void

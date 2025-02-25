@@ -33,8 +33,8 @@ namespace ours::mem {
     extern char const KERNEL_BSS_START[] LINK_NAME("__bss_start");
     extern char const KERNEL_BSS_END[] LINK_NAME("__bss_end");
 
-    extern PhysAddr KERNEL_PHYS_BASE;
-    extern VirtAddr KERNEL_VIRT_BASE;
+    NO_MANGLE PhysAddr KERNEL_PHYS_BASE;
+    NO_MANGLE VirtAddr KERNEL_VIRT_BASE;
 
     FORCE_INLINE
     auto get_kernel_phys_base() -> PhysAddr

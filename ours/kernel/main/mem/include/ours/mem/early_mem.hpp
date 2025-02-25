@@ -33,14 +33,11 @@ namespace ours::mem {
     struct EarlyMem {
         static auto init(phys::MemoryHandoff &handoff) -> void;
 
-        static auto add(PhysAddr base, usize size) -> void
-        {  return add(base, size, NodeId{0});  }
+        static auto remove(PhysAddr base, usize size) -> void
+        {  BOOTMEM->remove(base, size);  }
 
-        static auto add(PhysAddr base, usize size, NodeId id) -> void;
-
-        static auto remove(PhysAddr base, usize size) -> void;
-
-        static auto protect(PhysAddr base, usize size) -> void;
+        static auto protect(PhysAddr base, usize size) -> void
+        {  BOOTMEM->protect(base, size);  }
 
         template <typename T>
         static auto allocate(usize n, NodeId nid) -> T *
@@ -55,13 +52,15 @@ namespace ours::mem {
         template <typename T>
         static auto deallocate(T *ptr, usize size) -> void;
 
-        static auto iterate(bootmem::IterationContext &context) -> ustl::Option<bootmem::Region>;
+        static auto iterate(bootmem::IterationContext &context) -> ustl::Option<bootmem::Region>
+        {  return BOOTMEM->iterate(context);  }
 
         static auto get_node_pfn_range(NodeId nid) -> gktl::Range<Pfn>;
 
         static auto count_present_frames(Pfn start, Pfn end) -> usize;
 
-        static auto start_address() -> PhysAddr;
+        static auto start_address() -> PhysAddr
+        {  return BOOTMEM->start_address();  }
 
         static bootmem::IBootMem *BOOTMEM;
     };
@@ -88,12 +87,6 @@ namespace ours::mem {
         DEBUG_ASSERT(BOOTMEM);
         PhysAddr phys_addr = PhysMap::virt_to_phys(ptr);
         BOOTMEM->deallocate(ptr, sizeof(T) * n);
-    }
-
-    inline auto EarlyMem::count_present_frames(Pfn start, Pfn end) -> usize
-    {
-        DEBUG_ASSERT(BOOTMEM);
-        return BOOTMEM->count_present_blocks(start, end, FRAME_SIZE, FRAME_SIZE, 0);
     }
 
 } // namespace ours::mem

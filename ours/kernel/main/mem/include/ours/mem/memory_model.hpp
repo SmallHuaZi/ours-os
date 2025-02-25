@@ -48,7 +48,6 @@ namespace ours::mem {
         EncodedUsize value_;
     };
 
-
     /// `MemoryModel` is a high-level abstract and implementation to physical memory layout.
     /// It's responsibility is to pre-allocate `PmFrame` and to provide a group of the convertion
     /// method among `PmFrame`, `Pfn`, `VirtAddr` and `PhysAddr`.
@@ -68,11 +67,16 @@ namespace ours::mem {
         static auto frame_to_phys(PmFrame *frame) -> PhysAddr
         {  return pfn_to_phys(Self::frame_to_pfn(frame));  }
 
-        static auto pfn_to_frame(Pfn pfn) -> PmFrame *;
+        static auto pfn_to_frame(Pfn pfn) -> PmFrame *
+        {  return 0; }
 
-        static auto virt_to_frame(VirtAddr virt) -> PmFrame *;
+        static auto virt_to_frame(VirtAddr virt) -> PmFrame *
+        {  return 0; }
 
-        static auto frame_to_pfn(PmFrame *frame) -> Pfn;
+        static auto frame_to_pfn(PmFrame *frame) -> Pfn
+        {  return 0; }
+
+        static auto mark_present(Pfn start_pfn, Pfn end_pfn) -> void;
 
         static auto populate(Pfn start_pfn, Pfn end_pfn) -> Status;
 

@@ -1,3 +1,4 @@
+#include <ours/config.hpp>
 #include <ours/mem/pm_node.hpp>
 
 #include <ours/mem/pm_zone.hpp>
@@ -23,15 +24,18 @@ namespace ours::mem {
     {
         typedef Iterator    Self; 
 
-        Iterator(Self *self, Gaf gaf)
-            : highest_zone_type(gafns::zone_type(gaf))
-        {}
+        auto init(Gaf gaf)
+        {
+
+        }
 
         auto move_next() -> ZoneRef *
         {
             while (first != last) {
                 
             }
+
+            return 0;
         }
 
         Inner first;
@@ -66,6 +70,13 @@ namespace ours::mem {
 
         this->insert_queue(local_queue_);
     }
+
+    FORCE_INLINE
+    auto ZoneQueues::iter(QueueType type) -> IterMut
+    {  return {}; }
+
+    auto ZoneQueues::rev_iter(QueueType type) -> RevIterMut
+    {}
 
     template <>
     FORCE_INLINE
@@ -129,8 +140,8 @@ namespace ours::mem {
     CXX11_CONSTEXPR
     NodeMask const DEFAULT_ONLINE_NODE_MASK = {  };
 
-    PmNode::DisMap      PmNode::NODE_DISTANCE;
-    PmNode::NodeList    PmNode::GLOBAL_NODE_LIST;
+    PmNode::DisMap      PmNode::NODE_DISTANCE{};
+    PmNode::NodeList    PmNode::GLOBAL_NODE_LIST{};
 
     static Gaf GAF_ALLOWED = GAF_BOOT;
 
@@ -206,6 +217,8 @@ namespace ours::mem {
         auto iterator = zone_queues_.iter(ZoneQueues::NodeAffinity);
         AllocContext context{iterator, order, NodeStates::NODE_STATES[NodeStates::Online]};
         auto frame = this->alloc_frame_core(context.iterator, flags, order);
+
+        return frame;
     }
 
     auto PmNode::free_frame(PmFrame *frame, usize order) -> void
@@ -240,7 +253,8 @@ namespace ours::mem {
 
     auto PmNode::free_frames(FrameList<> *list) -> void 
     {
-        auto const reclaimer = ustl::function::bind(&Self::free_frame, this);
+        using namespace ustl::function;
+        auto const reclaimer = bind(&Self::free_frame, this, _1, 0);
         while (!list->empty()) {
             list->erase_and_dispose(list->begin(), reclaimer);
         }

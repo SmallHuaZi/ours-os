@@ -1,3 +1,5 @@
+#include "ours/mem/mmu_flags.hpp"
+#include "ours/types.hpp"
 #include <ours/arch/vm_aspace.hpp>
 #include <ours/mem/physmap.hpp>
 
@@ -19,25 +21,20 @@ namespace ours::mem {
     /// | 4     | PML4   | 4 KiB | 256 TiB-| 9 bits   |   512   | 0x8000000 (134217728) |
     /// +-------+--------+-----------------+-------------------------+----------+-------+
 
-    NO_MANGLE
-    alignas(PAGE_SIZE) arch::Pte KERNEL_PGD[512]; // PML4
+    NO_MANGLE {
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PGD[512];   // PML4
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PDP[512];   // PDP for the first 512GB
 
-    NO_MANGLE
-    alignas(PAGE_SIZE) arch::Pte KERNEL_PDP[512]; // PDP for the first 1GB
-
-    NO_MANGLE
-    alignas(PAGE_SIZE) arch::Pte KERNEL_PD[512]; // PD for the first 1GB
-
-    NO_MANGLE
-    alignas(PAGE_SIZE) arch::Pte KERNEL_PDP_HIGH[512]; // High PDP for the kernel address space 
-
-    NO_MANGLE
-    alignas(PAGE_SIZE) arch::Pte KERNEL_PHYSMAP_PD[PhysMap::SIZE / MAX_PAGE_SIZE]; //
+        // TODO(SmallHuaZi): Remove it and reinstall KERNEL_PHYSMAP_PD[0] onto KERNEL_PDP[0].
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PD[512];    // PD for the first 1GB, be used to identity mapping.
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PDP_HIGH[512]; // High PDP for the kernel address space
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PHYSMAP_PD[PhysMap::SIZE / MAX_PAGE_SIZE]; // PD for directe mapping
+    }
 
     ///           KERNEL_PGD 
     ///       |0| ... || ... |511|
     ///       /                \
-    ///  KERNEL_PDP          KERNEL_PDP_HIGH 
+    ///  KERNEL_PDP          KERNEL_PDP_HIGH
     ///                          \
     ///                      
 
@@ -63,5 +60,20 @@ namespace ours::mem {
         }
 
         return Status::Ok;
+    }
+
+    auto ArchVmAspace::map(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>
+    {  
+        return page_table_.map_pages(va, pa, n, flags, control);
+    }
+
+    auto ArchVmAspace::unmap(VirtAddr va, usize n, UnMapControl control) -> Status
+    {  
+        return page_table_.unmap_pages(va, n, control);
+    }
+
+    auto ArchVmAspace::query(VirtAddr va, ai_out PhysAddr *pa, MmuFlags *flags) -> Status
+    {
+        return page_table_.query_mapping(va, pa, flags);
     }
 }

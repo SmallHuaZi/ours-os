@@ -8,6 +8,7 @@ else()
 endif()
 
 add_definitions("-DOURS_DEV")
+add_definitions("-DBOOST_CONTAINER_USER_DEFINED_THROW_CALLBACKS=1")
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_definitions("-DOURS_DEBUG=1")

@@ -3,6 +3,7 @@ set(source_set
     "fault.cpp"
     "init_pmm.cpp"
     "init_vmm.cpp"
+    "memory_model.cpp"
     "mod.cpp"
     "new.cpp"
     "early_mem.cpp"

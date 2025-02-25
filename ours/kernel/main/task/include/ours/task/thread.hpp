@@ -94,9 +94,11 @@ namespace ours::task {
     {
         typedef Thread::Current     Self;
     public:
-        static auto aspace() -> mem::VmAspace *;
+        static auto aspace() -> mem::VmAspace *
+        { return 0; }
 
-        static auto exit(isize retcode) -> void;
+        static auto exit(isize retcode) -> void
+        {}
     };
     
 } // namespace ours::task

@@ -1,12 +1,15 @@
 #include <ours/arch/x86/mmu.hpp>
-#include <ours/arch/x86/desciptor.hpp>
+#include <ours/arch/x86/descriptor.hpp>
 #include <ours/arch/aspace_layout.hpp>
 
 #include <ours/asm.hpp>
 #include <ours/marco_abi.hpp>
 #include <ours/mem/cfg.hpp>
 
-#define NR_PHYSMAP_PTES   (ARCH_PHYS_MAP_SIZE / MAX_PAGE_SIZE)
+#include <arch/x86/registers.hpp>
+
+#define NR_PHYSMAP_PTES   (ARCH_PHYSMAP_SIZE / MAX_PAGE_SIZE)
+#define NR_PHYSMAP_PDS    (NR_PHYSMAP_PTES / 512)
 #define PDP_HIGH_OFFSET (512 - KERNEL_ASPACE_SIZE / GB(1))
 
 // For load GDTR
@@ -54,8 +57,8 @@
 // table: Virtual address
 // shift: 
 // pte: Register which store the PTE value
-.marco install_relocated_pte table, shift, pte
-    mov $PHYS(KERNEL_VIRT_BASE + SHIFT_OFFSET(\shift)), %ecx
+.macro install_relocated_pte table, shift, pte
+    mov PHYS(KERNEL_VIRT_BASE + SHIFT_OFFSET(\shift)), %ecx
     shrl $SHIFT_REMAIN(\shift), %ecx
     andl $ADDR_OFFSET_MASK, %ecx
 
@@ -69,7 +72,7 @@
 // %rdi: relocated_base
 // %rsi: handoff
 
-.section .init.boot, "ax"
+.section .init.boot, "ax", @progbits
 .align 8
 FUNCTION_NOCFI(_start)
     // Disable interrupts
@@ -132,7 +135,7 @@ FUNCTION_NOCFI(_start)
     loop 0b
 
     // 2) Establish direct mapping, namely physmap.
-    movl $PHYS(KERNEL_PHYSMAP_PDP), %esi
+    movl $PHYS(KERNEL_PHYSMAP_PD), %esi
     movl $NR_PHYSMAP_PTES,  %ecx
     xor  %eax, %eax
 0:
@@ -215,7 +218,9 @@ idle:
 .bss
 .align 16
 DATA(KERNEL_STACK)
-    .skip 8192
+    .skip KB(2)
+DATA_END(KERNEL_STACK)
 DATA(KERNEL_STACK_END)
 
-KERNEL_ENTRY = _start
+.global MAIN_ENTRY
+MAIN_ENTRY = _start;

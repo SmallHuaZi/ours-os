@@ -16,6 +16,7 @@
 #include <ours/mem/types.hpp>
 #include <ours/mem/mmu_flags.hpp>
 
+#include <ustl/result.hpp>
 #include <ustl/util/enum_bits.hpp>
 #include <ustl/traits/function_detector.hpp>
 
@@ -77,7 +78,7 @@ namespace ours::mem {
         "The ArchVmAspace do not implements required method `ArchVmAspace::init`");
         
         USTL_MPL_CREATE_METHOD_DETECTOR(map, Map);
-        static_assert(HasFnMap<auto (ArchVmAspace::*)(VirtAddr, PhysAddr, usize, MmuFlags, MapControl) -> Status>::VALUE,
+        static_assert(HasFnMap<auto (ArchVmAspace::*)(VirtAddr, PhysAddr, usize, MmuFlags, MapControl) -> ustl::Result<usize, Status>>::VALUE,
         "The ArchVmAspace do not implements required method `ArchVmAspace::map`");
 
         USTL_MPL_CREATE_METHOD_DETECTOR(map_bulk, MapBulk);

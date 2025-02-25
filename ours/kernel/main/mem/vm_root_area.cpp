@@ -13,7 +13,10 @@ namespace ours::mem {
     }
 
     auto VmRootArea::destory_subvma(VirtAddr base, usize size) -> Status 
-    {  return Status::Fail;  }
+    {  return Status::Unimplemented;  }
+
+    auto VmRootArea::reserve_subvma(char const *name, VirtAddr base, usize size, MmuFlags flags) -> Status
+    {  return Status::Unimplemented;  }
 
     auto VmRootArea::find_subvma(VirtAddr virt_addr) -> ustl::Rc<VmArea> 
     {

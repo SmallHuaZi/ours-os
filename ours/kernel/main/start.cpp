@@ -20,7 +20,7 @@ namespace ours {
     }
 
     /// Called from arch-code.
-    /// Note: Invoke it after finishing the early architecture initialization.
+    /// Note: Invoke it after finishing the collection to early architecture specific information.
     /// Assumptions:
     ///     1). The early memory allocator has been initialized.
     NO_MANGLE
@@ -45,7 +45,7 @@ namespace ours {
 
         // Start from here, memory allocator is alive.
         // First thing we should do is to initialize our system logger.
-        log::init();
+        log::init(0);
 
         auto laborer = task::Thread::spawn("laborer", labour_routine);
         laborer->detach();

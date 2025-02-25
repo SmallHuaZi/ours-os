@@ -31,6 +31,10 @@ namespace ours::mem {
         return 0;
     }
 
+    INIT_CODE 
+    auto PmZone::init_frame_cache() -> void
+    {}
+
     // Requires:
     //      1. @map is must zeroed.
     INIT_CODE 

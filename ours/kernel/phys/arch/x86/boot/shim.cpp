@@ -4,6 +4,11 @@
 #include <lz4/lz4.hpp>
 
 namespace ours::phys {
+    struct KernelImage
+    {
+        
+    };
+
     NO_MANGLE
     auto phys_main(usize loader_param) -> void
     {

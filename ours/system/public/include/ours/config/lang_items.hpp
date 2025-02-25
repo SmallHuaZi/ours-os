@@ -6,6 +6,7 @@
 #if __cplusplus > 201103ull
 #   define CXX11_INLINE     inline
 #   define CXX11_CONSTEXPR  constexpr
+#   define CXX11_NOEXCEPT   noexcept
 #else
 #   define CXX11_INLINE
 #   define CXX11_CONSTEXPR

@@ -18,21 +18,18 @@
 #include <ustl/fmt/format_to.hpp>
 
 namespace logz4 {
-    auto init() -> void;
+    auto init(Logger *logger) -> void;
 
     auto get_global_logger() -> Logger &;
 
-    auto set_global_logger(Logger &logger);
+    auto set_global_logger(Logger &logger) -> void;
 
     template <typename... Args>
     using FormatString = ustl::fmt::FormatString<Args...>;
     
     template <typename... Args>
     auto log(Logger &logger, Level level, FormatString<Args...> fmt, Args &&...args) -> void
-    {
-        // auto record = new Record();
-        // if (!ustl::fmt::format_to(record.begin(), fmt, args)) {  }
-    }
+    {}
 
     template <typename... Args>
     inline auto debug(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void
@@ -53,7 +50,6 @@ namespace logz4 {
     template <typename... Args>
     inline auto error(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void
     {  return logz4::log<Args...>(logger, Level::Error, fmt, ustl::forward<Args>(args)...);  }
-
 
     template <typename... Args>
     auto log(Level level, FormatString<Args...> fmt, Args &&...args) -> void

@@ -28,22 +28,23 @@ namespace ours {
     auto setup_handoff(PhysAddr handoff) -> void;
 
     /// Perform every set up routine required before heap/MMU is available.
-    NO_MANGLE
+    NO_MANGLE INIT_CODE
     auto init_arch_early() -> void;
 
-    NO_MANGLE
+    NO_MANGLE INIT_CODE
     auto init_platform_early() -> void;
 
     // Perform every set up routine required after heap/MMU is available.
-    NO_MANGLE
+    NO_MANGLE INIT_CODE
     auto init_arch() -> void;
 
-    NO_MANGLE
+    NO_MANGLE INIT_CODE
     auto init_platform() -> void;
-    NO_MANGLE
+
+    NO_MANGLE INIT_CODE
     auto start_kernel(PhysAddr handoff) -> Status;
 
-    NO_MANGLE
+    NO_MANGLE INIT_CODE
     auto start_nonboot_cpu(CpuId cpuid) -> Status;
 
 } // namespace ours

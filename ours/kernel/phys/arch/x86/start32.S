@@ -58,8 +58,9 @@ idle:
 .bss
 .align 8
 LOCAL_DATA(EARLY_STACK)
-    .bss KB(2) - (TEMP_GDTR_END - TEMP_GDTR)
-DATA_END(EARLY_STACK_END)
+    .bss KB(2)
+DATA_END(EARLY_STACK)
+LOCAL_DATA(EARLY_STACK_END)
 
 .data
 .align 8

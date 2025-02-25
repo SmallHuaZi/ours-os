@@ -16,4 +16,6 @@ namespace ours::mem {
         return Status::Unimplemented;
     }
 
+    auto MemoryModel::mark_present(Pfn start_pfn, Pfn end_pfn) -> void 
+    {}
 } // namespace ours::mem

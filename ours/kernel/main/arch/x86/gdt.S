@@ -5,7 +5,7 @@
 DATA(TEMP_GDTR)
     .short GDT_END - GDT - 1
     .quad  GDT 
-END_DATA(TEMP_GDTR)
+DATA_END(TEMP_GDTR)
 
 .data
 .align 8
@@ -58,7 +58,7 @@ DATA(GDT)
     .byte  0b10101111       /* G(1) D(0) L(1) AVL(0) limit 19:16 */
     .byte  0x0              /* base 31:24 */
 
-.rept SMP_MAX_CPUS
+.rept 0 // SMP_MAX_CPUS
     /* TSS_SELECTORs */
     .short 0                /* limit 15:00 */
     .short 0                /* base 15:00 */
@@ -70,7 +70,6 @@ DATA(GDT)
     .int   0x00000000       /* base 63:32 */
     .int   0x00000000       /* reserved/sbz */
 .endr
-
-END_DATA(GDT)
+DATA_END(GDT)
 
 DATA(GDT_END)

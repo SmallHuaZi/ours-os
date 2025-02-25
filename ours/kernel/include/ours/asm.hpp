@@ -20,12 +20,12 @@
 #define LOCAL_FUNCTION_NOCFI(x)     .type x,STT_FUNC; x:
 #define FUNCTION_NOCFI(x)           .global x; .hidden x; LOCAL_FUNCTION_NOCFI(x)
 
-#define LOCAL_FUNCTION(x)   LOCAL_FUNCTION_LABEL(x) .cfi_startproc
+#define LOCAL_FUNCTION(x)   LOCAL_FUNCTION_NOCFI(x) .cfi_startproc
 #define FUNCTION(x)         .global x; .hidden x; LOCAL_FUNCTION(x)
 #define FUNCTION_END(x)     .cfi_endproc; .size x, . - x
 
 #define LOCAL_DATA(x)   .type x,STT_OBJECT; x:
 #define DATA(x)         .global x; .hidden x; LOCAL_DATA(x)
-#define END_DATA(x)     .size x, . - x
+#define DATA_END(x)     .size x, . - x
 
 #endif // #ifndef OURS_ASM_HPP

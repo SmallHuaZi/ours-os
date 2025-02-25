@@ -9,16 +9,12 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
-#ifndef OURS_CONFIG_HPP
-#define OURS_CONFIG_HPP 1
+#ifndef OURS_CONFIG_BOOST_WORKAROUND_HPP
+#define OURS_CONFIG_BOOST_WORKAROUND_HPP 1
 
-#include <ours/config/if_cfg.hpp>
-#include <ours/config/lang_items.hpp>
-#include <ours/config/compiler_attributes.hpp>
-#include <ours/config/auxiliary_identifiers.hpp>
+#define BOOST_CONTAINER_USER_DEFINED_THROW_CALLBACKS 1
+#define BOOST_DISABLE_ASSERTS 1
+#define BOOST_ENABLE_ASSERT_HANDLER 1
+#define BOOST_NO_EXCEPTIONS 1
 
-#include <ours/config/boost_workaround.hpp>
-
-#define HAS_INCLUDE __has_include
-
-#endif // #ifndef OURS_CONFIG_CONFIG_HPP
+#endif // #ifndef OURS_CONFIG_BOOST_WORKAROUND_HPP

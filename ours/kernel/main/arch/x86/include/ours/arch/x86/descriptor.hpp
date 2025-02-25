@@ -13,14 +13,14 @@
 #define OURS_ARCH_X86_DESCRIPTOR_HPP 1
 
 /// Kernel selectors
-#define CODE_SELECTOR       0x08
-#define CODE_64_SELECTOR    0x10
-#define DATA_SELECTOR       0x18
+#define X86_GDT_KERNEL_CODE64    (1 << 3)
+#define X86_GDT_KERNEL_CODE32    (2 << 3) 
+#define X86_GDT_KERNEL_DATA      (3 << 3) 
+#define X86_GDT_USER_CODE64      (4 << 3) 
+#define X86_GDT_USER_CODE32      (5 << 3)
+#define X86_GDT_USER_DATA        (6 << 3)
 
 /// User selectors
-#define USER_CODE_SELECTOR (0x20 | 3)
-#define USER_DATA_SELECTOR (0x28 | 3)
-#define USER_CODE_64_SELECTOR (0x30 | 3)
 
 #define TSS_SELECTOR(i) ((uint16_t)(0x38 + 16 * (i)))
 /* 0x40 is used by the second half of the first TSS descriptor */

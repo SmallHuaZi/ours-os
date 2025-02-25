@@ -39,7 +39,7 @@ namespace ours::mem {
             MaxNumQueues,
         };
 
-        using QueueImpl = FrameList<ustl::collections::intrusive::SizeType<ustl::sync::AtomicUsize>>;
+        using QueueImpl = FrameList<>;
         ustl::collections::Array<QueueImpl, MaxNumQueues> queues;
 
         ustl::sync::AtomicU32   lrugen;

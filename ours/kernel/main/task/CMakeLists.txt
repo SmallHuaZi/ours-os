@@ -17,8 +17,12 @@ INTERFACE
     ours::kernel::object::headers
 )
 
-add_library(ours_kernel_task INTERFACE ${source_set})
+add_library(ours_kernel_task INTERFACE)
 add_library(ours::kernel::main::task ALIAS ours_kernel_task)
+target_sources(ours_kernel_task 
+INTERFACE
+    ${source_set}
+)
 target_link_libraries(ours_kernel_task 
 INTERFACE
     ours::kernel::main::task::headers

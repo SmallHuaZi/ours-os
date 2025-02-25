@@ -16,16 +16,16 @@ target_include_directories(gktl_headers
 INTERFACE "include"
 )
 
-add_library(gktl)
+add_library(gktl INTERFACE)
 add_library(ours::kernel::lib::gktl ALIAS gktl)
 target_sources(gktl
-PRIVATE
+INTERFACE
+    "init_hook.cpp"
     "static_objects.cpp"
     "cpp_dependencies.cpp"
 )
-
 target_link_libraries(gktl
-PUBLIC
+INTERFACE
     gktl_headers
     ours::kernel::common::headers
 )

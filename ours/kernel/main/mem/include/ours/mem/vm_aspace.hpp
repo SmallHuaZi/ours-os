@@ -12,6 +12,7 @@
 #ifndef OURS_MEM_VM_ASPACE_HPP
 #define OURS_MEM_VM_ASPACE_HPP 1
 
+#include <ours/config.hpp>
 #if !__has_include(<ours/arch/vm_aspace.hpp>)
 #   error "The header <ours/arch/vm_aspace.hpp> is required by [protocol.module.mem]"
 #endif
@@ -104,8 +105,8 @@ namespace ours::mem {
         /// The list which strungs all existing VmAspace.
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOptions);
-        USTL_DECLARE_LIST(Self, VmAspaceList, ManagedOptions);
-        static VmAspaceList ALL_ASPACE_LIST_;
+        USTL_DECLARE_LIST(Self, AspaceList, ManagedOptions);
+        static AspaceList ALL_ASPACE_LIST_;
         static ustl::sync::Mutex ALL_ASPACE_LIST_MUTEX_;
     };
 

@@ -1,3 +1,4 @@
+#include "ours/mem/types.hpp"
 #include <ours/mem/init.hpp>
 
 #include <ours/mem/pm_zone.hpp>
@@ -158,9 +159,22 @@ namespace ours::mem {
     }
 
     INIT_CODE
+    static auto mark_memory_present() -> void
+    {
+        bootmem::IterationContext context(MAX_NODES, bootmem::RegionType::Normal);
+        while (auto region = EarlyMem::iterate(context)) {
+            auto const start_pfn = phys_to_pfn(region->base);
+            auto const end_pfn = phys_to_pfn(region->end());
+            MemoryModel::mark_present(start_pfn, end_pfn);
+        }
+    }
+
+    INIT_CODE
     auto init_pmm(ustl::views::Span<Pfn> max_zone_pfn) -> void
     {
         MemoryModel::init();
+
+        mark_memory_present();
 
         set_zone_pfn_range(max_zone_pfn);
 
@@ -168,5 +182,9 @@ namespace ours::mem {
 
         hand_off_unused_area();
     }
+
+    INIT_CODE
+    auto init_early_pmm(phys::MemoryHandoff &) -> Status
+    {  return Status::Unimplemented; }
 
 } // namespace ours::mem

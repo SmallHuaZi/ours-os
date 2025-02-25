@@ -1,12 +1,12 @@
-#include <ours/init.hpp>
+#include <ours/start.hpp>
 
 namespace ours {
     NO_MANGLE INIT_CODE
-    auto amd_init_arch() -> void
+    auto init_platform_early() -> void
     {}
 
     NO_MANGLE INIT_CODE
-    auto amd_init_platform() -> void
+    auto init_platform() -> void
     {}
 
 } // namespace ours

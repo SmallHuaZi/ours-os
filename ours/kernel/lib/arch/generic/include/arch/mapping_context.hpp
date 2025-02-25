@@ -144,6 +144,7 @@ namespace arch {
         auto finish() -> void;
 
     private:
+        Altmap  *altmap;
         MmuFlags flags_;
         PhysAddrCursor phys_cursor_;
         VirtAddrCursor virt_cursor_;

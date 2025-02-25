@@ -4,6 +4,8 @@
 #include <arch/cache.hpp>
 
 namespace ours {
+    ustl::collections::Array<isize, MAX_CPU_NUM> CpuLocal::CPU_LOCAL_OFFSET{};
+
     auto CpuLocal::init(CpuId cpuid) -> Status
     {
         if (cpuid == BOOT_CPU_ID) {

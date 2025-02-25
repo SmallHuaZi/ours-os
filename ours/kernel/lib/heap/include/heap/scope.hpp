@@ -13,19 +13,31 @@
 #define HEAP_NEW_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/config.hpp>
+#include <ours/mem/gaf.hpp>
 
 #include <ktl/object_cache.hpp>
 
-auto operator new(ours::usize size, ours::usize align) -> void *;
+auto operator new(ours::usize size, ours::usize align, ours::mem::Gaf gaf) CXX11_NOEXCEPT -> void *;
 
-auto operator delete(void *ptr, ours::usize n) -> void;
+FORCE_INLINE
+auto operator new(ours::usize size, ours::usize align) CXX11_NOEXCEPT -> void *
+{  return operator new(size, align, ours::mem::GAF_KERNEL);  }
+
+auto operator delete(void *ptr) CXX11_NOEXCEPT -> void;
+
+auto operator delete[](void *ptr) CXX11_NOEXCEPT -> void;
 
 template <typename T, typename... Options>
-auto operator new(ours::usize size, ours::usize align, ktl::ObjectCache<T, Options...> *object_cache) -> void *
+auto operator new(ours::usize size, ours::usize align, ktl::ObjectCache<T, Options...> *object_cache) CXX11_NOEXCEPT -> void *
 {}
 
 template <typename T, typename... Options>
-auto operator delete(void *ptr, ours::usize n, ktl::ObjectCache<T, Options...> *object_cache) -> void
+auto operator delete(void *ptr, ktl::ObjectCache<T, Options...> *object_cache) CXX11_NOEXCEPT -> void
+{}
+
+template <typename T, typename... Options>
+auto operator delete(void *ptr, ours::usize n, ktl::ObjectCache<T, Options...> *object_cache) CXX11_NOEXCEPT -> void
 {}
 
 #endif // #ifndef HEAP_NEW_HPP

@@ -1,7 +1,15 @@
-add_library(x86_phys32_common INTERFACE)
+add_library(x86_phys32_common)
 target_sources(x86_phys32_common  
-INTERFACE
+PRIVATE
     "start32.S"
+)
+target_link_libraries(x86_phys32_common
+PRIVATE
+    ours::kernel::common::headers
+)
+target_compile_options(x86_phys32_common
+PRIVATE
+    "-m32"
 )
 
 target_sources(ours_kernel_phys_arch
@@ -13,8 +21,13 @@ INTERFACE
 # If 32-bit CPU 
 target_link_libraries(ours_kernel_phys_arch 
 INTERFACE
-    phys32_common
+    x86_phys32_common
     ours::kernel::lib::lz4
+)
+
+target_compile_options(ours_kernel_phys_arch
+INTERFACE
+    "-m32"
 )
 
 add_subdirectory("boot")

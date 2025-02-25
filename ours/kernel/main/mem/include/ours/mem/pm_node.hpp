@@ -145,9 +145,10 @@ namespace ours::mem {
 
         auto remove(PmZone *zone) -> void;
 
-        auto local_zone(ZoneType) -> PmZone *;
+        auto local_zone(ZoneType ztype) -> PmZone *
+        {  return local_zones_[ztype]; }
 
-        auto iter(QueueType type) -> IterMut;
+        auto iter(QueueType ztype) -> IterMut;
 
         auto rev_iter(QueueType type) -> RevIterMut;
 

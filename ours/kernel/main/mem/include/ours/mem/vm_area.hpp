@@ -42,8 +42,8 @@ namespace ours::mem {
     };
     USTL_ENABLE_ENUM_BITS(VmaFlags);
 
-    /// Specific handler for various regions, to avoid the use of  virtual function, 
-    /// that would lead many meaningless derived  classes.
+    /// Specific handler for various regions, to avoid the use of virtual function, 
+    /// which would lead many meaningless derived classes.
     struct VmAreaHandler
     {
         mutable ustl::function::Fn<auto () -> void>  open;

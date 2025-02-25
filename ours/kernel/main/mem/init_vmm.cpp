@@ -26,6 +26,11 @@ using ustl::algorithms::clamp;
 using ustl::mem::construct_at;
 
 namespace ours::mem {
+    NO_MANGLE {
+        PhysAddr KERNEL_PHYS_BASE;
+        VirtAddr KERNEL_VIRT_BASE;
+    }
+
     struct PresetVmaInfo
     { 
         char const *name;

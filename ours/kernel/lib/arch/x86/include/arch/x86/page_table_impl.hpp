@@ -27,11 +27,14 @@ namespace arch::x86 {
         IX86PageTable() = default;
         virtual ~IX86PageTable() = default;
 
+        auto init(Pte volatile *pa_table, Pte volatile *va_table, VmasFlags flags) -> Status;
+
         /// Maps `n` frames starting from `|pa|` to the `|va|`, and the mapping is done with the specified `|flags|`.
-        /// During the mapping process, those existing entries will be handled through `|action|`.
+        /// During the mapping process, those existing entries will be handled through `|control|`.
         /// Return the number of page mappped if success.
-        virtual auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl action) 
-            -> ustl::Result<usize, Status> = 0;
+        auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) 
+            -> ustl::Result<usize, Status>
+        {  return this->map_pages_bulk_with_altmap(va, &pa, 1, flags, control, 0);  }
 
         /// Sees IX86PageTable::map_pages.
         virtual auto map_pages_with_altmap(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, Altmap *altmap) 
@@ -39,16 +42,17 @@ namespace arch::x86 {
 
         /// Maps `n` frames of physical memory starting from `phys_addr` to the virtual address `virt_addr`,
         /// and the mapping is done with the specified `flags`.
-        virtual auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl action) 
-            -> ustl::Result<usize, Status> = 0;
+        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control) 
+            -> ustl::Result<usize, Status> 
+        {  return this->map_pages_bulk_with_altmap(va, pa, len, flags, control, 0);  }
 
         /// Maps `n` frames of physical memory starting from `phys_addr` to the virtual address `virt_addr`,
         /// and the mapping is done with the specified `flags`.
-        virtual auto map_pages_bulk_with_altmap(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl action) 
+        virtual auto map_pages_bulk_with_altmap(VirtAddr, PhysAddr *, usize len, MmuFlags flags, MapControl control, Altmap *) 
             -> ustl::Result<usize, Status> = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
-        virtual auto unmap_pages(VirtAddr va, usize n) -> Status = 0;
+        virtual auto unmap_pages(VirtAddr va, usize n, UnMapControl) -> Status = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
         virtual auto protect_pages(VirtAddr va, usize n, MmuFlags flags) -> Status = 0;
@@ -56,10 +60,10 @@ namespace arch::x86 {
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
         virtual auto query_mapping(VirtAddr va, ai_out PhysAddr *pa, ai_out MmuFlags *flags) -> Status = 0;
 
-        virtual auto harvest_accessed(VirtAddr va, usize n, HarvestControl action) -> Status = 0;
+        virtual auto harvest_accessed(VirtAddr va, usize n, HarvestControl control) -> Status = 0;
 
         /// Calculate how many frames are required to additional cost.
-        virtual auto calc_mapping_overhead(VirtAddr va, PhysAddr pa, usize n) -> usize;
+        // virtual auto calc_mapping_overhead(VirtAddr va, PhysAddr pa, usize n) -> usize;
 
         auto page_usage() const -> usize
         {  return pages_.load();  }
@@ -72,6 +76,15 @@ namespace arch::x86 {
         ustl::sync::AtomicUsize pages_;
         ustl::sync::AtomicUsize refcnt_;
     };
+
+    FORCE_INLINE
+    auto IX86PageTable::init(Pte volatile *pa_table, Pte volatile *va_table, VmasFlags flags) -> Status 
+    {
+        phys_ = pa_table;
+        virt_ = va_table;
+
+        return Status::Ok;
+    }
 
     struct PendingTlbInvalidation
     {
@@ -94,7 +107,8 @@ namespace arch::x86 {
     template <typename PageTable>
     struct X86PageTableSynchroniser
     {
-        auto sync() -> void;
+        auto sync() -> void
+        {}
 
         PageTable *page_table_;
         PendingTlbInvalidation pending_;
@@ -108,6 +122,10 @@ namespace arch::x86 {
         typedef GenericMappingContext   Base;
         typedef X86PageTableSynchroniser<PageTable>  Synchroniser;
         using Base::Base;
+
+        MappingContext(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
+            : Base(va, pa, n, flags, page_size), altmap_(0), nr_mapped_(), synchroniser_()
+        {}
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto consume(usize page_size) -> void
@@ -149,18 +167,17 @@ namespace arch::x86 {
         typedef PagingTraits<Options::PAGING_LEVEL>     PagingTraits;
         typedef MappingContext<Derived>                 MappingContext;
     public:
-        /// Sees IX86PageTable::map_pages.
-        auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags, MapControl) -> ustl::Result<usize, Status> override;
-
-        /// Sees IX86PageTable::map_pages.
-        auto map_pages_bulk(VirtAddr, PhysAddr *, usize, MmuFlags, MapControl) -> ustl::Result<usize, Status> override;
+        ~X86PageTableImpl() override = default;
 
         /// Sees IX86PageTable::map_pages.
         auto map_pages_with_altmap(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, Altmap *altmap) 
             -> ustl::Result<usize, Status> override;
 
+        auto map_pages_bulk_with_altmap(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control, Altmap *altmap) 
+            -> ustl::Result<usize, Status> override;
+
         /// Sees IX86PageTable::unmap_pages.
-        auto unmap_pages(VirtAddr, usize) -> Status override;
+        auto unmap_pages(VirtAddr, usize, UnMapControl) -> Status override;
 
         /// Sees IX86PageTable::protect_pages.
         auto protect_pages(VirtAddr, usize, MmuFlags) -> Status override;
@@ -213,8 +230,6 @@ namespace arch::x86 {
         auto update_entry(Pte volatile*, PhysAddr, VirtAddr, MmuFlags) -> void;
 
         auto unmap_entry(Pte volatile*, usize level) -> Status;
-
-        auto populate_entry(Pte *, MappingContext *) -> Status;
 
         GKTL_CANARY(X86PageTable, canary_);
         Mutex  mutex_;
