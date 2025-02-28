@@ -21,7 +21,7 @@
 [[nodiscard(#FUNC "(): Ignoring the return value will lead to memory leaks.")]] 
 
 namespace ours::mem {
-    ALLOC_NODISCARD(alloc_frame)
+    [[nodiscard("alloc_frame(): Ignoring the return value will lead to memory leaks.")]] 
     auto alloc_frame(Gaf flags, usize order = 0) -> PmFrame *;
 
     /// Assumptions:

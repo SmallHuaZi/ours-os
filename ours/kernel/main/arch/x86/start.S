@@ -73,6 +73,9 @@
 // %rsi: handoff
 
 .section .init.boot, "ax", @progbits
+#ifdef CHECK_IMAGE
+    .byte 'O','U','R','S','-','K','E','R','N','E','L'
+#endif
 .align 8
 FUNCTION_NOCFI(_start)
     // Disable interrupts

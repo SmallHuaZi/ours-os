@@ -29,7 +29,8 @@ namespace logz4 {
     
     template <typename... Args>
     auto log(Logger &logger, Level level, FormatString<Args...> fmt, Args &&...args) -> void
-    {}
+    {
+    }
 
     template <typename... Args>
     inline auto debug(Logger &logger, FormatString<Args...> fmt, Args &&...args) -> void

@@ -28,4 +28,6 @@
 #define DATA(x)         .global x; .hidden x; LOCAL_DATA(x)
 #define DATA_END(x)     .size x, . - x
 
+#define SIZE(...)       .quad  __VA_ARGS__
+
 #endif // #ifndef OURS_ASM_HPP

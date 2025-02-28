@@ -12,9 +12,17 @@
 #ifndef LOGZ4_LOGGER_HPP
 #define LOGZ4_LOGGER_HPP 1
 
-#include <logz4/record.hpp>
+#include <logz4/level.hpp>
+#include <ustl/source_location.hpp>
 
 namespace logz4 {
+    struct Record
+    {
+        Level level;
+        char const *target;
+        ustl::SourceLocation location;
+    };
+
     class Logger
     {
     public:
@@ -22,9 +30,10 @@ namespace logz4 {
 
         virtual ~Logger();
 
-        virtual auto is_enabled() -> bool = 0;
+        virtual auto is_enabled() -> bool
+        {  return true;  }
 
-        virtual auto log(Record &record) -> void = 0;
+        virtual auto log(Record const &record) -> void = 0;
 
         virtual auto flush() -> void = 0;
 

@@ -11,6 +11,7 @@
 #ifndef OURS_MEM_EARLY_HPP
 #define OURS_MEM_EARLY_HPP 1
 
+#include <ours/init.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/physmap.hpp>
 #include <ours/mem/constant.hpp>
@@ -62,6 +63,7 @@ namespace ours::mem {
         static auto start_address() -> PhysAddr
         {  return BOOTMEM->start_address();  }
 
+        INIT_DATA
         static bootmem::IBootMem *BOOTMEM;
     };
 

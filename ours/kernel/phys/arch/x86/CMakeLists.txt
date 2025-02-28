@@ -15,7 +15,11 @@ PRIVATE
 target_sources(ours_kernel_phys_arch
 INTERFACE
     "image.S"
-    "early_console.cpp"
+    "vga_logger.cpp"
+)
+target_include_directories(ours_kernel_phys_arch
+INTERFACE
+    ${CMAKE_BINARY_DIR}/gen
 )
 
 # If 32-bit CPU 
@@ -23,6 +27,7 @@ target_link_libraries(ours_kernel_phys_arch
 INTERFACE
     x86_phys32_common
     ours::kernel::lib::lz4
+    ours::kernel::phys::boot
 )
 
 target_compile_options(ours_kernel_phys_arch

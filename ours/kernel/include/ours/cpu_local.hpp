@@ -14,7 +14,9 @@
 
 #include <ours/cpu.hpp>
 #include <ours/cpu_mask.hpp>
+#include <ours/init.hpp>
 #include <ours/assert.hpp>
+#include <ours/mem/constant.hpp>
 
 #include <ustl/function/invoke.hpp>
 #include <ustl/collections/array.hpp>
@@ -53,6 +55,7 @@ namespace ours {
     {
         typedef CpuLocal    Self;
     public:
+        INIT_CODE
         static auto init(CpuId cpuid) -> Status;
 
         static auto cpuid() -> CpuId
@@ -66,19 +69,20 @@ namespace ours {
         template <typename T, typename = T>
         static auto access(T *object, CpuId = Self::cpuid()) -> T *;
 
+        template <typename T, typename = T>
+        static auto allocate(CpuId cpuid) -> T *;
+
+        template <typename T, typename = T>
+        static auto free(T *, CpuId cpuid) -> void;
+
         template <typename T, typename F>
         static auto for_each(F &&f) -> void;
 
         template <typename T, typename F>
         static auto for_each(T *object, F &&f) -> void;
     private:
-        FORCE_INLINE
-        static auto area_size() -> usize
-        {  return Self::CPU_LOCAL_END - Self::CPU_LOCAL_START;  }
-
-        static char CPU_LOCAL_START[] LINK_NAME("__cpu_local_start");
-        static char CPU_LOCAL_END[] LINK_NAME("__cpu_local_end");
-        static ustl::collections::Array<isize, MAX_CPU_NUM> CPU_LOCAL_OFFSET;
+        static ustl::collections::Array<isize, MAX_CPU_NUM>     UNIT_OFFSET;
+        static ustl::collections::Array<isize, mem::MAX_NODES>  GROUP_OFFSET;
     };
 
     template <typename T, typename>
@@ -86,7 +90,7 @@ namespace ours {
     auto CpuLocal::access(T *object, CpuId cpuid) -> T *
     {
         auto addr = reinterpret_cast<char *>(object);
-        return reinterpret_cast<T *>(Self::CPU_LOCAL_OFFSET[cpuid] + addr);
+        return reinterpret_cast<T *>(Self::UNIT_OFFSET[cpuid] + addr);
     }
 
     /// Invoker prototype of `F` like --void f(T *)-- 

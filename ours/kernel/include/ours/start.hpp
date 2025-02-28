@@ -21,7 +21,7 @@
 
 namespace ours {
     INIT_DATA
-    extern phys::Handoff *PHYS_HANDOFF; 
+    extern phys::Handoff *PHYS_HANDOFF;
 
     /// Set up `|handoff|` 
     INIT_CODE

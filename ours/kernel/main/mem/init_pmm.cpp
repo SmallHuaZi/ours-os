@@ -1,4 +1,3 @@
-#include "ours/mem/types.hpp"
 #include <ours/mem/init.hpp>
 
 #include <ours/mem/pm_zone.hpp>
@@ -28,10 +27,10 @@ using ustl::algorithms::clamp;
 
 namespace ours::mem {
     INIT_DATA
-    static Pfn ZONE_LOWEST_PFN[MAX_ZONES];
+    static Pfn ZONE_LOWEST_PFN[NR_ZONES_PER_NODE];
 
     INIT_DATA
-    static Pfn ZONE_HIGHEST_PFN[MAX_ZONES];
+    static Pfn ZONE_HIGHEST_PFN[NR_ZONES_PER_NODE];
 
     INIT_CODE
     static auto set_zone_pfn_range(ustl::views::Span<Pfn> max_zone_pfn) -> void

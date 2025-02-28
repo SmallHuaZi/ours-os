@@ -2,15 +2,15 @@
 
 #include "main_scheduler.hpp"
 
-#include <ustl/lazy/lazy_init.hpp>
+#include <ustl/lazy_init.hpp>
 
-using ours::sched::MainScheduler;
-using ustl::lazy::LazyInit;
+namespace ours {
+    CPU_LOCAL
+    static ustl::LazyInit<sched::MainScheduler>  LOCAL_SCHEDULER;
 
-CPU_LOCAL
-static LazyInit<MainScheduler>  LOCAL_SCHEDULER;
+    template <>
+    auto CpuLocal::access<sched::MainScheduler>(CpuId cpuid) -> sched::MainScheduler * {
+        return Self::access(LOCAL_SCHEDULER.data(), cpuid);
+    }
 
-template <>
-auto CpuLocal::access<MainScheduler>(CpuId cpuid) -> MainScheduler * {
-    return Self::access(LOCAL_SCHEDULER.data(), cpuid);
-}
+} // namespace ours

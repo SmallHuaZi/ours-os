@@ -58,9 +58,12 @@ idle:
 .bss
 .align 8
 LOCAL_DATA(EARLY_STACK)
-    .bss KB(2)
+    .skip KB(2)
 DATA_END(EARLY_STACK)
 LOCAL_DATA(EARLY_STACK_END)
+
+.global OBIMAGE
+OBIMAGE = x86_start
 
 .data
 .align 8

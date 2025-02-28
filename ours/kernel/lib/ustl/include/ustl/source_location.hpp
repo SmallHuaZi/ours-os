@@ -9,18 +9,13 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
-#ifndef LOGZ4_RECORD_HPP
-#define LOGZ4_RECORD_HPP 1
+#ifndef USTL_SOURCE_LOCATION_HPP
+#define USTL_SOURCE_LOCATION_HPP 1
 
-#include <logz4/level.hpp>
+#include <source_location>
 
-namespace logz4 {
-    class Record
-    {
-    private:
-        Level level_;
-        char const *target_;
-    };
-}
+namespace ustl {
+    using SourceLocation = ::std::source_location;
+} // namespace ustl
 
-#endif // #ifndef LOGZ4_RECORD_HPP
+#endif // #ifndef USTL_SOURCE_LOCATION_HPP

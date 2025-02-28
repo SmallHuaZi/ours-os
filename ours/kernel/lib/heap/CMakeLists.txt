@@ -13,13 +13,14 @@ INTERFACE
 add_library(heap)
 add_library(ours::kernel::lib::heap ALIAS heap)
 target_sources(heap
-PUBLIC
+PRIVATE
     "scope.cpp"
 )
 target_link_libraries(heap
-PUBLIC
+PRIVATE
     ours::kernel::common::headers
     ours::kernel::main::mem::headers
-    ours::kernel::lib::heap::headers
     ours::kernel::lib::ktl::headers
+PUBLIC
+    ours::kernel::lib::heap::headers
 )

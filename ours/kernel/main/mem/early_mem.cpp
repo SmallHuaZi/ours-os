@@ -4,7 +4,9 @@
 #include <ustl/mem/align.hpp>
 
 namespace ours::mem {
+    INIT_DATA
     bootmem::IBootMem *EarlyMem::BOOTMEM;
+
     auto EarlyMem::init(phys::MemoryHandoff &handoff) -> void
     {}
 

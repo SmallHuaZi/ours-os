@@ -1,31 +1,37 @@
-// ours boot image
-
-ENTRY(OBIMAGE_ENTRY)
+ENTRY(PHYS_ENTRY)
 
 SECTIONS {
     .text : {
         *(.boot.header)
-        *(.text)
-        *(.text.*)
+        *(.text*)
+    } :code
+
+    .rodata : {
+        *(.data*)
+    } :rodata
+
+    . = ALIGN(CONSTANT(PAGE_SIZE)
+    .image : {
+        PROVIDE_HIDDEN(__image_start = .);
+        *(.image)
+        PROVIDE_HIDDEN(__image_end = .);
     }
 
     .data : {
-        *(.data)
-        *(.data.*)
-    }
-
-    . = ALIGN(CONSTANT(PAGE_SIZE)
-    PROVIDE_HIDDEN(__image_start = .);
-    .image : {
-        *(.image)
-    }
-    PROVIDE_HIDDEN(__image_end = .);
+        *(.data*)
+    } :data
 
     . = ALIGN(8)
-    PROVIDE_HIDDEN(__bss_start = .);
     .bss : {
-        *(.bss)
-        *(.bss.*)
+        PROVIDE_HIDDEN(__bss_start = .);
+        *(.bss*)
+        PROVIDE_HIDDEN(__bss_end = .);
     }
-    PROVIDE_HIDDEN(__bss_end = .);
+}
+
+PHDRS {
+    code    PT_LOAD  FLAGS(4);  /* R */
+    rodata  PT_LOAD  FLAGS(4);  /* R */
+    data    PT_LOAD  FLAGS(6);  /* R|W */
+    note    PT_NOTE  FLAGS(0);
 }

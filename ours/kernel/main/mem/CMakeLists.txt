@@ -38,4 +38,5 @@ target_link_libraries(ours_kernel_mem
 INTERFACE
     ours::kernel::main::mem::headers
     ours::kernel::lib::kmrd
+    ours::kernel::lib::heap
 )

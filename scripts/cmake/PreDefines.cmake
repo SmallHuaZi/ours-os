@@ -2,13 +2,13 @@ message("Enter PreDefines.cmake")
 
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") 
     set(OURS_ARCH "x86")
-    add_definitions("-DX86_PAGING_LEVEL=4")
 else()
     set(OURS_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 endif()
 
-add_definitions("-DOURS_DEV")
-add_definitions("-DBOOST_CONTAINER_USER_DEFINED_THROW_CALLBACKS=1")
+include(${OURS_ARCH}PreDefines)
+
+add_definitions("-DOURS_DEV=1")
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_definitions("-DOURS_DEBUG=1")

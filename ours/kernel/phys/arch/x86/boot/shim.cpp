@@ -4,9 +4,10 @@
 #include <lz4/lz4.hpp>
 
 namespace ours::phys {
-    struct KernelImage
+    struct MainImageHeader
     {
-        
+        usize entry_point;
+        usize reserved_size;
     };
 
     NO_MANGLE

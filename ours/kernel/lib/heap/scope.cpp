@@ -1,3 +1,4 @@
+#include "ktl/object_cache.hpp"
 #include <heap/scope.hpp>
 
 auto operator new(ours::usize size) -> void *

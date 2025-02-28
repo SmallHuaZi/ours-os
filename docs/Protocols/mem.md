@@ -9,38 +9,55 @@ Interfaces:
 1.  __static auto context_switch(ArchVmAspace *from, ArchVmAspace *to) -> void__ <br>
 Description:
 
-2. __auto init(VmAspace *high) -> Result<>__ <br>
+2. __auto init(VmasFlags flags) -> Result<>__ <br>
 Description:
 
-3. __auto map_to(PhysAddr, VirtAddr, usize n, u64 flags) -> Result<>__ <br>
+3. __auto auto map(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>__ <br>
+Description:
+    From `|pa|` map `|n|` page frames to `va`, through specifing `|control|`
+
+4. __auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control) -> Status__ <br>
 Description:
 
-4. __auto unmap(VirtAddr, usize n, u64 flags) -> Result<>__ <br>
+5. __auto unmap(VirtAddr, usize n, UnMapControl control) -> Status__ <br>
 Description:
 
-5. __auto unmap(VirtAddr, usize n, u64 flags) -> Result<>__ <br>
+6. __auto protect(VirtAddr, usize n, MmuFlags) -> Status__ <br>
+Description:
+
+7. __auto query(VirtAddr, ai_out PhysAddr *, ai_out MmuFlags *) -> Status <br>
+Description:
+
+8. __auto mark_accessed(VirtAddr, usize) -> Status <br>
+Description:
+
+9. __auto harvest_accessed(VirtAddr va, usize n, HarvestControl action) -> Status <br>
 Description:
 
 Show you a simple example code:
 ```c++
 class ArchVmAspace
 {
-    typedef ArchVmAspace  Self;
-
 public:
+    ArchVmAspace(VirtAddr base, usize size, VmasFlags flags);
+
     static auto context_switch(Self *from, Self *to) -> void;
 
-    auto init(gktl::Range<VirtAddr>, u64 flags) -> Result;
+    auto init() -> Status;
 
-    auto map(VirtAddr, usize n, u64 flags) -> Result;
+    auto map(VirtAddr, PhysAddr, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>;
 
-    auto map_to(PhysAddr, VirtAddr, usize n, u64 flags, PhysAlloc alloc) -> Result;
+    auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control) -> Status;
 
-    auto unmap(VirtAddr, usize n, u64 flags) -> Result;
+    auto unmap(VirtAddr, usize n, UnMapControl control) -> Status;
 
-    auto which_cpu() const -> usize;
+    auto protect(VirtAddr, usize n, MmuFlags) -> Status;
 
-private:
-    X86PageTable page_table_;
+    auto query(VirtAddr, ai_out PhysAddr *, ai_out MmuFlags *) -> Status;
+
+    auto mark_accessed(VirtAddr, usize) -> Status
+    {  return Status::Unsupported;  }
+
+    auto harvest_accessed(VirtAddr va, usize n, HarvestControl action) -> Status;
 };
 ```

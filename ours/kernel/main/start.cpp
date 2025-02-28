@@ -11,19 +11,24 @@
 #include <gktl/static_objects.hpp>
 
 namespace ours {
+    INIT_CODE
     static auto labour_routine() -> void
     {
         // Reclaim memories occupied by the early infomation.
         init_arch();
 
         init_platform();
+
+        // reclaim_early_memory(mem::RemTag::All);
+
+        // Load userboot 
     }
 
     /// Called from arch-code.
     /// Note: Invoke it after finishing the collection to early architecture specific information.
     /// Assumptions:
     ///     1). The early memory allocator has been initialized.
-    NO_MANGLE
+    NO_MANGLE INIT_CODE
     auto start_kernel(PhysAddr handoff) -> Status
     {
         gktl::init_static_objects();
@@ -35,13 +40,13 @@ namespace ours {
         CpuLocal::init(BOOT_CPU_ID);
 
         init_arch_early();
-        gktl::set_init_level(gktl::InitLevel::ArchEarly);
+        set_init_level(gktl::InitLevel::ArchEarly);
 
         init_platform_early();
-        gktl::set_init_level(gktl::InitLevel::PlatformEarly);
+        set_init_level(gktl::InitLevel::PlatformEarly);
 
         mem::init_vmm();
-        gktl::set_init_level(gktl::InitLevel::VmmInitialized);
+        set_init_level(gktl::InitLevel::VmmInitialized);
 
         // Start from here, memory allocator is alive.
         // First thing we should do is to initialize our system logger.

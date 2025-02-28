@@ -22,13 +22,12 @@ PRIVATE
     ours::kernel::main::sched
     ours::kernel::phys::headers
     ours::kernel::lib::arch
-    ours::kernel::lib::heap
 )
 
 target_compile_options(ours_kernel_main
 PRIVATE
     "-mcmodel=kernel"
-    "-O0"
+    "-O2"
     "-stdlib=libc++"
     # "-fPIC"
     # "-fno-PIE" 
@@ -64,43 +63,52 @@ PRIVATE
     "-nostdlib++"
     "-mno-red-zone"
     "-fno-register-global-dtors-with-atexit"
-    "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/main.ld"
 
     # This a temporary base address will be removed,
     # and it should provides by cofiguration files.
-    "-Wl,-defsym,MAIN_BASE=0xffffff8000100000"
-    "-Wl,-z,max-page-size=0x1000"
+    "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/main.ld"
+    "-Wl,-defsym,MAIN_BASE=${KERNEL_BASE}"
+    "-Wl,-z,max-page-size=${MAX_PAGE_SIZE}"
     "-Wl,--gc-sections"
+    "-Wl,--emit-relocs"
 )
 
-add_custom_command(
-    TARGET ours::kernel::main PRE_BUILD
-    COMMAND
+make_image(ours_kernel_main_raw_image
+    TARGET ours::kernel::main
 )
 
-add_custom_target(ours_kernel_raw_main_image
-    TARGET ours::kernel::main POST_BUILD
-    # Strip all unneeded sections
-    COMMAND ${CMAKE_OBJCOPY} ARGS --strip-unneeded ${CMAKE_BINARY_DIR}/ours_kernel_main ${CMAKE_BINARY_DIR}/${OURA_ARCH}_raw_main_image
-    # Compress main
-    COMMAND 
-    COMMENT "Build raw `main` image which is without bootable header" 
-)
-
-add_executable(ours_kernel_main_image)
-add_executable(ours::kernel::main::image ALIAS ours_kernel_main_image)
-target_sources(ours_kernel_main_image
+add_executable(ours_kernel_redundant_main_image)
+target_include_directories(ours_kernel_redundant_main_image
 PRIVATE
-    "arch/${OURS_ARCH}/image.S"
-    "image.ld"
+    "${CMAKE_BINARY_DIR}/gen"
 )
-target_link_options(ours_kernel_main_image
+target_sources(ours_kernel_redundant_main_image
+PRIVATE
+    "image.ld"
+    "arch/${OURS_ARCH}/image.S"
+)
+target_link_libraries(ours_kernel_redundant_main_image
+PRIVATE
+    ours::kernel::common::headers
+    ours::kernel::lib::omi::headers
+)
+target_link_options(ours_kernel_redundant_main_image
 PRIVATE
     "-v"
+    "-Wl,--no-pie;"
+    "-Wl,--no-relax"
+    "-Wl,--no-warn-rwx-segments"
+    "-Wl,--build-id=none;"
+    "-static"
+    "-mcmodel=kernel"
     "-nostartfiles"
     "-nodefaultlibs"
-    "-T${CMAKE_CURRENT_SOURCE_DIR}/main.ld"
-    "-R,${CMAKE_BINARY_DIR}/ours_kernel_main"
+    "-T${CMAKE_CURRENT_SOURCE_DIR}/image.ld"
+    "-Wl,--just-symbols=$<TARGET_FILE:ours_kernel_main>"
 )
 
-add_dependencies(ours_kernel_main_image ours_kernel_raw_main_image)
+add_dependencies(ours_kernel_redundant_main_image ours_kernel_main_raw_image)
+
+make_image(ours_kernel_main_image
+    TARGET ours_kernel_redundant_main_image
+)

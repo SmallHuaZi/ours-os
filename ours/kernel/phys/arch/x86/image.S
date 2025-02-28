@@ -1,4 +1,4 @@
-#include "main-module-image.hpp"
+#include "ours_kernel_main_image.hpp"
 
-.section .image, "a", @progbit
-.incbin MAIN_MODULE_IMAGE
+.section .image, "a", @progbits
+.incbin IMAGE_FILE

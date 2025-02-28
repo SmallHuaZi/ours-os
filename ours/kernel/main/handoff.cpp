@@ -10,7 +10,7 @@ namespace ours {
     using phys::MemoryHandoff;
 
     INIT_DATA
-    phys::Handoff *PHYS_HANDOFF;
+    phys::Handoff *PHYS_HANDOFF = 0;
 
     INIT_CODE
     auto setup_handoff(PhysAddr phys_addr) -> void

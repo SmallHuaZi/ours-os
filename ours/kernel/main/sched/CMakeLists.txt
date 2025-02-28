@@ -17,8 +17,12 @@ INTERFACE
     ours::kernel::common::headers
 )
 
-add_library(ours_kernel_sched INTERFACE ${source_set})
+add_library(ours_kernel_sched INTERFACE)
 add_library(ours::kernel::main::sched ALIAS ours_kernel_sched)
+target_sources(ours_kernel_sched 
+INTERFACE
+    ${source_set}
+)
 target_link_libraries(ours_kernel_sched
 INTERFACE
     ours::kernel::main::sched::headers
