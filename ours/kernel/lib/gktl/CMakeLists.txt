@@ -16,16 +16,28 @@ target_include_directories(gktl_headers
 INTERFACE "include"
 )
 
+
+add_library(gktl_goi INTERFACE)
+add_library(ours::kernel::lib::gktl::goi ALIAS gktl_goi)
+target_sources(gktl_goi
+INTERFACE
+    "static_objects.cpp"
+)
+target_link_libraries(gktl_goi
+INTERFACE
+    gktl_headers
+    ours::kernel::common::headers
+)
+
 add_library(gktl INTERFACE)
 add_library(ours::kernel::lib::gktl ALIAS gktl)
 target_sources(gktl
 INTERFACE
     "init_hook.cpp"
-    "static_objects.cpp"
-    "cpp_dependencies.cpp"
 )
 target_link_libraries(gktl
 INTERFACE
     gktl_headers
     ours::kernel::common::headers
+    ours::kernel::lib::gktl::goi
 )

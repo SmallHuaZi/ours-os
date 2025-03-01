@@ -13,13 +13,17 @@
 #define LOGZ4_LOGGER_HPP 1
 
 #include <logz4/level.hpp>
+
 #include <ustl/source_location.hpp>
+#include <ustl/views/string_view.hpp>
+#include <ustl/fmt/format_args.hpp>
 
 namespace logz4 {
     struct Record
     {
         Level level;
-        char const *target;
+        ustl::fmt::FormatArgs args;
+        ustl::views::StringView fmtstr;
         ustl::SourceLocation location;
     };
 

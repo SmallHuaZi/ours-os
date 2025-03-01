@@ -81,6 +81,9 @@ namespace bootmem {
               reserved_(this)
         {}
 
+        virtual ~MemBlock() override
+        {}
+
         auto init(PhysAddr base, usize size) -> void;
 
         auto name() const -> char const * override
@@ -107,22 +110,24 @@ namespace bootmem {
 
 } // namespace bootmem
 
-template <typename Char>
-class ustl::fmt::Formatter<bootmem::MemBlock, Char>
-{
-    typedef Formatter          Self;
-    typedef bootmem::MemBlock  FormattedObject;
+// template <typename Char>
+// template <>
+// class ustl::fmt::Formatter<bootmem::MemBlock, char>
+// class std::formatter<bootmem::MemBlock, char>
+// {
+//     typedef formatter          Self;
+//     typedef bootmem::MemBlock  FormattedObject;
 
-public:
-    template <typename ParseContext>
-    auto parse(ParseContext &) const -> typename ParseContext::IterMut;
+// public:
+//     template <typename ParseContext>
+//     auto parse(ParseContext &) const -> typename ParseContext::IterMut;
 
-    template <typename FormatContext>
-    auto format(FormattedObject const &, FormatContext &) const -> typename FormatContext ::IterMut;
+//     template <typename FormatContext>
+//     auto format(FormattedObject const &, FormatContext &) const -> typename FormatContext ::IterMut;
 
-    template <typename FormatContext>
-    auto formatted_size(FormattedObject const &, FormatContext &) const -> usize;
+//     template <typename FormatContext>
+//     auto formatted_size(FormattedObject const &, FormatContext &) const -> ustl::usize;
 
-}; // class Formatter<Memblock>
+// }; // class Formatter<Memblock>
 
 #endif // #ifndef BOOTMEM_MEMBLOCK_HPP

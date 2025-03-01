@@ -17,7 +17,7 @@
 #define ALIGNED(x)	                [[gnu::aligned]]
 
 #define NOINLINE	                [[gnu::noinline]]
-#define NO_RETURN	                [[gnu::noreturn]]
+#define NO_RETURN	                [[noreturn]]
 #define FORCE_INLINE	            [[gnu::always_inline]] inline
 
 #define WEAK                        [[gnu::weak]]

@@ -9,24 +9,24 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_PANIC_HPP
 #define OURS_PANIC_HPP 1
 
-#include <logz4/log.hpp>
 #include <ours/config.hpp>
+#include <ustl/views/string_view.hpp>
+#include <ustl/fmt/make_format_args.hpp>
 
 namespace ours {
     NO_RETURN
     auto panic() -> void;
 
-    template <typename... Args> 
     NO_RETURN
-    auto panic(char const *fmt, Args&&... args) -> void
-    {
-        log::error(fmt, args...);
-        panic();
-    }
+    auto do_panic(ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void;
+
+    template <typename... Args>
+    NO_RETURN
+    auto panic(ustl::views::StringView fmt, Args&&... args) -> void
+    {  do_panic(fmt, ustl::fmt::make_format_args(args...));  }
 
 } // namespace ours
 

@@ -22,6 +22,8 @@ PRIVATE
     ours::kernel::main::sched
     ours::kernel::phys::headers
     ours::kernel::lib::arch
+    ours::kernel::lib::libc
+    ours::kernel::lib::logz4
 )
 
 target_compile_options(ours_kernel_main
@@ -29,6 +31,7 @@ PRIVATE
     "-mcmodel=kernel"
     "-O2"
     "-stdlib=libc++"
+    "-ffreestanding"
     # "-fPIC"
     # "-fno-PIE" 
     "-fno-rtti"
@@ -37,7 +40,6 @@ PRIVATE
     "-fno-exceptions"
     "-fno-stack-protector"
     "-fno-use-cxa-atexit"
-    "-ffreestanding"
     "-Wno-write-strings"
 
     # For clang
@@ -48,9 +50,9 @@ PRIVATE
 target_link_options(ours_kernel_main
 PRIVATE
     "-v"
-    "-Wl,--no-pie;"
+    "-Wl,--no-pie"
     "-Wl,--no-relax"
-    "-Wl,--build-id=none;"
+    "-Wl,--build-id=none"
     "-Wl,--no-warn-rwx-segments"
     "-Wl,-z,noexecstack"
     "-Wl,--emit-relocs"

@@ -30,7 +30,7 @@
 #endif
 
 namespace ours {
-    /// Define a CPU-local variable like this:
+    /// Define a static lifetime CPU-local variable like this:
     /// CPU_LOCAL [static] YourType VAR_NAME;
     ///
     /// To access it via using:

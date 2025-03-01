@@ -9,3 +9,8 @@ target_link_libraries(x86_phys_boot
 INTERFACE
     x86_phys_multiboot
 )
+
+target_link_options(x86_phys_boot
+INTERFACE
+    "-Wl,-m,elf_i386"
+)

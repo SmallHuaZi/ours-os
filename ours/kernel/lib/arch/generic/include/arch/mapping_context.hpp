@@ -66,8 +66,8 @@ namespace arch {
         FORCE_INLINE CXX11_CONSTEXPR
         auto consume(usize page_size) -> void
         {  
-            DEBUG_ASSERT(consumed_ <= page_size, "");
-            DEBUG_ASSERT(count_ > 0, "");
+            DEBUG_ASSERT(consumed_ <= page_size, "Consume");
+            DEBUG_ASSERT(count_ > 0, "Consume");
 
             consumed_ += page_size;
             if (consumed_ == page_size) {

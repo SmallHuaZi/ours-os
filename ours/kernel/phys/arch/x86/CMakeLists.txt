@@ -15,7 +15,7 @@ PRIVATE
 target_sources(ours_kernel_phys_arch
 INTERFACE
     "image.S"
-    "vga_logger.cpp"
+    "vga_console.cpp"
 )
 target_include_directories(ours_kernel_phys_arch
 INTERFACE

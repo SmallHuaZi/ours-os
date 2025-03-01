@@ -15,7 +15,8 @@ INTERFACE
 add_library(logz4)
 add_library(ours::kernel::lib::logz4 ALIAS logz4)
 target_sources(logz4 
-PRIVATE
+PUBLIC
+    "log.cpp"
     "init.cpp"
     "filter.cpp"
 )

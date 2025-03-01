@@ -17,8 +17,6 @@
 #include <ours/config/compiler_attributes.hpp>
 #include <ours/config/auxiliary_identifiers.hpp>
 
-#include <ours/config/boost_workaround.hpp>
-
 #define HAS_INCLUDE __has_include
 
 #endif // #ifndef OURS_CONFIG_CONFIG_HPP

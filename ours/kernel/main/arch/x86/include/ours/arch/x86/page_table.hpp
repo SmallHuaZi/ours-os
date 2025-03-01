@@ -28,7 +28,7 @@ namespace ours::mem::details {
                 return phys_addr;
             }
 
-            panic("");
+            panic("no memory");
         }
 
         static auto free_page(PhysAddr phys_addr) -> void
@@ -37,8 +37,6 @@ namespace ours::mem::details {
                 frame->set_role(PfRole::Pmm);
                 free_frame(frame, 0);
             }
-
-            panic("");
         }
     };
 

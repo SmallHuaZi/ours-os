@@ -14,8 +14,11 @@ add_executable(ours_kernel_phys)
 add_executable(ours::kernel::phys ALIAS ours_kernel_phys)
 target_compile_options(ours_kernel_phys
 PRIVATE
+"-v"
+"-g"
     "-O2"
     "-stdlib=libc++"
+    "-ffreestanding"
     # "-fPIC"
     # "-fno-PIE" 
     "-fno-rtti"
@@ -24,29 +27,33 @@ PRIVATE
     "-fno-exceptions"
     "-fno-stack-protector"
     "-fno-use-cxa-atexit"
-    "-ffreestanding"
     "-Wno-write-strings"
 )
 target_link_libraries(ours_kernel_phys
 PRIVATE
     ours::kernel::phys::headers
     ours::kernel::phys::arch
+    ours::kernel::phys::lib::bootmem
+    ours::kernel::lib::libc
+    ours::kernel::lib::gktl::goi
 )
 target_link_options(ours_kernel_phys
 PRIVATE
-    "-Wl,--no-pie;"
+"-v"
+    "-static"
+    "-nostdlib"
+    "-nostdlib++"
+    "-nodefaultlibs"
+    "-Wl,--no-pie"
     "-Wl,--no-relax"
-    "-Wl,--build-id=none;"
+    "-Wl,--build-id=none"
     "-Wl,--no-warn-rwx-segments"
+    "-fno-register-global-dtors-with-atexit"
     "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/phys.ld"
 )
 
 add_dependencies(ours_kernel_phys ours_kernel_main_image)
 
-add_custom_command(
-    TARGET ours_kernel_phys PRE_BUILD
-    COMMAND echo "#define MAIN_MODULE_IMAGE ${CMAKE_BINARY_DIR}/ours_kernel_main_image" > arch/${OURS_ARCH}/main-module-image.hpp
-)
-
 add_subdirectory("lib")
+add_subdirectory("core")
 add_subdirectory("arch")

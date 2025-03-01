@@ -13,14 +13,14 @@ INTERFACE
     ours::kernel::main::mem::headers
 )
 
-add_library(bootmem)
+add_library(bootmem INTERFACE)
 add_library(ours::kernel::phys::lib::bootmem ALIAS bootmem)
 target_sources(bootmem
-PRIVATE 
-    "bootmem.cpp"
-    "memblock.cpp"
+INTERFACE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/bootmem.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/memblock.cpp"
 )
 target_link_libraries(bootmem
-PUBLIC
+INTERFACE
     bootmem_headers 
 )

@@ -9,11 +9,9 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_ASSERT_HPP
 #define OURS_ASSERT_HPP 1
 
-#include <ours/config.hpp>
 #include <ours/panic.hpp>
 
 #define DEBUG_ASSERT(condition, ...) \

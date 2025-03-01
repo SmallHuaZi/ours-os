@@ -17,6 +17,7 @@
 
 #include <ours/phys/aspace.hpp>
 
+#include <omi/omi_header.hpp>
 #include <bootmem/bootmem.hpp>
 
 namespace ours::phys {
@@ -28,6 +29,8 @@ namespace ours::phys {
 
     extern Aspace   *ASPACE;
     extern bootmem::IBootMem   *BOOTMEM;
+
+    auto init_early_console() -> void;
 
     NO_MANGLE NO_RETURN
     auto phys_main(usize boot_params) -> void;

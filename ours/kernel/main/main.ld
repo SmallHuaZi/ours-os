@@ -1,7 +1,7 @@
 ENTRY(MAIN_ENTRY)
 
 PHDRS {
-    code    PT_LOAD  FLAGS(4);  /* R */
+    code    PT_LOAD  FLAGS(5);  /* R|X */
     init    PT_LOAD  FLAGS(7);  /* R|W|X */
     rodata  PT_LOAD  FLAGS(4);  /* R */
     data    PT_LOAD  FLAGS(6);  /* R|W */

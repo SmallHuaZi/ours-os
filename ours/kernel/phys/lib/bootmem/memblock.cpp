@@ -1,5 +1,3 @@
-#include "bootmem/region.hpp"
-#include "ustl/algorithms/copy.hpp"
 #include <bootmem/memblock.hpp>
 
 #include <algorithm>

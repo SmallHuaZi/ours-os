@@ -1,4 +1,3 @@
-// ustl/fmt USTL/FMT_FORMATTER_HPP
 /// Copyright(C) 2024 smallhuazi
 ///
 /// This program is free software; you can redistribute it and/or modify
@@ -13,40 +12,12 @@
 #ifndef USTL_FMT_FORMATTER_HPP
 #define USTL_FMT_FORMATTER_HPP 1
 
-#include <ustl/config.hpp>
+#include <format>
 
 namespace ustl::fmt {
-
-    /// The default `Formatter` is a unconstructible class, user need 
-    /// to implement a specialization about it for user-defined object.
-    ///
-    /// But don't worry, some object in `ustl` has been implemented 
-    /// its `Formatter` by default.
     template <typename T, typename Char = char>
-    class Formatter
-    {
-        typedef Formatter       Self;
+    using Formatter = std::formatter<T, Char>;
 
-    public:
-        Formatter() = delete;
-        Formatter(Self const &) = delete;
-        auto operator=(Self const &) -> Self & = delete;
-
-        // Unimplement and required.
-        template <typename ParseContext>
-        auto parse(ParseContext &) const -> ParseContext::IterMut = delete;
-
-        // Unimplement and required.
-        // Requires:
-        //  1) No throws.
-        template <typename FormatContext>
-        auto format(T, FormatContext &) const -> FormatContext::IterMut = delete;
-
-        // Unimplement but optional.
-        template <typename FormatContext>
-        auto formatted_size(T, FormatContext &) const -> usize = delete;
-    };
-
-} //namespace ustl::fmt
+} // namespace ustl::fmt
 
 #endif // #ifndef USTL_FMT_FORMATTER_HPP

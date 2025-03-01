@@ -15,19 +15,18 @@
 #include <functional>
 
 namespace ustl::function {
-    using std::placeholders::__ph;
-    using std::bind;
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    using std::placeholders::_3;
+    using std::placeholders::_4;
+    using std::placeholders::_5;
+    using std::placeholders::_6;
+    using std::placeholders::_7;
+    using std::placeholders::_8;
+    using std::placeholders::_9;
+    using std::placeholders::_10;
 
-    constexpr inline __ph<1> _1;
-    constexpr inline __ph<2> _2;
-    constexpr inline __ph<3> _3;
-    constexpr inline __ph<4> _4;
-    constexpr inline __ph<5> _5;
-    constexpr inline __ph<6> _6;
-    constexpr inline __ph<7> _7;
-    constexpr inline __ph<8> _8;
-    constexpr inline __ph<9> _9;
-    constexpr inline __ph<10> _10;
+    using std::bind;
 
 } // namespace ustl::function
 

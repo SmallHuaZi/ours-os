@@ -86,13 +86,14 @@ namespace bootmem {
         Region const *used_;
     };
 
-    class IBootMem
+    struct IBootMem
     {
-    public:
         enum AllocationControl: usize {
             /// Allocate memory from low address to high address if set
             BottomUp    = BIT(0),
         };
+
+        virtual ~IBootMem() = default;
 
         virtual auto name() const -> char const * = 0;
 

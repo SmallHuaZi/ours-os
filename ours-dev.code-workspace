@@ -1,0 +1,167 @@
+{
+    "folders": [
+        {
+            "path": ".",
+        }
+    ],
+    "extensions": {
+        "recommendations": [
+            // The official LSP for Rust, rust-analyzer.
+            "rust-lang.rust-analyzer",
+
+            // The Python extensions
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+
+            // The official Clang LSP for C/C++.
+            "llvm-vs-code-extensions.vscode-clangd",
+
+            // CMake
+            "twxs.cmake",
+            "ms-vscode.cmake-tools",
+        ],
+        "unwantedRecommendations": [
+          // Conflicts with vscode-clangd intellisense, and vscode-clangd is the
+          // preferred C++ extension.
+          "ms-vscode.cpptools",
+
+          // Redundant and conflicts with gnls, which is preferred.
+          "npclaudiu.vscode-gn",
+
+          // Redundant and conflicts with gnls, which is preferred.
+          "persidskiy.vscode-gnformat",
+        ]
+    },
+    "settings": {
+        "editor.rulers": [
+            140
+        ],
+        "editor.tokenColorCustomizations": {
+            "textMateRules": [
+                {
+                    "scope": "entity.name.function",
+                    "settings": {
+                        "fontStyle": "underline"
+                    },
+                },
+            ],
+        },
+        "editor.semanticTokenColorCustomizations": {
+            "rules": {
+                "macro": {
+                    "underline": false
+                },
+                "function": {
+                    "underline": true
+                }
+            }
+        },
+        "files.associations": {
+            "*.tcc": "cpp",
+        },
+        "search.exclude": {
+            "**/target/**": true,
+            "**/.idea/**": true,
+            "**/cmake-build-debug/**": true,
+        },
+        "search.useIgnoreFiles": true,
+        "files.exclude": {
+            "**/**.iso": true,
+            "**/.git": true,
+            "**/.idea": true,
+            "**/__pycache__": true,
+            "**/cmake-build-debug": true,
+        },
+
+        // Plugins
+        "clangd.enable": true,
+        "clangd.arguments": [
+            // compile_commands.json
+            "--compile-commands-dir=${workspaceFolder}/target",	//指定输出json文件的路径
+            "--all-scopes-completion",                          //所有作用域补全
+            "--background-index",                               //后台索引，并持久化到磁盘中
+            "--completion-style=detailed",                      //补全/建议风格：打包，可选detailed
+            "--enable-config",                                  //支持从yaml文件中读取配置
+            "--function-arg-placeholders=true",	                //自动补全函数参数占位符
+            "--log=verbose",                                    //日志类型
+            "--pch-storage=disk",                               //pch优化的位置，支持memory和disk
+            "--pretty",                                         //对输出的json文件格式化
+            "--ranking-model=decision_forest",                  //排序模型
+            "-j=4",                                             //clangd任务执行的线程数
+            "--clang-tidy",                                     //代码静态检查
+            "--background-index-priority=normal",               //后台索引优先级
+            "--parse-forwarding-functions"	,
+            "--query-driver=$env{c++}"
+        ],
+        "cmake.buildDirectory": "${workspaceFolder}/target",
+        "cmake.default.buildDirectory": "${workspaceFolder}/target/build",
+        "cmake.copyCompileCommands": "${workspaceFolder}/target/compile_commands.json",
+        "cmake.debugConfig": {
+            "MIMode": "lldb",
+            "miDebuggerPath": "lldb-dap-18"
+        },
+        "clangd.path": "clangd-18",
+        "editor.lineNumbers": "on",
+        "editor.cursorBlinking": "smooth",
+        "vim.smartRelativeLine": false,
+    },
+
+    // Tasks run with the "Tasks: Run Task" command (bind a shortcut!).
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "Launch QEMU",
+                "type": "shell",
+                "isBackground": true,
+                "command": "echo Starting QEMU&qemu-system-i386 -s -S ours.iso -monitor stdio -smp 4",
+                "problemMatcher": {
+                    "pattern": {
+                        "regexp": "^(Starting QEMU)",
+                        "line": 1,
+                    },
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "^(Starting QEMU)",
+                        "endsPattern": "^(Starting QEMU)"
+                    }
+                }
+            },
+            {
+                "label": "Make Image",
+                "type": "shell",
+                "isBackground": false,
+                "command": "./mkimg.sh -k target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys -o ours.iso",
+            },
+            {
+                "label": "SetUp",
+                "dependsOn": [
+                    "CMake: build",
+                    "Make Image",
+                    "Launch QEMU"
+                ]
+            }
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Remote launch",
+                "type": "lldb-dap",
+                "request": "attach",
+                "program": "${workspaceFolder}/target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys",
+                "attachCommands": ["gdb-remote 1234"],
+                // "attachCommands": [
+                //     "target create ${workspaceFolder}/target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys",
+                //     // "gdb-remote localhost:1234",
+                //     "b _start",
+                //     "c"
+                // ],
+                // "stopOnEntry": true,
+                "preLaunchTask": "SetUp",
+            },
+        ],
+        "compounds": []
+    }
+}
