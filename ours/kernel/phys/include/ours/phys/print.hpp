@@ -15,35 +15,19 @@
 #include <ours/config.hpp>
 #include <ustl/fmt/make_format_args.hpp>
 #include <ustl/views/string_view.hpp>
-#include <ustl/collections/intrusive/list_hook.hpp>
 
 namespace ours::phys {
-    struct Console
-    {
-        virtual auto write(char const *s, usize n) -> void = 0;
-        virtual auto read(char const *s, usize n) -> usize = 0;
-
-        static auto init() -> void;
-
-        auto activate() -> void;
-
-        auto deactivate() -> void;
-
-        ustl::collections::intrusive::ListMemberHook<>  hook_;
-        USTL_DECLARE_HOOK_OPTION(Console, hook_, ManagedOptions);
-    };
-
-    auto do_print(ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void;
+    auto vprint(ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void;
 
     template <typename... Args> 
     auto print(ustl::views::StringView fmt, Args &&...args) -> void
-    { do_print(fmt, ustl::fmt::make_format_args(args...)); }
+    { vprint(fmt, ustl::fmt::make_format_args(args...)); }
 
     template <typename... Args> 
     auto println(ustl::views::StringView fmt, Args &&...args) -> void
     { 
-        do_print(fmt, ustl::fmt::make_format_args(args...)); 
-        do_print("\n", ustl::fmt::make_format_args());
+        vprint(fmt, ustl::fmt::make_format_args(args...)); 
+        vprint("\n", ustl::fmt::make_format_args());
     }
 
 } // namespace ours::phys

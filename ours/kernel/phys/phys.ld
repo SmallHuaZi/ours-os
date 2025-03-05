@@ -15,9 +15,15 @@ SECTIONS {
         *(.text*)
     } :code
 
+    .rodata.console : {
+        PROVIDE_HIDDEN(__preset_console_start = .);
+        KEEP(*(.rodata.console*))
+        PROVIDE_HIDDEN(__preset_console_end = .);
+    } :rodata
+
     .rodata : {
         *(.rodata*)
-    } :rodata
+    }
 
     . = ALIGN(8);
     .init_array : {

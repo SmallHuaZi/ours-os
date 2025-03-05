@@ -11,7 +11,7 @@ namespace bootmem {
     auto IBootMem::count_present_blocks(PhysAddr start, PhysAddr end, usize bsize, usize balign, NodeId nid) const -> usize
     {
         usize nr_presents = 0;
-        IterationContext context(nid, RegionType::AllType, start, end);
+        IterationContext context(this, nid, RegionType::Normal, start, end);
         while (auto region = this->iterate(context)) {
             if (region->size < bsize) {
                 continue;

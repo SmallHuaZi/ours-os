@@ -30,22 +30,24 @@
 #endif
 
 namespace bootmem {
+    class IBootMem;
+
     struct IterationContext
     {
         typedef IterationContext    Self;
 
         CXX11_CONSTEXPR
-        IterationContext() = default;
-
-        CXX11_CONSTEXPR
-        IterationContext(NodeId nid, RegionType type)
-            : nid_(nid), type_(type), start_(0), size_(0)
+        IterationContext(IBootMem const *bootmem, RegionType type)
+            : IterationContext(bootmem, MAX_NODES, type, 0, ustl::NumericLimits<usize>::max())
         {}
 
         CXX11_CONSTEXPR
-        IterationContext(NodeId nid, RegionType type, PhysAddr start, PhysAddr end)
-            : nid_(nid), type_(type), start_(start), size_(end - start)
+        IterationContext(IBootMem const *bootmem, NodeId nid, RegionType type)
+            : IterationContext(bootmem, nid, type, 0, ustl::NumericLimits<usize>::max())
         {}
+
+        CXX11_CONSTEXPR
+        IterationContext(IBootMem const *bootmem, NodeId nid, RegionType type, PhysAddr start, PhysAddr end);
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto set_nid(NodeId nid) -> Self &
@@ -64,34 +66,40 @@ namespace bootmem {
         FORCE_INLINE CXX11_CONSTEXPR
         auto set_limit(PhysAddr start, PhysAddr end) -> Self &
         {
-            start_ = start;
-            size_ = end - start;
+            range_.start = start;
+            range_.end = end;
             return *this;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto is_fit(Region const &region) -> bool
-        {
-            return (region.type() == type_ || type_ == RegionType::AllType) &&
-                    region.nid() == nid_ &&
-                    region.base > start_ &&
-                    region.size < size_; 
-        }
+        auto is_range_available(PhysAddr start, PhysAddr end) -> bool
+        {  return range_.overlaps(start, end) ;  }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto reset() -> void;
+
+        Region *free_;
+        Region *used_;
         NodeId nid_;
         RegionType type_;
-        PhysAddr start_;
-        usize size_;
-        Region const *free_;
-        Region const *used_;
+        gktl::Range<PhysAddr> range_;
     };
 
     struct IBootMem
     {
         enum AllocationControl: usize {
+            TopDown,
             /// Allocate memory from low address to high address if set
             BottomUp    = BIT(0),
         };
+
+        IBootMem()
+            : default_lowest_limit_(0),
+              default_highest_limit_(ustl::NumericLimits<PhysAddr>::max()),
+              start_address_(ustl::NumericLimits<PhysAddr>::max()),
+              end_address_(0),
+              allocation_control_(TopDown)
+        {}
 
         virtual ~IBootMem() = default;
 
@@ -112,23 +120,23 @@ namespace bootmem {
 
         virtual auto iterate(IterationContext &context) const -> ustl::Option<Region> = 0;
 
+        auto count_present_blocks(PhysAddr start, PhysAddr end, usize bsize, usize balign, NodeId nid) const -> usize;
+
         auto start_address() const -> PhysAddr
         {  return start_address_;  }
 
         auto end_address() const -> PhysAddr
         {  return end_address_;  }
 
-        auto count_present_blocks(PhysAddr start, PhysAddr end, usize bsize, usize balign, NodeId nid) const -> usize;
-
         template <typename F>
             requires ustl::traits::Invocable<F, usize, usize>
-        auto find_if(F &&matcher, usize size, usize align, RegionType type, NodeId nid = MAX_NODES) -> PhysAddr 
+        auto find_if(F &&matcher, usize size, usize align, RegionType type, NodeId nid = MAX_NODES) -> PhysAddr
         {
-            IterationContext context{nid, type, start_address_, end_address_};
+            IterationContext context{this, nid, type, start_address_, end_address_};
             while (auto region = this->iterate(context)) {
                 auto const base_aligned = ustl::mem::align_up(region->base, align);
                 auto const size_aligned = region->size - (base_aligned - region->base);
-                if (size_aligned < size || type != region->type()) {
+                if (size_aligned < size) {
                     continue;
                 } else if (matcher(base_aligned, size_aligned)) {
                     // Must return the original region to prevent those requests which 
@@ -141,13 +149,21 @@ namespace bootmem {
             return 0;
         }
 
-    private:
+    protected:
+        friend IterationContext;
+        virtual auto build_iteration_context(IterationContext &context) const -> void = 0;
+
         PhysAddr start_address_;
         PhysAddr end_address_;
         PhysAddr default_lowest_limit_;
         PhysAddr default_highest_limit_;
         AllocationControl allocation_control_;
     };
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    IterationContext::IterationContext(IBootMem const *bootmem, NodeId nid, RegionType type, PhysAddr start, PhysAddr end)
+        : nid_(nid), type_(type), range_(start, end) 
+    {  bootmem->build_iteration_context(*this);  }
 
 } // namespace bootmem
 

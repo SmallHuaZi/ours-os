@@ -15,8 +15,8 @@
 #include <boost/intrusive/options.hpp>
 
 namespace ustl::collections::intrusive {
-    template <typename SizeType>
-    using SizeType = boost::intrusive::size_type<SizeType>;
+    template <typename Size>
+    using SizeType = boost::intrusive::size_type<Size>;
 
     template <bool Constant>
     using ConstantTimeSize = boost::intrusive::constant_time_size<Constant>;

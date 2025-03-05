@@ -24,3 +24,5 @@ target_link_libraries(bootmem
 INTERFACE
     bootmem_headers 
 )
+
+add_subdirectory("tests")

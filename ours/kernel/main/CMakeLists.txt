@@ -29,7 +29,7 @@ PRIVATE
 target_compile_options(ours_kernel_main
 PRIVATE
     "-mcmodel=kernel"
-    "-O2"
+    "-O0"
     "-stdlib=libc++"
     "-ffreestanding"
     # "-fPIC"
@@ -56,6 +56,7 @@ PRIVATE
     "-Wl,--no-warn-rwx-segments"
     "-Wl,-z,noexecstack"
     "-Wl,--emit-relocs"
+    "-lgcc"
     "-static"
     # Clang needs -mcmodel=kernel to tell it to use the right safe-stack
     # ABI for the kernel.

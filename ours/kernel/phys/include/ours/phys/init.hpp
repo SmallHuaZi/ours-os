@@ -21,11 +21,8 @@
 #include <bootmem/bootmem.hpp>
 
 namespace ours::phys {
-    NO_MANGLE
-    char const IMAGE_START[] LINK_NAME("__image_start");
-
-    NO_MANGLE
-    char const IMAGE_END[] LINK_NAME("__image_end");
+    extern char const IMAGE_START[] LINK_NAME("__image_start");
+    extern char const IMAGE_END[] LINK_NAME("__image_end");
 
     extern Aspace   *ASPACE;
     extern bootmem::IBootMem   *BOOTMEM;
@@ -33,7 +30,7 @@ namespace ours::phys {
     auto init_early_console() -> void;
 
     NO_MANGLE NO_RETURN
-    auto phys_main(usize boot_params) -> void;
+    auto phys_main(PhysAddr boot_params) -> void;
 
 } // namespace ours::phys
 

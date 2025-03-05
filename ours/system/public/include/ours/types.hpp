@@ -19,13 +19,19 @@ namespace ours {
     typedef ::ustl::i16       i16;
     typedef ::ustl::i32       i32;
     typedef ::ustl::i64       i64;
-    typedef ::ustl::isize     isize;
 
     typedef ::ustl::u8        u8;
     typedef ::ustl::u16       u16;
     typedef ::ustl::u32       u32;
     typedef ::ustl::u64       u64;
-    typedef ::ustl::usize     usize;
+
+#if OURS_CONFIG_TARGET_64BIT
+    typedef ::ustl::u64     usize;
+    typedef ::ustl::i64     isize;
+#else
+    typedef ::ustl::u32     usize;
+    typedef ::ustl::i32     isize;
+#endif
 
     typedef usize   CpuId;
     typedef usize   VirtAddr;

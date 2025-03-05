@@ -24,8 +24,8 @@ namespace ustl::mem {
     { return (n + a - 1) & ~(a - 1); }
 
     USTL_FORCEINLINE USTL_CONSTEXPR 
-    auto is_aligned(usize n, usize a) USTL_NOEXCEPT -> usize
-    { return n & (a - 1); }
+    auto is_aligned(usize n, usize a) USTL_NOEXCEPT -> bool 
+    { return (n & (a - 1)) == 0; }
 
 } // namespace ustl::mem
 

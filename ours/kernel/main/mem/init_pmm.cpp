@@ -51,7 +51,7 @@ namespace ours::mem {
     INIT_CODE
     static auto init_node_mask(NodeMask &nodemask) -> void
     {
-        bootmem::IterationContext context(MAX_NODES, bootmem::RegionType::AllType);
+        bootmem::IterationContext context(EarlyMem::BOOTMEM, MAX_NODES, bootmem::RegionType::Normal);
         while (auto region = EarlyMem::iterate(context)) {
             nodemask.set(region->nid());
         }
@@ -151,7 +151,7 @@ namespace ours::mem {
     INIT_CODE
     static auto hand_off_unused_area() -> void
     {
-        bootmem::IterationContext context(MAX_NODES, bootmem::RegionType::Unused);
+        bootmem::IterationContext context(EarlyMem::BOOTMEM, MAX_NODES, bootmem::RegionType::Unused);
         while (auto region = EarlyMem::iterate(context)) {
 
         }
@@ -160,7 +160,7 @@ namespace ours::mem {
     INIT_CODE
     static auto mark_memory_present() -> void
     {
-        bootmem::IterationContext context(MAX_NODES, bootmem::RegionType::Normal);
+        bootmem::IterationContext context(EarlyMem::BOOTMEM, MAX_NODES, bootmem::RegionType::Normal);
         while (auto region = EarlyMem::iterate(context)) {
             auto const start_pfn = phys_to_pfn(region->base);
             auto const end_pfn = phys_to_pfn(region->end());

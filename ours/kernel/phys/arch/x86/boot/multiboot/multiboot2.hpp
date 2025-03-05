@@ -125,6 +125,7 @@ struct MultibootMmapEntry
         AcpiReclaimable = 3,
         Nvs = 4,
         BadRam = 5,
+        MaxNumType,
     };
 
     u64 addr;

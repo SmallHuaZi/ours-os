@@ -33,7 +33,11 @@
 
 /// [Frame.Shift]
 #ifndef OURS_CONFIG_FRAME_SHIFT
-#   define OURS_CONFIG_FRAME_SHIFT   12
+#   define OURS_CONFIG_FRAME_SHIFT   12 // 4K page
+#endif
+
+#ifndef OURS_CONFIG_MAX_FRAME_SHIFT
+#   define OURS_CONFIG_MAX_FRAME_SHIFT   12 // 2M page
 #endif
 
 /// [Secion.Shift]

@@ -20,6 +20,10 @@
 #include <ours/mem/arch_vm_aspace_constraints.hpp>
 
 namespace arch {
+    /// The follwoing types which was defined in subnamespaces of `ours`
+    /// is immigrating into `arch` namespace grudually.
+
+    using ours::u8;
     using ours::u16;
     using ours::u32;
     using ours::u64;

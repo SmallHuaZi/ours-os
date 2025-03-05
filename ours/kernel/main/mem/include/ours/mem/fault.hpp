@@ -18,8 +18,8 @@
 namespace ours::mem {
     /// The common handling logic providing to arch-developer.
     ///
-    /// @p addr(usize) is the virtual address that fault happened at.
-    /// @p cause(usize) explanates what lead to this fault.
+    /// @p addr(VirtAddr) is the virtual address that fault happened at.
+    /// @p cause(VmfCause) explanates what lead to this fault.
     NO_MANGLE
     auto handle_vm_fault(VirtAddr addr, VmfCause cause) -> void;
 

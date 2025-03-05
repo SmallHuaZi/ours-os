@@ -29,8 +29,8 @@ namespace gktl {
         constexpr auto contains(T t) const -> bool
         {  return t >= start && t < end;  }
 
-        constexpr auto overlaps(Range<T> const &other) const -> bool
-        {  return (start < other.end) && (end > other.start); } 
+        constexpr auto overlaps(T other_start, T other_end) const -> bool
+        {  return (start < other_end) && (end > other_start); } 
 
         constexpr auto left_difference_with(Range<T> const &other) const -> Range<T>
         {

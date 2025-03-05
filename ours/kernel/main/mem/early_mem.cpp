@@ -13,7 +13,7 @@ namespace ours::mem {
     auto EarlyMem::get_node_pfn_range(NodeId nid) -> gktl::Range<Pfn>
     {
         Pfn start = ustl::NumericLimits<Pfn>::max(), end = 0;
-        bootmem::IterationContext context(nid, bootmem::RegionType::AllType);
+        bootmem::IterationContext context(BOOTMEM, nid, bootmem::RegionType::Normal);
         while (auto region = EarlyMem::iterate(context)) {
             start = ustl::algorithms::min(start, phys_to_pfn(region->base));
             end = ustl::algorithms::max(end, phys_to_pfn(region->end()));
@@ -25,7 +25,7 @@ namespace ours::mem {
     auto EarlyMem::count_present_frames(Pfn start, Pfn end) -> usize
     {
         usize nr_presents = 0;
-        bootmem::IterationContext context(MAX_NODES, bootmem::RegionType::AllType, start, end);
+        bootmem::IterationContext context(BOOTMEM, MAX_NODES, bootmem::RegionType::Normal, start, end);
         while (auto region = BOOTMEM->iterate(context)) {
             if (region->size < FRAME_SIZE) {
                 continue;

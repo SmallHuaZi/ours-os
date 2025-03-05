@@ -1,0 +1,118 @@
+@startuml PMM
+enum "ZoneType" as C_0009865985206746591899
+enum C_0009865985206746591899 {
+Dma
+Dma32
+Normal
+MaxNumZoneType
+}
+package [gafns] as C_0005978799724792082028 {
+enum "Gaf" as C_0013374759553773210615
+enum C_0013374759553773210615 {
+Dma
+Dma32
+ZoneRange
+Required
+OnlyThisNode
+NeverFail
+ZeroFrame
+Reclaim
+DirectlyReclaim
+}
+}
+class "NodeMask" as C_0010306244021570221823
+class C_0010306244021570221823 {
++for_each<F>() const : void
+__
+}
+class "PmFrame" as C_0012084540337927129104
+class C_0012084540337927129104 {
++is_active() const : bool
++is_pinned() const : bool
++is_role() const : bool
++map_count() const : usize
++node_id() : NodeId
++role() : PfRole
++set_flags() : void
++set_role() : void
++set_zone_type() : void
++use_count() const : usize
++zone_type() : ZoneType
+__
+}
+class "FrameQueue" as C_0007974373191134433790
+class C_0007974373191134433790 {
++mark_accessed() : void
++set_anonymous() : void
++set_pinned() : void
++set_reclaimable() : void
+__
+{static} +NR_RECLAIM_QUEUES : const usize
+}
+class "ZoneQueues" as C_0012301414232530644096
+class C_0012301414232530644096 {
++ZoneQueues() : void
+..
++emplace() : void
++insert_queue() : void
++iter() : IterMut
++local_zone() : PmZone *
++remove() : void
++rev_iter() : RevIterMut
+__
+}
+class "ZoneQueues::ZoneRef" as C_0016805752986837711880
+class C_0016805752986837711880 {
+__
+}
+class "ZoneQueues::Iterator<Inner>" as C_0011824353534091579124
+class C_0011824353534091579124 {
+__
+}
+class "PmNode" as C_0004253120382783230542
+class C_0004253120382783230542 {
++PmNode() : void
+..
++alloc_frame() : ustl::Result<PmFrame *,Status>
++alloc_frames() : Status
++contains() : bool
+{static} +distance() : isize
+{static} +distance() : isize
++free_frame() : void
++free_frames() : void
++init() : Status
+{static} +make_optimal_path() : void
++nid() const : NodeId
+{static} +node() : PmNode *
++recalculate_present_frames() : auto
++share_with() : Status
++zone_queues() : ZoneQueues *
+__
+}
+class "PmZone" as C_0002364475966123379245
+class C_0002364475966123379245 {
+__
+}
+C_0012084540337927129104 ..> C_0009865985206746591899
+C_0007974373191134433790 ..> C_0012084540337927129104
+C_0012301414232530644096 ..> C_0009865985206746591899
+C_0012301414232530644096 ..> C_0011824353534091579124
+C_0012301414232530644096 --> C_0002364475966123379245 : -local_zones_
+C_0012301414232530644096 o-- C_0016805752986837711880 : -local_queue_
+C_0012301414232530644096 o-- C_0016805752986837711880 : -node_affinity_queue_
+C_0012301414232530644096 --> C_0002364475966123379245 : -zone_priority_queue_
+C_0016805752986837711880 --+ C_0012301414232530644096
+C_0016805752986837711880 --> C_0002364475966123379245 : +zone
+C_0016805752986837711880 o-- C_0009865985206746591899 : +type
+C_0011824353534091579124 ..|> C_0011824353534091579124
+C_0004253120382783230542 ..> C_0013374759553773210615
+C_0004253120382783230542 ..> C_0012084540337927129104
+C_0004253120382783230542 ..> C_0009865985206746591899
+C_0004253120382783230542 ..> C_0011824353534091579124
+C_0004253120382783230542 o-- C_0010306244021570221823 : -shared_nodes_
+C_0004253120382783230542 o-- C_0012301414232530644096 : -zone_queues_
+C_0004253120382783230542 o-- C_0007974373191134433790 : -lru_queue_
+
+'Generated with clang-uml, version 0.6.0
+'LLVM version Ubuntu clang version 19.1.7 (++20250114103332+cd708029e0b2-1~exp1~20250114103446.78)
+@enduml

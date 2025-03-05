@@ -1,0 +1,83 @@
+classDiagram
+    class C_0012084540337927129104["PmFrame"]
+    class C_0012084540337927129104 {
+        +is_active() : [const] bool
+        +is_pinned() : [const] bool
+        +is_role() : [const] bool
+        +map_count() : [const] usize
+        +node_id() : NodeId
+        +role() : PfRole
+        +set_flags() : void
+        +set_role() : void
+        +set_zone_type() : void
+        +use_count() : [const] usize
+        +zone_type() : ZoneType
+    }
+    class C_0012301414232530644096["ZoneQueues"]
+    class C_0012301414232530644096 {
+        +ZoneQueues() : void
+        +emplace() : void
+        +insert_queue() : void
+        +iter() : IterMut
+        +local_zone() : PmZone *
+        +remove() : void
+        +rev_iter() : RevIterMut
+    }
+    class C_0004253120382783230542["PmNode"]
+    class C_0004253120382783230542 {
+        +PmNode() : void
+        +alloc_frame() : ustl::Result&lt;PmFrame *,Status&gt;
+        +alloc_frames() : Status
+        +contains() : bool
+        +distance() : isize$
+        +distance() : isize$
+        +free_frame() : void
+        +free_frames() : void
+        +init() : Status
+        +nid() : [const] NodeId
+        +node() : PmNode *$
+        +recalculate_present_frames() : auto
+        +share_with() : Status
+        +zone_queues() : ZoneQueues *
+    }
+    class C_0002364475966123379245["PmZone"]
+    class C_0002364475966123379245 {
+        +init() : void
+        +contains() : bool
+        +alloc_frame() : PmFrame *
+        +free_frame() : void
+        +which_node() : NodeId
+        +present_frames() : usize
+        +managed_frames() : usize
+        +spanned_frames() : usize
+        +reserved_frames() : usize
+    }
+    class C_0011326831433767179894["PmSection"]
+    class C_0011326831433767179894 {
+        +USIZE_BITS : const usize
+        +value_ : EncodedUsize
+    }
+    class C_0005132849283621825883["MemoryModel"]
+    class C_0005132849283621825883 {
+        +depopulate() : Status$
+        +exist() : bool$
+        +exist() : bool$
+        +frame_to_pfn() : Pfn$
+        +frame_to_phys() : PhysAddr$
+        +init() : Status$
+        +mark_present() : void$
+        +pfn_to_frame() : PmFrame *$
+        +phys_to_frame() : PmFrame *$
+        +populate() : Status$
+        +populate() : Status$
+        +virt_to_frame() : PmFrame *$
+    }
+    C_0012301414232530644096 --> C_0002364475966123379245 : -local_zones_
+    C_0012301414232530644096 --> C_0002364475966123379245 : -zone_priority_queue_
+    C_0004253120382783230542 ..> C_0012084540337927129104 : 
+    C_0004253120382783230542 o-- C_0012301414232530644096 : -zone_queues_
+    C_0011326831433767179894 --> C_0012084540337927129104 : +value_
+    C_0005132849283621825883 ..> C_0012084540337927129104 : 
+
+%% Generated with clang-uml, version 0.6.0
+%% LLVM version Ubuntu clang version 19.1.7 (++20250114103332+cd708029e0b2-1~exp1~20250114103446.78)

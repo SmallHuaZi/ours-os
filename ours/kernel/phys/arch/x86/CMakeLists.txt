@@ -16,6 +16,7 @@ target_sources(ours_kernel_phys_arch
 INTERFACE
     "image.S"
     "vga_console.cpp"
+    "serial_console.cpp"
 )
 target_include_directories(ours_kernel_phys_arch
 INTERFACE
@@ -26,6 +27,7 @@ INTERFACE
 target_link_libraries(ours_kernel_phys_arch 
 INTERFACE
     x86_phys32_common
+    ours::kernel::lib::arch::headers
     ours::kernel::lib::lz4
     ours::kernel::phys::boot
 )

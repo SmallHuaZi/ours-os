@@ -3,11 +3,11 @@
 
 set(TRIPLE x86_64-unknown-elf)
 
-set(CMAKE_C_COMPILER    "clang-18")
+set(CMAKE_C_COMPILER    "clang-21")
 # set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
-set(CMAKE_CXX_COMPILER  "clang++-18")
+set(CMAKE_CXX_COMPILER  "clang++-21")
 # set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(CMAKE_ASM_COMPILER  "clang-18")
+set(CMAKE_ASM_COMPILER  "clang-21")
 
 set(COMMON_FLAGS 
     "-m32;"

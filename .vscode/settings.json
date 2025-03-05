@@ -1,6 +1,10 @@
 {
     "cmake.cmakePath": "cmake",
-    "cmake.sourceDirectory": "/home/smallhuazi/Documents/Programs/ours-dev/ours-os",
+    // "cmake.sourceDirectory": "/mnt/c/users/20458/Desktop/Dissertation/ours-dev",
     "cmake.useCMakePresets": "always",
+    "cmake.debugConfig": {
+        "miDebuggerPath": "/usr/bin/lldb-21",
+        "MIMode": "lldb"
+    },
     "cmake.allowCommentsInPresetsFile": true,
 }

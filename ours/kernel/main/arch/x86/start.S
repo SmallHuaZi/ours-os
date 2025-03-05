@@ -13,7 +13,7 @@
 #define PDP_HIGH_OFFSET (512 - KERNEL_ASPACE_SIZE / GB(1))
 
 // For load GDTR
-.extern TEMP_GDTR 
+.extern TEMP_GDTR
 
 // Pre-allocated page table entries which defined at "arch/x86/vm_aspace.cpp",
 // avabilable after the BSS was zeroed
@@ -97,47 +97,10 @@ FUNCTION_NOCFI(_start)
     xor %eax, %eax
     rep stosb // while (ecx-- > 0) *edi++ = al;
 
+    // The following code constructs the page table from leaves to roots.
 .Lconstruct_page_table:
-    // 1) Identity-maps the first 1GB of physical memory (VA [0, 1GB) = PA [0, 1GB)).
-
-    // KERNEL_PGD[0] = virt_to_phys(KERNEL_PDP) | X86_KERNEL_PD_FLAGS
-
-    movl $PHYS(KERNEL_PDP), %eax
-    orl  $X86_KERNEL_PD_FLAGS, %eax
-    movl %eax, PHYS(KERNEL_PGD)
-
-    // KERNEL_PDP[0] = virt_to_phys(KERNEL_PD) | X86_KERNEL_PD_FLAGS
-
-    movl $PHYS(KERNEL_PD), %eax
-    orl  $X86_KERNEL_PD_FLAGS, %eax
-    movl %eax, PHYS(KERNEL_PDP)
-
-    // KERNEL_PGD[relocate(KRENEL_BASE)] = virt_to_phys(relocate(KERNEL_PDP_HIGH)) | X86_KERNEL_PD_FLAGS
-
-    mov $PHYS(KERNEL_PDP_HIGH), %eax
-    orl  $X86_KERNEL_PD_FLAGS,  %eax
-    install_relocated_pte KERNEL_PGD, X86_PML4_SHIFT, %eax
-
-    // KERNEL_PDP_HIGH[relocate(KRENEL_BASE)] = virt_to_phys(relocate(KERNEL_PD)) | X86_KERNEL_PD_FLAGS
-
-    movl $PHYS(KERNEL_PD), %eax
-    orl  $X86_KERNEL_PD_FLAGS, %eax
-    install_relocated_pte KERNEL_PDP_HIGH, X86_PDP_SHIFT, %eax
-
-    // Start to map
-    movl $PHYS(KERNEL_PD), %esi
-    movl $512, %ecx
-    xor  %eax, %eax
-0:
-    mov  %eax, %ebx
-    shll $21,  %ebx     // The low 21 bits of an address aligned to 2MB is zero 
-    orl  $X86_KERNEL_LPD_FLAGS, %ebx
-    movl %ebx, (%esi)
-    addl $8,%esi
-    inc  %eax
-    loop 0b
-
-    // 2) Establish direct mapping, namely physmap.
+    // 1) Maps the first 32GB of physical memory (VA [0, 32GB) = PA [0, 32GB)).
+    //    to `KERNEL_PHYSMAP_PD`.
     movl $PHYS(KERNEL_PHYSMAP_PD), %esi
     movl $NR_PHYSMAP_PTES,  %ecx
     xor  %eax, %eax
@@ -153,13 +116,22 @@ FUNCTION_NOCFI(_start)
     inc  %eax
     loop 0b
 
-    //
+    // 2) Constructs identity-maps for the first 1GB memory.
+    movl $PHYS(KERNEL_PHYSMAP_PD), %eax
+    orl  $X86_KERNEL_PD_FLAGS, %eax
+    movl %eax, PHYS(KERNEL_PDP)
+
+    movl $PHYS(KERNEL_PDP), %eax
+    orl  $X86_KERNEL_PD_FLAGS, %eax
+    movl %eax, PHYS(KERNEL_PGD)
+
+    // 3) Constructs direct-mapping area, namely physmap.
+
     // void **esi = KERNEL_PDP_HIGH + (512 - KERNEL_ASPACE_SIZE / GB(1));
     // void *eax = &KERNEL_PHYSMAP_PD | X86_KERNEL_PD_FLAGS;
     // for (int i = 0; i < 64; ++i) {
     //     esi[i] = eax + i * 4096;
     // }
-    //
     movl $PHYS(KERNEL_PDP_HIGH + PDP_HIGH_OFFSET * 8), %esi
     movl $NR_PHYSMAP_PDS, %ecx
     movl $PHYS(KERNEL_PHYSMAP_PD), %eax
@@ -169,6 +141,10 @@ FUNCTION_NOCFI(_start)
     add  $8,    %esi
     addl $4096, %eax
     loop 0b 
+
+    mov $PHYS(KERNEL_PDP_HIGH), %eax
+    orl  $X86_KERNEL_PD_FLAGS,  %eax
+    install_relocated_pte KERNEL_PGD, X86_PML4_SHIFT, %eax
 
 .Linstall_page_table:
     // Disable global pages before installing the new root page table 

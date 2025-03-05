@@ -17,8 +17,8 @@
 namespace ustl::collections::intrusive {
     namespace internal = boost::intrusive;
 
-    template <typename Parent, typename MemberHook, MemberHook Parent::*PtrToMember>
-    using MemberHook = internal::member_hook<Parent, MemberHook, PtrToMember>;
+    template <typename Parent, typename Hook, Hook Parent::*PtrToMember>
+    using MemberHook = internal::member_hook<Parent, Hook, PtrToMember>;
 
     template <typename... T>
     using SlistBaseHook = internal::slist_base_hook<T...>;

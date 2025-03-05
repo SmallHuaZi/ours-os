@@ -1,4 +1,4 @@
-#include <ours/phys/print.hpp>
+#include <ours/phys/console.hpp>
 
 #include <ours/types.hpp>
 #include <ours/config.hpp>
@@ -28,21 +28,29 @@ namespace ours::phys {
 
     struct X86VgaConsole
         : public Console 
-    {
-        virtual auto write(char const *s, usize n) -> void override;
+    {   
+        X86VgaConsole()
+            : Console(),
+              xpos_(0), ypos_(0),
+              foreground_(Color::Black),
+              background_(Color::White)
+        {}
 
-        virtual auto read(char const *s, usize n) -> usize override
+        auto write(char const *s, u32 n) -> void override;
+
+        auto read(char *s, u32 n) -> u32 override
         {  return 0; }
+
+        auto activate() -> void override;
 
         auto print_char(Color back, Color fore, char c) -> void;
 
         auto clear_line(u16 line) -> void;
 
-        char buffer_[512];
-        Color foreground_ = Color::White;
-        Color background_ = Color::Black;
-        volatile u32 xpos_ = 0;
-        volatile u32 ypos_ = 0;
+        Color foreground_;
+        Color background_;
+        volatile u32 xpos_;
+        volatile u32 ypos_;
 
         static volatile u8 *VIDEO_;
         CXX11_CONSTEXPR static auto const LINES = 25;
@@ -50,7 +58,7 @@ namespace ours::phys {
     };
     volatile u8 *X86VgaConsole::VIDEO_ = reinterpret_cast<u8 *>(0xB8000);
 
-    auto X86VgaConsole::write(char const *s, usize n) -> void
+    auto X86VgaConsole::write(char const *s, u32 n) -> void
     {
         for (auto i = 0; i < n; ++i) {
             this->print_char(foreground_, background_, s[i]);
@@ -81,16 +89,15 @@ namespace ours::phys {
         xpos_ += 1;
     }
 
-    static X86VgaConsole VGA_LOGGER;
-
-    auto init_early_console() -> void
+    auto X86VgaConsole::activate() -> void
     {
-        ustl::mem::construct_at(&VGA_LOGGER);
         for (int i = 0; i < 80; ++i) {
-            VGA_LOGGER.clear_line(i);
+            clear_line(i);
         }
 
-        VGA_LOGGER.activate();
+        Console::activate();
     }
+
+    REGISTER_CONSOLE(X86VgaConsole, VGA_LOGGER);
 
 } // namespace ours::phys

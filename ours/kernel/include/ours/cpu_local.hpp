@@ -30,6 +30,17 @@
 #endif
 
 namespace ours {
+    template <typename T>
+    struct PerCpu
+    {
+        template <typename F>
+            requires ustl::traits::Invocable<F, T &>
+        auto with_current(F &&f)
+        {}
+
+        T *value_;
+    };
+
     /// Define a static lifetime CPU-local variable like this:
     /// CPU_LOCAL [static] YourType VAR_NAME;
     ///
@@ -70,10 +81,10 @@ namespace ours {
         static auto access(T *object, CpuId = Self::cpuid()) -> T *;
 
         template <typename T, typename = T>
-        static auto allocate(CpuId cpuid) -> T *;
+        static auto allocate(CpuId cpuid) -> PerCpu<T>;
 
         template <typename T, typename = T>
-        static auto free(T *, CpuId cpuid) -> void;
+        static auto free(PerCpu<T>, CpuId cpuid) -> void;
 
         template <typename T, typename F>
         static auto for_each(F &&f) -> void;

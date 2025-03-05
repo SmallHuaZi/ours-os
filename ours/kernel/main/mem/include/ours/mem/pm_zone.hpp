@@ -32,9 +32,6 @@ namespace ours::mem {
     {
         typedef PmZone     Self;
     public:
-        CXX11_CONSTEXPR
-        static usize const MAX_PCPU_FRAME_ORDER = 3;
-
         auto init(NodeId nid, ZoneType ztype, Pfn start_pfn, Pfn end_pfn, usize present_frames = 0) -> void;
 
         auto contains(usize order) -> bool;
@@ -65,6 +62,9 @@ namespace ours::mem {
         {  return this->reserved_frames_;  }
 
     private:
+        CXX11_CONSTEXPR
+        static usize const MAX_PCPU_FRAME_ORDER = 3;
+
         FORCE_INLINE
         static auto is_order_within_pcpu_cache_limit(usize order) -> bool
         {  return order < MAX_PCPU_FRAME_ORDER;  }
@@ -88,15 +88,12 @@ namespace ours::mem {
         auto free_single_frame(PmFrame *frame, Pfn pfn, usize order) -> void;
         auto free_large_frame_block(PmFrame *frame, Pfn pfn, usize order) -> void;
         auto free_frame_inner(PmFrame *frame, Pfn pfn, usize order) -> void;
-
     protected:
         friend class PmNode;
         GKTL_CANARY(PmZone, canary_);
 
         char const *name_;
-
         NodeId  nid_;
-
         Pfn start_pfn_;
 
         //! `present_pages` is physical pages existing within the zone, 

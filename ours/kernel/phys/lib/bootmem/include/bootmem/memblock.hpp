@@ -21,7 +21,7 @@
 #include <ustl/algorithms/copy.hpp>
 
 namespace bootmem {
-    class MemBlock
+    struct MemBlock
         : public IBootMem
     {
         struct RegionList
@@ -30,12 +30,15 @@ namespace bootmem {
             typedef Region *      IterMut;
 
             RegionList(MemBlock *holder)
-                : holder_(holder)
+                : holder_(holder),
+                  count_(0),
+                  capacity_(0)
             {}
 
             auto add(PhysAddr base, usize size, RegionType type, NodeId nid) -> Status;
             auto remove(PhysAddr base, usize size) -> Status;
             auto isolate(PhysAddr base, usize size) -> ustl::Pair<IterMut, IterMut>;
+            auto reset(Region *new_region, usize new_capacity) -> void;
 
             auto begin() const -> Iter
             {  return regions_;  }
@@ -49,18 +52,31 @@ namespace bootmem {
             auto end() -> IterMut
             {  return regions_ + count_;  }
 
-            auto grow(usize capacity) -> bool;
+            auto size() const -> usize 
+            {  return count_;  }
+
+            auto capacity() const -> usize 
+            {  return capacity_;  }
+
+            template <typename F>
+            auto grow(usize new_capacity, F &&f) -> bool;
+
+            auto grow(usize new_capacity) -> bool;
+
+            auto grow(usize new_capacity, PhysAddr reserved_start, PhysAddr reserved_end) -> bool;
 
             auto erase(IterMut pos) -> void
-            { ustl::algorithms::copy(pos + 1, end(), pos); }
+            { 
+                ustl::algorithms::copy(pos + 1, end(), pos); 
+                count_ -= 1;
+            }
 
             auto erase(IterMut first, IterMut last) -> void
             {
-                if (last == end()) {
-                    count_ -= last - first;
-                } else {
-                    ustl::algorithms::copy(last + 1, end(), first); 
+                if (last != end()) {
+                    ustl::algorithms::copy(last, end(), first); 
                 }
+                count_ -= last - first;
             }
 
             auto insert(usize index, Region const &region) -> void;
@@ -68,6 +84,8 @@ namespace bootmem {
             auto push_back(Region const &region) -> void;
 
             auto try_merge(usize first, usize last) -> Status;
+
+            static auto calc_new_capacity(usize old_capacity) -> usize;
 
             MemBlock *holder_;
             Region *regions_;
@@ -77,33 +95,50 @@ namespace bootmem {
         };
     public:
         MemBlock()
-            : memories_(this),
+            : IBootMem(),
+              memories_(this),
               reserved_(this)
         {}
 
         virtual ~MemBlock() override
         {}
 
-        auto init(PhysAddr base, usize size) -> void;
+        auto init(Region *new_regions, usize n) -> void;
+
+        auto trim(usize align) -> void;
 
         auto name() const -> char const * override
         {  return "memblock";  }
 
         auto add(PhysAddr base, usize size, RegionType type, NodeId nid = MAX_NODES) -> Status override
-        { return memories_.add(base, size, type, nid); }
+        { 
+            start_address_ = ustl::algorithms::min(base, start_address_);
+            end_address_ = ustl::algorithms::max(base + size, end_address_);
+            return memories_.add(base, size, type, nid); 
+        }
 
         auto remove(PhysAddr base, usize size) -> void override
-        { memories_.remove(base, size); }
+        {  memories_.remove(base, size);  }
 
         auto protect(PhysAddr base, usize size) -> Status override
-        {  return reserved_.add(base, size, RegionType::AllType, 0);  }
+        {  return reserved_.add(base, size, RegionType::Normal, 0);  }
 
-        auto allocate_bounded(usize size, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> PhysAddr override;
+        auto allocate_bounded(usize size, usize align, PhysAddr start, PhysAddr end, NodeId = MAX_NODES) -> PhysAddr override;
 
         auto deallocate(PhysAddr ptr, usize size) -> void override;
 
         auto iterate(IterationContext &context) const -> ustl::Option<Region> override;
+
+        // The following methods was marked public just for tests
+        auto memories_list() -> RegionList &
+        {  return memories_;  }
+
+        auto reserved_list() -> RegionList &
+        {  return reserved_;  }
     private:
+        auto build_iteration_context(IterationContext &context) const -> void override;
+        auto iterate_unused_region(IterationContext &context) const -> ustl::Option<Region>;
+
         RegionList   memories_;
         RegionList   reserved_;
     }; // class MemBlock

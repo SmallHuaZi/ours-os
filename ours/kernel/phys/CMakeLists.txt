@@ -14,9 +14,9 @@ add_executable(ours_kernel_phys)
 add_executable(ours::kernel::phys ALIAS ours_kernel_phys)
 target_compile_options(ours_kernel_phys
 PRIVATE
-"-v"
+# "-v"
 "-g"
-    "-O2"
+    "-O0"
     "-stdlib=libc++"
     "-ffreestanding"
     # "-fPIC"
@@ -36,11 +36,12 @@ PRIVATE
     ours::kernel::phys::lib::bootmem
     ours::kernel::lib::libc
     ours::kernel::lib::gktl::goi
+    "libgcc.a"
 )
 target_link_options(ours_kernel_phys
 PRIVATE
-"-v"
-    "-static"
+# "-v"
+    # Link to libgcc for some builtin routine.
     "-nostdlib"
     "-nostdlib++"
     "-nodefaultlibs"
@@ -48,8 +49,11 @@ PRIVATE
     "-Wl,--no-relax"
     "-Wl,--build-id=none"
     "-Wl,--no-warn-rwx-segments"
+    # This is a hosted dependency flag
+    "-L/usr/lib/gcc/x86_64-linux-gnu/13/32"
     "-fno-register-global-dtors-with-atexit"
     "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/phys.ld"
+    "-static"
 )
 
 add_dependencies(ours_kernel_phys ours_kernel_main_image)

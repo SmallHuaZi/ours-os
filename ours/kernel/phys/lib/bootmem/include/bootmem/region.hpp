@@ -20,10 +20,13 @@
 #include <ours/mem/constant.hpp>
 
 #include <ustl/bit.hpp>
+#include <ustl/mem/align.hpp>
 
 namespace bootmem {
     using ours::Status;
     using ours::u16;
+    using ours::i32;
+    using ours::u32;
     using ours::isize;
     using ours::usize;
     using ours::PhysAddr;
@@ -37,7 +40,6 @@ namespace bootmem {
         Unused,
         Reserved,
         ReservedAndNoInit,
-        AllType,
         MaxNumType,
     };
 
@@ -62,6 +64,14 @@ namespace bootmem {
         static usize const NID_MASK = ~TYPE_MASK;
 
         CXX11_CONSTEXPR
+        auto trim(usize align) -> void
+        {
+            auto const x = ustl::mem::align_up(base, align);
+            size = ustl::mem::align_down(size - (x - base), align);
+            base = x;
+        }
+
+        CXX11_CONSTEXPR
         auto nid() const -> isize
         {  return (flags & NID_MASK) >> NID_SHIFT;  }
 
@@ -81,7 +91,7 @@ namespace bootmem {
         auto end() const -> usize
         {  return base + size;  }
 
-        usize base;
+        PhysAddr base;
         usize size;
         usize flags;
     };

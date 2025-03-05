@@ -40,8 +40,6 @@
 #include <kmrd/damon.hpp>
 
 namespace ours::mem {
-    using NodePath = ustl::collections::Array<NodeId, MAX_NODES>;
-
     struct NodeStates
     {
         enum NodeStateType {
@@ -187,8 +185,6 @@ namespace ours::mem {
         static auto distance(Self const &x, Self const &y) -> isize
         {  return Self::distance(x.nid(), y.nid());  }
 
-        static auto make_optimal_path(NodeId nid, NodePath &nodepath) -> void;
-
         /// Initialize this node. The primary task involves verifying the existence of the 
         /// specified PFN range.
         ///
@@ -231,10 +227,6 @@ namespace ours::mem {
     private:
         GKTL_CANARY(PmNode, canary_);
 
-        ZoneQueues zone_queues_;
-
-        NodeMask shared_nodes_;
-
         NodeId id_;
 
         Pfn start_pfn_;
@@ -247,6 +239,10 @@ namespace ours::mem {
         ustl::sync::AtomicUsize present_frames_;
 
         ustl::sync::AtomicUsize reserved_frames_;
+
+        NodeMask shared_nodes_;
+
+        ZoneQueues zone_queues_;
 
         FrameQueue lru_queue_;
 

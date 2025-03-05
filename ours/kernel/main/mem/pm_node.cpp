@@ -140,15 +140,10 @@ namespace ours::mem {
     CXX11_CONSTEXPR
     NodeMask const DEFAULT_ONLINE_NODE_MASK = {  };
 
-    PmNode::DisMap      PmNode::NODE_DISTANCE{};
-    PmNode::NodeList    PmNode::GLOBAL_NODE_LIST{};
+    PmNode::DisMap      PmNode::NODE_DISTANCE;
+    PmNode::NodeList    PmNode::GLOBAL_NODE_LIST;
 
     static Gaf GAF_ALLOWED = GAF_BOOT;
-
-    auto PmNode::make_optimal_path(NodeId nid, NodePath &nodepath) -> void
-    {
-
-    }
 
     PmNode::PmNode(NodeId nid)
         : id_(nid),

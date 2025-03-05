@@ -30,9 +30,16 @@
 
           // Redundant and conflicts with gnls, which is preferred.
           "persidskiy.vscode-gnformat",
-        ]
+
+          "fuchsia-authors.language-fidl",
+          "fuchsia-authors.vscode-fuchsia",
+          "akiramiyakoda.cppincludegu",
+          "golang.go",
+          
+        ],
     },
     "settings": {
+
         "editor.rulers": [
             140
         ],
@@ -91,7 +98,9 @@
             "--clang-tidy",                                     //代码静态检查
             "--background-index-priority=normal",               //后台索引优先级
             "--parse-forwarding-functions"	,
-            "--query-driver=$env{c++}"
+            "--query-driver=$env{c++}",
+            "--limit-results=20",
+            "--header-insertion=never"
         ],
         "cmake.buildDirectory": "${workspaceFolder}/target",
         "cmake.default.buildDirectory": "${workspaceFolder}/target/build",
@@ -100,10 +109,11 @@
             "MIMode": "lldb",
             "miDebuggerPath": "lldb-dap-18"
         },
-        "clangd.path": "clangd-18",
+        "clangd.path": "clangd-21",
         "editor.lineNumbers": "on",
         "editor.cursorBlinking": "smooth",
         "vim.smartRelativeLine": false,
+        "vim.cursorStylePerMode.insert": "line",
     },
 
     // Tasks run with the "Tasks: Run Task" command (bind a shortcut!).
@@ -114,7 +124,7 @@
                 "label": "Launch QEMU",
                 "type": "shell",
                 "isBackground": true,
-                "command": "echo Starting QEMU&qemu-system-i386 -s -S ours.iso -monitor stdio -smp 4",
+                "command": "echo Starting QEMU&qemu-system-i386 -s -S ours.iso -smp 4 -serial stdio", //  -monitor stdio
                 "problemMatcher": {
                     "pattern": {
                         "regexp": "^(Starting QEMU)",
@@ -131,7 +141,7 @@
                 "label": "Make Image",
                 "type": "shell",
                 "isBackground": false,
-                "command": "./mkimg.sh -k target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys -o ours.iso",
+                "command": "./mkimg.sh target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys ours.iso",
             },
             {
                 "label": "SetUp",
@@ -147,20 +157,50 @@
         "version": "0.2.0",
         "configurations": [
             {
+                "name": "Debug in QEMU",
+                "type": "lldb",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "targetCreateCommands": ["target create ${command:cmake.launchTargetPath}"],
+                "processCreateCommands": ["gdb-remote 1234"],
+                "initCommands": [
+                    "platform select remote-linux"
+                ],
+                "preLaunchTask": "SetUp",
+                "sourceMap": {"ours/kernel/phys":"${workspaceFolder}/ours/kernel/phys"}
+            },
+            {
+                "name": "Debug Test",
+                "type": "lldb",
+                "request": "launch",
+                // ${command:cmake.getLaunchTargetDirectory}
+                "program": "${command:cmake.getLaunchTargetDirectory}/${input:SelectTestProgram}"///${input:SelectTestProgram}",
+            },
+            {
                 "name": "Remote launch",
                 "type": "lldb-dap",
                 "request": "attach",
-                "program": "${workspaceFolder}/target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys",
-                "attachCommands": ["gdb-remote 1234"],
-                // "attachCommands": [
-                //     "target create ${workspaceFolder}/target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys",
-                //     // "gdb-remote localhost:1234",
-                //     "b _start",
-                //     "c"
-                // ],
-                // "stopOnEntry": true,
+                "program": "${command:cmake.launchTargetPath}",
+                "gdb-remote-port": 1234,
+                "initCommands": [
+                    "lldb-dap repl-mode command"
+                ],
                 "preLaunchTask": "SetUp",
             },
+            // {
+                // "name": "Debug Test",
+                // "type": "lldb-dap",
+                // "request": "launch",
+                // ${command:cmake.getLaunchTargetDirectory}
+                // "program": "${command:cmake.getLaunchTargetDirectory}/${input:SelectTestProgram}"///${input:SelectTestProgram}",
+            // }
+        ],
+        "inputs": [
+            {
+                "id": "SelectTestProgram",
+                "type": "promptString",
+                "description": "Selece a test program to debug"
+            }
         ],
         "compounds": []
     }

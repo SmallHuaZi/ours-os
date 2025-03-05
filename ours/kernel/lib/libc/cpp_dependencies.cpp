@@ -27,12 +27,6 @@ extern "C" {
     void __cxa_guard_abort(guard *) {}
     
     int atexit(void (*func)(void)) noexcept { return 0; }
-
-    int __udivdi3(ours::u64, ours::u32) noexcept 
-    { 
-        ours::panic(__func__);
-        return 0; 
-    }
 }
 
 
@@ -132,9 +126,9 @@ inline namespace __1 {
     { 
         ours::panic(format); 
     }
-#ifdef _LIBCPP_STD_VER
-}
-#endif
+// #ifndef _LIBCPP_STD_VER
+// }
+// #endif
 namespace placeholders {
 #ifdef _LIBCPP_STD_VER
 _LIBCPP_EXPORTED_FROM_ABI const __ph<1> _1;
@@ -150,20 +144,31 @@ _LIBCPP_EXPORTED_FROM_ABI const __ph<10> _10;
 #endif
 }
 }
+#ifdef _LIBCPP_STD_VER
+}
+#endif
 
 #include <new>
 
 [[gnu::weak]]
 auto operator new(std::size_t) -> void *
-{  
-    ours::panic(__func__);
-}
+{  ours::panic(__func__);  }
+
+[[gnu::weak]]
+auto operator new(std::size_t, std::align_val_t) -> void *
+{  ours::panic(__func__);  }
 
 [[gnu::weak]]
 auto operator delete(void *) -> void
-{
-    using std::to_chars;
-}
+{}
+
+[[gnu::weak]]
+auto operator delete(void *, std::size_t) -> void
+{}
+
+[[gnu::weak]]
+auto operator delete(void *, std::size_t, std::align_val_t) -> void
+{}
 
 namespace boost {
 namespace container { 

@@ -7,6 +7,8 @@ add_definitions("-DBOOST_NO_EXCEPTIONS=1")
 add_definitions("-D_LIBCPP_HAS_NO_LOCALIZATION=1")
 # add_definitions("-D_LIBCPP_HAS_NO_WIDE_CHARACTERS=1")
 
+add_definitions("-DOURS_CONFIG_TARGET_64BIT=1")
+
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") 
     set(OURS_ARCH "x86")
 else()

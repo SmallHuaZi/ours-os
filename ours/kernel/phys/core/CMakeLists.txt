@@ -1,5 +1,5 @@
 target_sources(ours_kernel_phys
 PRIVATE
-    "print.cpp"
+    "console.cpp"
     "loader.cpp"
 )

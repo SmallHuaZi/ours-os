@@ -47,7 +47,11 @@ FUNCTION_NOCFI(x86_start)
 
     xor %ebp, %ebp
 
-    push %esi
+#ifdef OURS_CONFIG_TARGET_64BIT
+    // If target is 64 bit, we should push an fake 32bit value as the high bits of the loader parameter
+    push $0     // High 32 bits
+#endif
+    push %esi   // Low 32 bits
     call phys_main
 
 idle:

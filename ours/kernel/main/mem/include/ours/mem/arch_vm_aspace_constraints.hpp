@@ -53,7 +53,10 @@ namespace ours::mem {
     USTL_ENABLE_ENUM_BITS(MapControl);
 
     enum class UnMapControl {
-
+        // Allow us to unmap the path to the pte of termnal node but
+        // not unmap the terminal node.
+        WithoutTerminal,
+        OnlyTerminal,
     };
     USTL_ENABLE_ENUM_BITS(UnMapControl);
 
@@ -86,7 +89,7 @@ namespace ours::mem {
         "The ArchVmAspace do not implements required method `ArchVmAspace::map_bulk`");
         
         USTL_MPL_CREATE_METHOD_DETECTOR(unmap, Unmap);
-        static_assert(HasFnUnmap<auto (ArchVmAspace::*)(VirtAddr, usize,UnMapControl) -> Status>::VALUE,
+        static_assert(HasFnUnmap<auto (ArchVmAspace::*)(VirtAddr, usize, UnMapControl) -> Status>::VALUE,
         "The ArchVmAspace do not implements required method `ArchVmAspace::unmap`");
 
         USTL_MPL_CREATE_METHOD_DETECTOR(protect, Protect);

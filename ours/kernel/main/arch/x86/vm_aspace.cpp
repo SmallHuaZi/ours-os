@@ -1,5 +1,3 @@
-#include "ours/mem/mmu_flags.hpp"
-#include "ours/types.hpp"
 #include <ours/arch/vm_aspace.hpp>
 #include <ours/mem/physmap.hpp>
 
@@ -20,23 +18,25 @@ namespace ours::mem {
     /// +-------+--------+-----------------+-------------------------+----------+-------+
     /// | 4     | PML4   | 4 KiB | 256 TiB-| 9 bits   |   512   | 0x8000000 (134217728) |
     /// +-------+--------+-----------------+-------------------------+----------+-------+
-
+    ///
+    /// The layout above is kernel address space by default.
+    ///
+    ///        (1GB)[0]--KERNEL_PDP[0]--KERNEL_PHYSMAP_PD[0..511]
+    ///              |
+    ///              | 
+    /// KERNEL_PGD--[..]-(NULL)
+    ///              |                [0]---KERNEL_PHYSMAP_PD[0][0..511]
+    ///              |                 |
+    ///     (512GB)[511]-KERNEL_PDP_HIGH---ERNEL_PHYSMAP_PD[..][0..511]
+    ///                                |
+    ///                               [31]---KERNEL_PHYSMAP_PD[31][0..511]
+    ///
     NO_MANGLE {
         alignas(PAGE_SIZE) arch::Pte KERNEL_PGD[512];   // PML4
         alignas(PAGE_SIZE) arch::Pte KERNEL_PDP[512];   // PDP for the first 512GB
-
-        // TODO(SmallHuaZi): Remove it and reinstall KERNEL_PHYSMAP_PD[0] onto KERNEL_PDP[0].
-        alignas(PAGE_SIZE) arch::Pte KERNEL_PD[512];    // PD for the first 1GB, be used to identity mapping.
         alignas(PAGE_SIZE) arch::Pte KERNEL_PDP_HIGH[512]; // High PDP for the kernel address space
-        alignas(PAGE_SIZE) arch::Pte KERNEL_PHYSMAP_PD[PhysMap::SIZE / MAX_PAGE_SIZE]; // PD for directe mapping
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PHYSMAP_PD[PhysMap::SIZE / MAX_PAGE_SIZE]; // PD for directe mapping.
     }
-
-    ///           KERNEL_PGD 
-    ///       |0| ... || ... |511|
-    ///       /                \
-    ///  KERNEL_PDP          KERNEL_PDP_HIGH
-    ///                          \
-    ///                      
 
     ArchVmAspace::ArchVmAspace(VirtAddr base, usize size, VmasFlags flags)
         : range_(base, size),

@@ -46,7 +46,7 @@ namespace ours::mem {
     static usize const PAGE_SIZE = BIT(PAGE_SHIFT);
 
     CXX11_CONSTEXPR
-    static usize const MAX_PAGE_SHIFT = FRAME_SHIFT;
+    static usize const MAX_PAGE_SHIFT = OURS_CONFIG_MAX_FRAME_SHIFT;
 
     CXX11_CONSTEXPR
     static usize const MAX_PAGE_SIZE = BIT(MAX_PAGE_SHIFT);

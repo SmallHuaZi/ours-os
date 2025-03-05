@@ -1,0 +1,65 @@
+# Directory containing the compile_commands.json file
+compilation_database_dir: target
+# The directory where *.puml files will be generated
+output_directory: docs/diagrams
+# Set this as default for all diagrams
+generate_method_arguments: none
+# Enable generation of hyperlinks to diagram elements
+# generate_links:
+#   # Link pattern
+#   link: "https://github.com/bkryza/clang-uml/blob/{{ git.commit }}/{{ element.source.path }}#L{{ element.source.line }}"
+#   # Tooltip pattern
+#   tooltip: "{{ element.name }}"
+
+# Custom user data that can be used in Jinja templates
+# user_data:
+#   copyright:
+#     name: Bartek Kryza
+#     license:
+#       type: CC-0
+
+# The map of diagrams - keys are also diagram file names
+diagrams:
+  # main_package:
+    # Include this diagram definition from a separate file
+    # include!: uml/main_package_diagram.yml
+  PMM:
+    type: class
+    # Do not include rendered relations in the class box
+    # include_relations_also_as_members: false
+    # Generate packages from the namespaces
+    generate_packages: true
+    # 'namespace', 'module' or 'directory' to generate from projects subdirectories
+    # Limiting the number of files to include can significantly improve
+    # diagram generation times
+    package_type: namespace
+    glob:
+      - ours/kernel/main/mem/include/ours/mem/*.hpp
+      - ours/kernel/main/mem/*.cpp
+      # - r: ".*test.*\\.cpp$
+
+    using_namespace:
+      - ours::mem
+    include:
+      # Only include entities from the following namespaces
+      namespaces:
+        - ours::mem
+      access:
+        - public
+        - protected
+      # Only include elements in direct relationship with ClassA
+      elements:
+        - ours::mem::PmZone
+        - ours::mem::PmNode
+        - ours::mem::ZoneQueues
+        - ours::mem::PmFrame
+        - ours::mem::MemoryModel
+        - ours::mem::PmSection
+      context:
+        - ours::mem::PmZone
+    exclude:
+      namespaces:
+        - ours::mem::details
+        - ours::mem::pfns
+        - ours::mem::gafns
+      

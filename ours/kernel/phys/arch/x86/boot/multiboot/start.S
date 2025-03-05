@@ -28,7 +28,8 @@ MULTIBOOT_HEADER_END:
 .align 8
 FUNCTION_NOCFI(_start)
     cmp $MULTIBOOT2_BOOTLOADER_MAGIC, %eax
-    jne bad_multiboot_magic 
+    jne bad_multiboot_magic
+    mov %ebx, MP
     
     mov %ebx, %esi
     call x86_start
@@ -37,6 +38,8 @@ bad_multiboot_magic:
     ud2
     jmp bad_multiboot_magic
 
+.global MP
+MP: .long 0
 
 .global PHYS_ENTRY
 PHYS_ENTRY = _start;
