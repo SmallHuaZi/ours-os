@@ -12,7 +12,7 @@
 #ifndef ARCH_X86_MMU_FLAGS_HPP
 #define ARCH_X86_MMU_FLAGS_HPP 1
 
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 
 #define X86_MMUF_PRESENT            BIT(0)
 #define X86_MMUF_WRITABLE           BIT(1)
@@ -52,5 +52,18 @@
 #define X86_PAGE_SHIFT   12
 
 #define X86_MAX_PTES    512
+
+/* page fault error code flags */
+#define PFEX_PRESENT    BIT(0)
+#define PFEX_WRITE      BIT(1)
+#define PFEX_USER       BIT(2)
+#define PFEX_RSV    BIT(3)
+#define PFEX_I      BIT(4)
+#define PFEX_PK     BIT(5)
+#define PFEX_SGX    BIT(15)
+
+#define PFEX_MASK \
+       (PFEX_PRESENT | PFEX_WRITE | PFEX_USER | PFEX_RSV | PFEX_I |\
+        PFEX_PK | PFEX_SGX)
 
 #endif // #ifndef ARCH_X86_MMU_FLAGS_HPP

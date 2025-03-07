@@ -1,8 +1,24 @@
-Standard: Cpp20
-ColumnLimit: 150
-SortIncludes: true
+---
+# Global configuration
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 130
+
+---
+# Only cpp
+Language: Cpp
+AlignConsecutiveDeclarations: false 
+AllowShortFunctionsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
+PackConstructorInitializers: Never
+BreakBeforeConceptDeclarations: false
+BreakTemplateDeclarations: Yes
+BreakStringLiterals: false
 DerivePointerAlignment: true
-
-BreakInheritanceList: BILS_BeforeColon
+BraceWrapping:
+    AfterEnum: true
+    AfterCaseLabel: true
+BreakInheritanceList: BeforeColon
+AlignAfterOpenBracket: Align
+NamespaceIndentation: All

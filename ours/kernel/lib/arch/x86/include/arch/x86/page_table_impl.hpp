@@ -62,6 +62,8 @@ namespace arch::x86 {
 
         virtual auto harvest_accessed(VirtAddr va, usize n, HarvestControl control) -> Status = 0;
 
+        virtual auto alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages, usize level) -> Status;
+
         /// Calculate how many frames are required to additional cost.
         // virtual auto calc_mapping_overhead(VirtAddr va, PhysAddr pa, usize n) -> usize;
 

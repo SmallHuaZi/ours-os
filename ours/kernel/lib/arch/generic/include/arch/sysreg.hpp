@@ -25,7 +25,13 @@ namespace arch {
           public ustl::MakeBitFieldsT<typename SysRegTraits<RegTag>::FieldList>
     {
         typedef RegTag Self;
+        typedef ustl::MakeBitFieldsT<typename SysRegTraits<RegTag>::FieldList>  Base;
+        using Base::Base;
+
+        USTL_CONSTEXPR
         static auto read() -> Self;
+
+        USTL_CONSTEXPR
         static auto write(usize value) -> void;
     };
 

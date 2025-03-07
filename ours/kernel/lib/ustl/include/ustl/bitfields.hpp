@@ -15,15 +15,18 @@
 #include <ustl/bit.hpp>
 #include <ustl/config.hpp>
 #include <ustl/limits.hpp>
+#include <ustl/initializer_list.hpp>
 #include <ustl/util/fold.hpp>
 #include <ustl/util/find_if.hpp>
 #include <ustl/util/types_list.hpp>
 #include <ustl/util/fixed_string.hpp>
 #include <ustl/util/enum_sequence.hpp>
 #include <ustl/util/pack_options.hpp>
+#include <ustl/util/minmax.hpp>
 #include <ustl/traits/integral.hpp>
 #include <ustl/traits/is_convertible.hpp>
 #include <ustl/traits/is_same.hpp>
+#include <ustl/algorithms/copy.hpp>
 
 /// Since C++17
 ///    1) CTAD.
@@ -61,6 +64,11 @@ namespace bitfields {
     /// HasDuplicates
     template <typename FieldList>
     struct HasDuplicates;
+
+    template <>
+    struct HasDuplicates<TypeList<>>
+        : traits::FalseType
+    {};
 
     template <typename HeadField>
     struct HasDuplicates<TypeList<HeadField>>
@@ -135,8 +143,12 @@ namespace bitfields {
         USTL_CONSTEXPR
         static usize const BITS = ustl::NumericLimits<usize>::DIGITS;
 
+        typedef ustl::traits::ConditionalT<sizeof...(Fields) == 0,
+            traits::IntConstant<1>, 
+            TotalOccupiedBits<FieldList>>   GetOccupiedBits;
+
         USTL_CONSTEXPR
-        static usize const VALUE = (TotalOccupiedBits<FieldList>() + BITS - 1) / BITS; // align up
+        static usize const VALUE = (GetOccupiedBits() + BITS - 1) / BITS; // align up
     };
 
     /// FindBitPos
@@ -275,7 +287,11 @@ namespace bitfields {
         USTL_CONSTEXPR 
         BitFields() = default;
     
-        template<usize Id> // c++17 auto template parameter
+        USTL_CONSTEXPR 
+        BitFields(ustl::InitializerList<usize> val)
+        {  ustl::algorithms::copy_n(val.begin(), NUM_USIZE, values);  }
+    
+        template<usize Id>
         USTL_FORCEINLINE USTL_CONSTEXPR 
         auto set(ValueTypeOf<Id> const &value) USTL_NOEXCEPT -> void
         {
@@ -286,8 +302,12 @@ namespace bitfields {
     
         template<usize Id> // c++17 auto template parameter
         USTL_FORCEINLINE USTL_CONSTEXPR 
-        auto at() const USTL_NOEXCEPT -> ValueTypeOf<Id> &
-        {}
+        auto get() const USTL_NOEXCEPT -> ValueTypeOf<Id>
+        {
+            USTL_CONSTEXPR 
+            usize const idx = FindUsizeIndex<FieldList, Id>();
+            return (values[idx] & GetFieldMask<FieldList, Id>()) >> GetFieldShift<FieldList, Id>();
+        }
     
         template <typename Enum>
         USTL_FORCEINLINE USTL_CONSTEXPR 

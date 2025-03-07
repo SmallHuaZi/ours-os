@@ -1,5 +1,6 @@
 #include <ours/arch/vm_aspace.hpp>
 #include <ours/mem/physmap.hpp>
+#include <ours/mem/vm_aspace.hpp>
 
 #include <ours/init.hpp>
 
@@ -21,21 +22,25 @@ namespace ours::mem {
     ///
     /// The layout above is kernel address space by default.
     ///
-    ///        (1GB)[0]--KERNEL_PDP[0]--KERNEL_PHYSMAP_PD[0..511]
+    ///       (1GB) [0]--KERNEL_PDP[0]--KERNEL_PHYSMAP_PD[0..511]
     ///              |
     ///              | 
     /// KERNEL_PGD--[..]-(NULL)
     ///              |                [0]---KERNEL_PHYSMAP_PD[0][0..511]
     ///              |                 |
-    ///     (512GB)[511]-KERNEL_PDP_HIGH---ERNEL_PHYSMAP_PD[..][0..511]
+    ///    (512GB) [511]-KERNEL_PDP_HIGH---ERNEL_PHYSMAP_PD[..][0..511]
     ///                                |
     ///                               [31]---KERNEL_PHYSMAP_PD[31][0..511]
     ///
     NO_MANGLE {
-        alignas(PAGE_SIZE) arch::Pte KERNEL_PGD[512];   // PML4
-        alignas(PAGE_SIZE) arch::Pte KERNEL_PDP[512];   // PDP for the first 512GB
-        alignas(PAGE_SIZE) arch::Pte KERNEL_PDP_HIGH[512]; // High PDP for the kernel address space
-        alignas(PAGE_SIZE) arch::Pte KERNEL_PHYSMAP_PD[PhysMap::SIZE / MAX_PAGE_SIZE]; // PD for directe mapping.
+        // PML4
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PGD[512];
+        // PDP for the first 1GiB
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PDP[512];
+        // High PDP for the kernel address space and the core portion of final address space.
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PDP_HIGH[512];
+        // PD for directe mapping.
+        alignas(PAGE_SIZE) arch::Pte KERNEL_PHYSMAP_PD[PhysMap::SIZE / MAX_PAGE_SIZE];
     }
 
     ArchVmAspace::ArchVmAspace(VirtAddr base, usize size, VmasFlags flags)
@@ -57,6 +62,10 @@ namespace ours::mem {
             if (status != Status::Ok) {
                 return status;
             }
+            // We should create an alias of kernel address space to avoid unnecessary switches.
+            // And it could help us to call the routine passed by the driver of the user space correctly.
+            auto &kpt = VmAspace::kernel_aspace()->arch_aspace().page_table_;
+            page_table_.alias_to(kpt, PhysMap::VIRT_BASE, PhysMap::SIZE / PAGE_SIZE, 4);
         }
 
         return Status::Ok;

@@ -13,7 +13,7 @@
 #define OURS_MEM_MEMORY_MODEL_HPP 1
 
 #include <ours/status.hpp>
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 #include <ours/mem/types.hpp>
 
 #include <ustl/bitfields.hpp>

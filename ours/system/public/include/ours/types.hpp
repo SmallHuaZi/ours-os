@@ -19,28 +19,30 @@ namespace ours {
     typedef ::ustl::i16       i16;
     typedef ::ustl::i32       i32;
     typedef ::ustl::i64       i64;
+    typedef ::ustl::usize     usize;
 
     typedef ::ustl::u8        u8;
     typedef ::ustl::u16       u16;
     typedef ::ustl::u32       u32;
     typedef ::ustl::u64       u64;
+    typedef ::ustl::isize     isize;
 
-#if OURS_CONFIG_TARGET_64BIT
-    typedef ::ustl::u64     usize;
-    typedef ::ustl::i64     isize;
+#ifdef OURS_CONFIG_TARGET_64BIT
+    typedef ::ustl::u64     VirtAddr;
+    typedef ::ustl::u64     PhysAddr;
 #else
-    typedef ::ustl::u32     usize;
-    typedef ::ustl::i32     isize;
+    typedef ::ustl::u32     VirtAddr;
+    typedef ::ustl::u32     PhysAddr;
 #endif
 
-    typedef usize   CpuId;
-    typedef usize   VirtAddr;
-    typedef usize   PhysAddr;
+    typedef u32   CpuId;
+    typedef u32   HIrqNum;
+    typedef u32   VIrqNum;
 
     /// For type check.
-    struct Handle   { usize _0; };
-    struct Signal   { usize _0; };
-    struct KoId     { usize _0; };
+    struct Handle   { u32 _0; };
+    struct Signal   { u32 _0; };
+    struct KoId     { u32 _0; };
 
 } // namespace ours
 

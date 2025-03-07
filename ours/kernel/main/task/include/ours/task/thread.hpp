@@ -12,10 +12,10 @@
 #ifndef OURS_TASK_THREAD_HPP
 #define OURS_TASK_THREAD_HPP 1
 
+#include <ours/arch/thread.hpp>
 #include <ours/cpu.hpp>
 #include <ours/cpu_mask.hpp>
 #include <ours/task/types.hpp>
-#include <ours/arch/thread.hpp>
 
 #include <ours/mem/types.hpp>
 #include <ours/sched/sched_object.hpp>
@@ -23,8 +23,9 @@
 /// ours::object::ThreadDispatcher (PS: It is namely user-thread)
 #include <ours/object/thread_dispatcher.hpp>
 
-#include <ustl/rc.hpp>
 #include <ustl/collections/intrusive/list.hpp>
+#include <ustl/rc.hpp>
+
 
 namespace ours::task {
     class Process;
@@ -35,13 +36,11 @@ namespace ours::task {
         MemoryAllocationDisabled,
     };
 
-    class Thread
-        : public sched::SchedObject
-    {
-        typedef Thread      Self;
+    class Thread : public sched::SchedObject {
+        typedef Thread Self;
 
         SCHED_OBJECT_INTERFACE;
-    public:
+      public:
         /// Creates a thread with `name` that will execute `entry` at `priority`. |arg|
         /// will be passed to `entry` when executed, the return value of `entry` will be
         /// passed to Exit().
@@ -54,8 +53,8 @@ namespace ours::task {
 
         Thread();
 
-        template <typename Functor, typename...Args>
-        Thread(Functor const &functor, Args&&... args);
+        template <typename Functor, typename... Args>
+        Thread(Functor const &functor, Args &&...args);
 
         /// The followings is a group of getter.
         auto id() -> int;
@@ -64,43 +63,44 @@ namespace ours::task {
 
         auto aspace() -> mem::VmAspace *;
 
-        /// Core method family. 
+        /// Core method family.
         auto detach() -> void;
 
         auto kill() -> void;
 
-        auto resume() -> void; 
+        auto resume() -> void;
 
         auto suspend() -> void;
 
         class Current;
-    private:
-        CpuId  this_cpu_;
-        CpuMask  cpu_mask_;
-        ArchThread  arch_thread_;
-        ustl::Rc<mem::VmAspace>  aspace_;
-        ustl::Rc<object::ThreadDispatcher>  user_thread_;
-        ustl::collections::intrusive::ListMemberHook<>  managed_hook_;
-        ustl::collections::intrusive::ListMemberHook<>  proclist_hook_;   // Used by process
+      private:
+        CpuId this_cpu_;
+        CpuMask cpu_mask_;
+        ArchThread arch_thread_;
+        ustl::Rc<mem::VmAspace> aspace_;
+        ustl::Rc<object::ThreadDispatcher> user_thread_;
+        ustl::collections::intrusive::ListMemberHook<> managed_hook_;
+        ustl::collections::intrusive::ListMemberHook<> proclist_hook_; // Used by process
 
-    public:
+      public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedListOptions);
         USTL_DECLARE_HOOK_OPTION(Self, proclist_hook_, ProcListOptions);
     };
     USTL_DECLARE_LIST(Thread, ThreadProcList, Thread::ProcListOptions);
     USTL_DECLARE_LIST(Thread, ThreadManagedList, Thread::ManagedListOptions);
 
-    class Thread::Current
-    {
-        typedef Thread::Current     Self;
-    public:
-        static auto aspace() -> mem::VmAspace *
-        { return 0; }
+    class Thread::Current {
+        typedef Thread::Current Self;
 
-        static auto exit(isize retcode) -> void
-        {}
+      public:
+        static auto aspace() -> mem::VmAspace * {
+            return 0;
+        }
+
+        static auto exit(isize retcode) -> void {
+        }
     };
-    
+
 } // namespace ours::task
 
 #endif // #ifndef OURS_TASK_THREAD_HPP

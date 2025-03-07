@@ -26,16 +26,18 @@ struct OPTION_NAME                                                              
 };
 
 #define USTL_CONSTANT_OPTION(OPTION_NAME, TYPE, CONSTANT_NAME)   \
-template<TYPE VAL>                                                          \
-struct OPTION_NAME                                                          \
-{                                                                           \
-   static const TYPE VALUE = VAL;                                           \
-                                                                            \
-   template<typename Base>                                                  \
-   struct Pack: Base                                                        \
-   {                                                                        \
-      static const TYPE CONSTANT_NAME = VAL;                                \
-   };                                                                       \
+template<TYPE VAL>                                               \
+struct OPTION_NAME                                               \
+{                                                                \
+    USTL_CONSTEXPR                                               \
+    static const TYPE VALUE = VAL;                               \
+                                                                 \
+    template<typename Base>                                      \
+    struct Pack: Base                                            \
+    {                                                            \
+        USTL_CONSTEXPR                                           \
+        static const TYPE CONSTANT_NAME = VAL;                   \
+    };                                                           \
 };
 
 namespace ustl {

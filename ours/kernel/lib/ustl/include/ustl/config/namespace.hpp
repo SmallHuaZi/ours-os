@@ -12,7 +12,7 @@
 #ifndef USTL_CONFIG_NAMESPACE_HPP
 #define USTL_CONFIG_NAMESPACE_HPP 1
 
-#include <ustl/config/marco_abi.hpp>
+#include <ustl/config/macro_abi.hpp>
 
 namespace ustl {
     namespace fn {} // namespace ustl::function

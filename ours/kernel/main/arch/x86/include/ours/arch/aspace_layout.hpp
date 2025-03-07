@@ -12,7 +12,7 @@
 #ifndef OURS_ARCH_ASPACE_LAYOUT_HPP
 #define OURS_ARCH_ASPACE_LAYOUT_HPP 1
 
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 
 #define KERNEL_ASPACE_BASE  0xffffff8000000000UL
 #define KERNEL_ASPACE_SIZE  GB(512)

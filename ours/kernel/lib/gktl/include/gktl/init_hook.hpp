@@ -19,12 +19,12 @@
     LINK_SECTION(".kernel.init_hook." #PRIORITY)
 
 namespace gktl {
-    enum class InitLevel {
-        ArchEarly,
-        PlatformEarly,
-        VmmInitialized,
-        Arch,
-        Platform,
+    enum InitLevel {
+        ArchEarly = 0x1000,
+        PlatformEarly = 0x2000,
+        VmmInitialized = 0x3000,
+        Arch = 0x4000,
+        Platform = 0x5000,
     };
 
     struct InitHook

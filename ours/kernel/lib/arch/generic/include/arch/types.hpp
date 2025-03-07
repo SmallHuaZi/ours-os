@@ -14,7 +14,7 @@
 
 #include <ours/assert.hpp>
 #include <ours/status.hpp>
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/memory_model.hpp>
 #include <ours/mem/arch_vm_aspace_constraints.hpp>
@@ -22,7 +22,6 @@
 namespace arch {
     /// The follwoing types which was defined in subnamespaces of `ours`
     /// is immigrating into `arch` namespace grudually.
-
     using ours::u8;
     using ours::u16;
     using ours::u32;
@@ -39,6 +38,8 @@ namespace arch {
     using ours::mem::VmasFlags;
     using ours::mem::MmuFlags;
     using ours::mem::Altmap;
+    using ours::HIrqNum;
+    using ours::VIrqNum;
     typedef ours::usize   Pte;
 
 } // namespace arch

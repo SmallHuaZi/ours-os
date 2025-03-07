@@ -9,8 +9,8 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 
-#ifndef OURS_MARCO_ABI_HPP
-#define OURS_MARCO_ABI_HPP 1
+#ifndef OURS_MACRO_ABI_HPP
+#define OURS_MACRO_ABI_HPP 1
 
 #define __OURS_MPL_CONTACT(X, Y) X ## Y
 #define OURS_MPL_CONTACT(X, Y) __OURS_MPL_CONTACT(X, Y)
@@ -28,7 +28,7 @@
 #define TB(x) GB(x * ULL(1024))
 #define PB(x) TB(x * ULL(1024))
 
-#define BIT(POS)    (1ULL << (POS))
+#define BIT(POS)    (ULL(1) << (POS))
 
 #define BIT_WIDTH(N)
 
@@ -36,4 +36,4 @@
 #define BIT_RANGE(START_BIT, END_BIT)   \
     (((ULL(1) << ((END_BIT) - (START_BIT) + ULL(1))) - ULL(1)) << (START_BIT))
 
-#endif // #ifndef OURS_MARCO_ABI_HPP
+#endif // #ifndef OURS_MACRO_ABI_HPP

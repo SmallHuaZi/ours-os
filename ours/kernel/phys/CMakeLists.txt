@@ -36,6 +36,7 @@ PRIVATE
     ours::kernel::phys::lib::bootmem
     ours::kernel::lib::libc
     ours::kernel::lib::gktl::goi
+    ours::kernel::lib::omi
     "libgcc.a"
 )
 target_link_options(ours_kernel_phys

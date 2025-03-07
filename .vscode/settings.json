@@ -7,4 +7,5 @@
         "MIMode": "lldb"
     },
     "cmake.allowCommentsInPresetsFile": true,
+    "editor.defaultFormatter": "xaver.clang-format"
 }

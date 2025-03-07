@@ -1,4 +1,5 @@
 add_subdirectory(arch)
+add_subdirectory(irq)
 add_subdirectory(mem)
 add_subdirectory(task)
 add_subdirectory(sched)

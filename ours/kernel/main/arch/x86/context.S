@@ -38,7 +38,7 @@ FUNCTION(x86_switch_context_asm)
 FUNCTION_END(x86_switch_context_asm)
 
 
-/// cpp-signature: extern "C" void x86_switch_to_user_mode(Thread *prev, Thread *next)
+/// cpp-signature: NO_MANGLE auto x86_switch_to_user_mode(arch::IrqFrame *t) -> void
 /// Restoring user's status and changing privileges.
 FUNCTION(x86_switch_to_user_mode)
     // Switching back the address space of user(CR3)

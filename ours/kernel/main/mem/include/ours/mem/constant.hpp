@@ -14,7 +14,7 @@
 
 #include <ours/types.hpp>
 #include <ours/config.hpp>
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 
 #include <ours/mem/cfg.hpp>
 

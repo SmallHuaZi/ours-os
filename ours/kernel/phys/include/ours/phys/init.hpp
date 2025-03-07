@@ -17,7 +17,7 @@
 
 #include <ours/phys/aspace.hpp>
 
-#include <omi/omi_header.hpp>
+#include <omi/header.hpp>
 #include <bootmem/bootmem.hpp>
 
 namespace ours::phys {

@@ -11,7 +11,7 @@ INTERFACE
 
 add_library(omi INTERFACE)
 add_library(ours::kernel::lib::omi ALIAS omi)
-target_link_libraries(lz4
+target_link_libraries(omi
 INTERFACE
     omi_headers 
 )

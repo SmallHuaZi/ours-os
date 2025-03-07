@@ -39,9 +39,9 @@
         ],
     },
     "settings": {
-
+        "editor.defaultFormatter": "xaver.clang-format",
         "editor.rulers": [
-            140
+            130
         ],
         "editor.tokenColorCustomizations": {
             "textMateRules": [

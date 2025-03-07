@@ -18,9 +18,9 @@ INTERFACE
     "smp.cpp"
     "init.cpp"
     "thread.cpp"
-    "vm_aspace.cpp"
 )
 
+add_subdirectory("mem")
 add_subdirectory("platform")
 
 message("Leave kerenl/arch/x86")

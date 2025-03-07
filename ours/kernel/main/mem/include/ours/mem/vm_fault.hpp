@@ -12,12 +12,15 @@
 #ifndef OURS_MEM_VM_FAULT_HPP
 #define OURS_MEM_VM_FAULT_HPP 1
 
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 #include <ustl/util/enum_bits.hpp>
 
 namespace ours::mem {
     enum class VmfCause {
+        None,
         Write = BIT(0),
+        NotPresent = BIT(0),
+        User = BIT(0),
     };
     USTL_ENABLE_ENUM_BITS(VmfCause);
 

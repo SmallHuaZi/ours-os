@@ -19,7 +19,7 @@
 #include <ours/assert.hpp>
 #include <ours/cpu.hpp>
 #include <ours/init.hpp>
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 
 #include <ustl/result.hpp>
 #include <ustl/views/span.hpp>

@@ -3,7 +3,7 @@
 #include <ours/arch/aspace_layout.hpp>
 
 #include <ours/asm.hpp>
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 #include <ours/mem/cfg.hpp>
 
 #include <arch/x86/registers.hpp>

@@ -13,7 +13,7 @@
 #define OURS_MEM_FLAGS_HPP
 
 #include <ours/mem/types.hpp>
-#include <ours/marco_abi.hpp>
+#include <ours/macro_abi.hpp>
 
 #include <ustl/util/enum_bits.hpp>
 

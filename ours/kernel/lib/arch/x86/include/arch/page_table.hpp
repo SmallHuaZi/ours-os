@@ -64,6 +64,10 @@ namespace x86 {
         auto harvest_accessed(VirtAddr va, usize n, HarvestControl action) -> Status
         {  return pimpl_->harvest_accessed(va, n, action);  }
 
+        FORCE_INLINE
+        auto alias_to(X86PageTable const &other, VirtAddr base, usize nr_pages, usize level) -> Status
+        {  return pimpl_->alias_to(other, base, nr_pages, level);  }
+
     private:
         using Mmu = x86::X86PageTableMmu<Options>;
         using Ept = x86::X86PageTableEpt<Options>;
@@ -121,7 +125,6 @@ namespace x86 {
     ///     2) \c `PageManager<>` - Physical page allocation strategy
     ///     3) \c `TlbInvalidator<>` - TLB shootdown handling
     ///     4) \c `PagingConfig<>` - Paging config 
-    ///     4) \c `MaxNumTlbRequest<>` - Paging config 
     ///
     /// These parameters allow customization of:
     ///   - Synchronization primitives

@@ -17,14 +17,16 @@
 
 #define X86_IMPL_SYSREG(TAG, NAME)\
     template <>\
+    USTL_FORCEINLINE USTL_CONSTEXPR \
     auto SysReg<TAG>::write(usize value) -> void\
     { asm volatile("mov %0, %%" NAME : : "r"(static_cast<usize>(value))); }      \
     template <>\
+    USTL_FORCEINLINE USTL_CONSTEXPR \
     auto SysReg<TAG>::read() -> Self \
     {\
         usize value;\
         asm volatile("mov %%" NAME ", %0" : "=r"(value));\
-        return static_cast<Self>(value);\
+        return {{value}};\
     }
 
 namespace arch {
@@ -51,25 +53,20 @@ namespace arch {
         };
 
         typedef ustl::TypeList<
-            ustl::BitField<X87, 1, usize, "x87">,
-            ustl::BitField<Sse, 1, usize, "sse">,
-            ustl::BitField<Avx, 1, usize, "avx">,
-            ustl::BitField<BndReg, 1, usize, "bndreg">,
-            ustl::BitField<BndCsr, 1, usize, "bndcsr">,
-            ustl::BitField<OpMask, 1, usize, "opmask">,
-            ustl::BitField<ZmmHi256, 1, usize, "zmmhi256">,
-            ustl::BitField<Hi16Zmm, 1, usize, "hi16zmm">,
-            ustl::BitField<P0, 1, usize, "p0">,
-            ustl::BitField<Pkru, 1, usize, "pkru">
+            ustl::BitField<ustl::FieldId<X87>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<Sse>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<Avx>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<BndReg>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<BndCsr>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<OpMask>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<ZmmHi256>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<Hi16Zmm>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<P0>, ustl::FieldName<"x87">>,
+            ustl::BitField<ustl::FieldId<Pkru>, ustl::FieldName<"x87">>
         > FieldList;
     };
 
     struct Cr0: public SysReg<Cr0> {};
-    auto f()
-    {
-        auto cr0 = Cr0::read();
-        cr0.set<Cr0::Avx>(0);
-    }
     X86_IMPL_SYSREG(Cr0, "cr0");
 
     template <>
@@ -96,36 +93,53 @@ namespace arch {
             OsxSave,
         };
         typedef ustl::TypeList<
-            ustl::BitField<0, 1, usize, "vme">,
-            ustl::BitField<1, 1, usize, "pvi">,
-            ustl::BitField<2, 1, usize, "tsd">,
-            ustl::BitField<3, 1, usize, "de">,
-            ustl::BitField<4, 1, usize, "pse">,
-            ustl::BitField<5, 1, usize, "pae">,
-            ustl::BitField<6, 1, usize, "mce">,
-            ustl::BitField<7, 1, usize, "pge">,
-            ustl::BitField<8, 1, usize, "pce">,
-            ustl::BitField<9, 1, usize, "osfxsr">,
-            ustl::BitField<10, 1, usize, "osmmexcpt">,
-            ustl::BitField<11, 1, usize, "umip">,
-            ustl::BitField<12, 1, usize, "la57">,
-            ustl::BitField<13, 1, usize, "vmxe">,
-            ustl::BitField<14, 1, usize, "smxe">,
-            ustl::BitField<16, 1, usize, "fsgsbase">,
-            ustl::BitField<17, 1, usize, "pcide">,
-            ustl::BitField<18, 1, usize, "osxsave">
+            ustl::BitField<ustl::FieldId<Vme>, ustl::FieldName<"vme">>,
+            ustl::BitField<ustl::FieldId<Pvi>, ustl::FieldName<"pvi">>,
+            ustl::BitField<ustl::FieldId<Tsd>, ustl::FieldName<"tsd">>,
+            ustl::BitField<ustl::FieldId<De>, ustl::FieldName<"de">>,
+            ustl::BitField<ustl::FieldId<Pse>, ustl::FieldName<"pse">>,
+            ustl::BitField<ustl::FieldId<Pae>, ustl::FieldName<"pae">>,
+            ustl::BitField<ustl::FieldId<Mce>, ustl::FieldName<"mce">>,
+            ustl::BitField<ustl::FieldId<Pge>, ustl::FieldName<"pge">>,
+            ustl::BitField<ustl::FieldId<Pce>, ustl::FieldName<"pce">>,
+            ustl::BitField<ustl::FieldId<OsFxsr>, ustl::FieldName<"osfxsr">>,
+            ustl::BitField<ustl::FieldId<OsMmexcpt>, ustl::FieldName<"osmmexcpt">>,
+            ustl::BitField<ustl::FieldId<Umip>, ustl::FieldName<"umip">>,
+            ustl::BitField<ustl::FieldId<La57>, ustl::FieldName<"la57">>,
+            ustl::BitField<ustl::FieldId<Vmxe>, ustl::FieldName<"vmxe">>,
+            ustl::BitField<ustl::FieldId<Smxe>, ustl::FieldName<"smxe">>,
+            ustl::BitField<ustl::FieldId<FsGsBase>, ustl::FieldName<"FsGsBase">>,
+            ustl::BitField<ustl::FieldId<Pcide>, ustl::FieldName<"Pcide">>,
+            ustl::BitField<ustl::FieldId<OsxSave>, ustl::FieldName<"osxsave">>
         > FieldList;
     };
-
     struct Cr1: public SysReg<Cr1> {};
     X86_IMPL_SYSREG(Cr1, "cr1");
 
+    template <>
+    struct SysRegTraits<Cr2>
+    {  
+        enum { Address };
+        typedef ustl::TypeList<
+            // TODO(SmallHuaZi) Modifies the total bits to 
+            ustl::BitField<
+                ustl::FieldId<Address>, 
+                ustl::FieldBits<ustl::NumericLimits<VirtAddr>::DIGITS - 1>
+            >
+        > FieldList;
+    };
     struct Cr2: public SysReg<Cr2> {};
     X86_IMPL_SYSREG(Cr2, "cr2");
 
+    template <>
+    struct SysRegTraits<Cr3>
+    {  typedef ustl::TypeList<>    FieldList;  };
     struct Cr3: public SysReg<Cr3> {};
     X86_IMPL_SYSREG(Cr3, "cr3");
 
+    template <>
+    struct SysRegTraits<Cr4>
+    {  typedef ustl::TypeList<>    FieldList;  };
     struct Cr4: public SysReg<Cr4> {};
     X86_IMPL_SYSREG(Cr4, "cr4");
 
