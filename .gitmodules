@@ -1,3 +1,6 @@
 [submodule "third_party/googletest"]
 	path = third_party/googletest
 	url = git@github.com:google/googletest.git
+[submodule "third_party/lz4"]
+	path = third_party/lz4
+	url = git@github.com:lz4/lz4.git
