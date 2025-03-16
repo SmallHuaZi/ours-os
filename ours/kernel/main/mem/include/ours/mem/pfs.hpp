@@ -13,7 +13,7 @@
 #define OURS_MEM_PF_FLAGS_HPP 1
 
 #include <ours/mem/types.hpp>
-#include <ours/mem/constant.hpp>
+#include <ours/mem/cfg.hpp>
 #include <ours/macro_abi.hpp>
 
 #include <ustl/bit.hpp>

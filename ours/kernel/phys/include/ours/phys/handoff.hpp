@@ -8,42 +8,45 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_PHYS_HANDOFF_HPP
 #define OURS_PHYS_HANDOFF_HPP 1
 
 #include <ours/assert.hpp>
-#include <bootmem/bootmem.hpp>
+#include <ours/mem/cfg.hpp>
+#include <ours/mem/node_mask.hpp>
+#include <ours/phys/arch_handoff.hpp>
 
+#include <bootmem/bootmem.hpp>
 #include <ustl/views/span.hpp>
 
 namespace ours::phys {
-    struct MemoryHandoff
-    {
-        PhysAddr const bootmem_phys_base;
-        usize const bootmem_phys_size;
-
-        /// During the transition from `phys` to `main`, employing polymorphism is highly inadvisable. 
-        /// This would forcibly require the `main` module's page tables to maintain stub entries for 
-        /// the physical memory regions occupied by `phys`. Although perilous, this approach remains 
-        /// feasible.
-        ///
-        /// It serve as the heart of `EarlyMem`
-        ai_virt mutable bootmem::IBootMem *bootmem;
+    struct MemoryHandoff {
+        PhysAddr bootmem_phys_base;
+        PhysAddr bootmem_phys_size;
+        PhysAddr bootmem;
     };
 
-    /// 
-    struct Handoff
-    {
+    ///
+    struct Handoff {
         CXX11_CONSTEXPR
         static u32 const MAGIC = 0xA1B2C3D4;
 
-        auto verify() const -> void
-        {  DEBUG_ASSERT(magic == MAGIC, "Invalid handoff."); }
+        FORCE_INLINE
+        auto verify() const -> void {
+            DEBUG_ASSERT(magic == MAGIC, "Invalid handoff.");
+        }
 
         u32 const magic = MAGIC;
+        PhysAddr kernel_load_addr;
+        PhysAddr efi_system_table;
+        PhysAddr acpi_rsdp;
         MemoryHandoff mem;
+        ustl::views::Span<CpuTopologyNode> cpu_topology;
+
+        // Optional and only to provide unusal quirks from a part of architectures, so put it here.
+        ArchHandOff arch;
     };
+    static_assert(sizeof(Handoff) <= PAGE_SIZE, "the size of Handoff must be lesser than 4096 for the zero page");
 
 } // namespace ours::phys
 

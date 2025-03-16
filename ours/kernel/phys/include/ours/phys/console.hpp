@@ -8,34 +8,31 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_PHYS_CONSOLE_HPP
 #define OURS_PHYS_CONSOLE_HPP 1
 
-#include <ours/types.hpp>
 #include <ours/config.hpp>
+#include <ours/types.hpp>
+
 #include <ustl/collections/intrusive/list_hook.hpp>
 
-#define REGISTER_CONSOLE(TYPE, NAME) \
-    static TYPE NAME{};\
-    LINK_SECTION(".rodata.console")\
-    [[gnu::used]] \
-    Console *__##NAME = &NAME;
+#define REGISTER_CONSOLE(TYPE, NAME, ...) \
+    [[gnu::init_priority(1000)]] \
+    static TYPE NAME{__VA_ARGS__};
 
 namespace ours::phys {
-    struct Console
-    {
-        Console()
-            : hook_()
-        {}
+    struct Console {
+        Console(char const *name);
+        virtual ~Console() = default;
 
         virtual auto write(char const *s, u32 n) -> void = 0;
         virtual auto read(char *s, u32 n) -> u32 = 0;
 
-        virtual auto activate() -> void;
-        virtual auto deactivate() -> void;
+        virtual auto activate() -> void {}
+        virtual auto deactivate() -> void {}
 
-        ustl::collections::intrusive::ListMemberHook<>  hook_;
+        char const *name_;
+        ustl::collections::intrusive::ListMemberHook<> hook_;
         USTL_DECLARE_HOOK_OPTION(Console, hook_, ManagedOptions);
     };
 } // namespace ours::phys

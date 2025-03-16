@@ -16,6 +16,8 @@
 #include <ustl/views/string_view.hpp>
 #include <ustl/fmt/make_format_args.hpp>
 
+#define OX_PANIC(...)   ours::panic(__VA_ARGS__)
+
 namespace ours {
     NO_RETURN
     auto panic() -> void;

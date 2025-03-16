@@ -14,7 +14,7 @@
 
 #include <ours/mem/types.hpp>
 #include <ours/mem/pfs.hpp>
-#include <ours/mem/constant.hpp>
+#include <ours/mem/cfg.hpp>
 
 #include <ustl/option.hpp>
 #include <ustl/sync/atomic.hpp>

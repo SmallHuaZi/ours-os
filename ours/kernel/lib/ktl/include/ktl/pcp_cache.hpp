@@ -25,7 +25,7 @@ namespace ktl {
     template <typename Config>
     struct CacheConfigTraits
     {
-        constexpr static size_t MAX_CPU_NUM = Config::MAX_CPU_NUM;
+        constexpr static size_t MaxCpuNum = Config::MaxCpuNum;
 
         constexpr static size_t DEFAULT_CACHE_CAPACITY = Config::DEFAULT_CACHE_CAPACITY;
 
@@ -91,18 +91,18 @@ namespace ktl {
 
         auto take_object() -> CachedObject *
         {
-            size_t const cpuid = CurrentCpu::current_cpu();
-            if (caches_[cpuid].has_value()) {
-                return caches_[cpuid]->take_object();
+            size_t const CpuNum = CurrentCpu::current_cpu();
+            if (caches_[CpuNum].has_value()) {
+                return caches_[CpuNum]->take_object();
             }
             return 0;
         }
 
         auto return_object(CachedObject *object) -> void
         {
-            size_t const cpuid = CurrentCpu::current_cpu();
-            if (caches_[cpuid].has_value()) {
-                return caches_[cpuid]->return_object(object);
+            size_t const CpuNum = CurrentCpu::current_cpu();
+            if (caches_[CpuNum].has_value()) {
+                return caches_[CpuNum]->return_object(object);
             }
         }
 
@@ -110,20 +110,20 @@ namespace ktl {
         {
         }
 
-        ustl::collections::Array<ustl::Option<ScpCache>, ConfigTraits::MAX_CPU_NUM>  caches_;
+        ustl::collections::Array<ustl::Option<ScpCache>, ConfigTraits::MaxCpuNum>  caches_;
     };
 
     struct DefaultCacheConfig
     {
-        constexpr static size_t MAX_CPU_NUM = ours::MAX_CPU_NUM;
-        constexpr static size_t DEFAULT_CACHE_CAPACITY = 32;
+        constexpr static size_t MaxCpuNum = MAX_CPU_NUM;
+        constexpr static size_t DefaultCacheCapacity = 32;
 
         typedef ustl::sync::Mutex   Mutex;
 
         struct CurrentCpu
         {
             static auto current_cpu() -> size_t
-            {  return ours::CpuLocal::cpuid();  }
+            {  return ours::CpuLocal::cpu_num();  }
         };
     };
 } // namespace ktl

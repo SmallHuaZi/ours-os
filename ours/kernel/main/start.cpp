@@ -3,6 +3,7 @@
 #include <ours/cpu_local.hpp>
 #include <ours/task/thread.hpp>
 #include <ours/mem/init.hpp>
+#include <ours/irq/init.hpp>
 #include <ours/phys/handoff.hpp>
 
 #include <logz4/log.hpp>
@@ -19,7 +20,7 @@ namespace ours {
 
         init_platform();
 
-        // reclaim_early_memory(mem::RemTag::All);
+        // reclaim_init_area(mem::RemTag::All);
 
         // Load userboot 
     }
@@ -37,7 +38,7 @@ namespace ours {
         // Set up early memory manager.
         mem::init_early_pmm(PHYS_HANDOFF->mem);
 
-        CpuLocal::init(BOOT_CPU_ID);
+        CpuLocal::init(0);
 
         init_arch_early();
         set_init_level(gktl::InitLevel::ArchEarly);
@@ -47,6 +48,9 @@ namespace ours {
 
         mem::init_vmm();
         set_init_level(gktl::InitLevel::VmmInitialized);
+
+        irq::init_irq();
+        set_init_level(gktl::InitLevel::IrqInitialized);
 
         // Start from here, memory allocator is alive.
         // First thing we should do is to initialize our system logger.
@@ -60,9 +64,9 @@ namespace ours {
     }
 
     NO_MANGLE
-    auto start_nonboot_cpu(CpuId cpuid) -> Status
+    auto start_nonboot_cpu(CpuNum CpuNum) -> Status
     {
-        CpuLocal::init(cpuid);
+        CpuLocal::init(CpuNum);
         return Status::Ok;
     }
 }

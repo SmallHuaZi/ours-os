@@ -15,12 +15,12 @@
 
 namespace ustl::sync {
     class Mutex {
-    public:
-        auto lock() -> void;
-        auto unlock() -> void;
+      public:
+        auto lock() -> void {}
+        auto unlock() -> void {}
 
-        auto try_lock() -> bool;
-        auto try_unlock() -> bool;
+        auto try_lock() -> bool { return false; }
+        auto try_unlock() -> bool { return false; }
     };
 
 } // namespace ustl::sync

@@ -15,13 +15,13 @@
 #include <type_traits>
 
 namespace ustl::traits {
-    template <bool Cond, typename T>
+    template <bool Cond, typename T = void>
     using EnableIf = std::enable_if<Cond, T>;
 
-    template <bool Cond, typename T>
+    template <bool Cond, typename T = void>
     using EnableIfT = std::enable_if_t<Cond, T>;
 
-    template <bool Cond, typename T>
+    template <bool Cond, typename T = void>
     using DisableIfT = std::enable_if_t<!Cond, T>;
 
 } // namespace ustl::traits

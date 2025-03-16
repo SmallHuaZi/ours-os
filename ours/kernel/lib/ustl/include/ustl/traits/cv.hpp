@@ -16,13 +16,25 @@
 
 namespace ustl::traits {
     template <typename T>
+    using AddConstT = std::add_const_t<T>;
+
+    template <typename T>
     using RemoveConstT = std::remove_const_t<T>;
+
+    template <typename T>
+    using AddVolatileT= std::add_volatile_t<T>;
 
     template <typename T>
     using RemoveVolatileT= std::remove_volatile_t<T>;
 
     template <typename T>
+    using AddCvT = std::add_cv_t<T>;
+
+    template <typename T>
     using RemoveCvT = std::remove_cv_t<T>;
+
+    template <typename T>
+    using AddCvRefT = std::remove_cvref_t<T>;
 
     template <typename T>
     using RemoveCvRefT = std::remove_cvref_t<T>;

@@ -19,40 +19,44 @@
 #include <ustl/traits/is_invocable.hpp>
 #include <ustl/traits/is_same.hpp>
 #include <ustl/traits/is_array.hpp>
+#include <ustl/traits/ref.hpp>
+#include <ustl/traits/ptr.hpp>
 #include <ustl/traits/invoke_result.hpp>
+#include <ustl/traits/enable_if.hpp>
 
 #include <ustl/function/invoke.hpp>
 #include <ustl/util/move.hpp>
 
 namespace ustl {
     template <typename T = void>
-    struct Ok
-    {
-        traits::RemoveRefT<T> value_;
-    };
+    struct Ok {
+        typedef traits::DevoidT<traits::RemoveRefT<T>>  StorageType;
 
-    template <>
-    struct Ok<void>
-    {
-        Monostate value_;
+        template <typename... Args>
+        Ok(Args&&... args) 
+            : value_(ustl::forward<Args>(args)...)
+        {}
+
+        StorageType value_;
     };
 
     template <typename E = void>
-    struct Err
-    {
-        traits::RemoveRefT<E> error_;
-    };
+    struct Err {
+        typedef traits::DevoidT<traits::RemoveRefT<E>>  StorageType;
 
-    template <>
-    struct Err<void>
-    {};
+        template <typename... Args>
+        Err(Args&&... args) 
+            : error_(ustl::forward<Args>(args)...)
+        {}
+
+        StorageType error_;
+    };
 
     template <typename T, typename E = void, typename Policy = void>
     class Result
     {
         typedef Result     Self;
         typedef result::StorageTrivial<T, E>    Storage;
-
     public:
         typedef typename Storage::Error     Error;
         typedef typename Storage::Element   Element;
@@ -71,32 +75,41 @@ namespace ustl {
             : storage_(Inplace<Error>(), ustl::forward<Error>(err.error_))
         {}
 
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        Result(Err<E> const &err) USTL_NOEXCEPT
+            : storage_(Inplace<Error>(), ustl::forward<Error>(err.error_))
+        {}
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto is_ok() const -> bool
         {  return this->storage_.status_.has_value();  }
 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto is_err() const -> bool
         {  return !this->is_ok();  }
 
         /// Calls `f` if the `Result` is Ok, otherwise returns the Error value of self.
         /// This function can be used for control flow based on Result values.
         template <typename F>
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto and_then(F &&f) && -> Result<traits::InvokeResultT<F, Element &&>, E>
         {
             typedef traits::InvokeResultT<F, Element &&>    U;
-            if (*this) {
-                return Result<U, E>(function::invoke(f, ustl::move(this->storage_.value_)));
+            if (is_ok()) {
+                return Result<U, E>(function::invoke(f, ustl::move(unwrap())));
             }
-            return Err(ustl::move(this->storage_.error_));
+            return err();
         }
 
         template <typename F>
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto and_then(F &&f) const & -> Result<traits::InvokeResultT<F, Element const &>, E>
         {
             typedef traits::InvokeResultT<F, Element const &>    U;
-            if (*this) {
-                return Result<U, E>(function::invoke(f, this->storage_.value_));
+            if (is_ok()) {
+                return Result<U, E>(function::invoke(f, unwrap()));
             }
-            return Err(this->storage_.error_);
+            return err();
         }
 
         /// Returns res if the Result is Err, otherwise returns the Ok value of self.
@@ -111,7 +124,7 @@ namespace ustl {
             if (*this) {
                 return *this;
             }
-            return Result<U, E>(function::invoke(f, ustl::move(this->storage_.value_)));
+            return Result<U, E>(function::invoke(f, ustl::move(unwrap())));
         }
 
         template <typename F>
@@ -122,7 +135,7 @@ namespace ustl {
             if (*this) {
                 return *this;
             }
-            return Result<U, E>(function::invoke(f, this->storage_.value_));
+            return Result<U, E>(function::invoke(f, unwrap()));
         }
 
         template <typename F>
@@ -160,7 +173,7 @@ namespace ustl {
             // static_assert(!traits::IsSameV<U, std::nullopt_t>, "Result of f(ustl::move(value())) should not be std::nullopt_t");
             static_assert(std::is_object_v<U>, "Result of f(ustl::move(value())) should be an object type");
             if (*this) {
-                return Result<U, E>(function::invoke(f, this->storage_.value_));
+                return Result<U, E>(function::invoke(f, unwrap()));
             }
             return Result<U, E>();
         }
@@ -211,8 +224,46 @@ namespace ustl {
         {  return this->storage_.value_;  }
 
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto error() -> Error
+        auto unwrap_err() -> Error &
         {  return this->storage_.error_;  }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto unwrap_err() const -> Error const &
+        {  return this->storage_.error_;  }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto ok() -> Ok<Element> {
+            return Ok<Element>(unwrap());
+        }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto ok() const -> Ok<Element> {
+            return Ok<Element>(unwrap());
+        }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto err() -> Err<Error> {
+            return Err<Error>(unwrap_err());
+        }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto err() const -> Err<Error> {
+            return Err<Error>(unwrap_err());
+        }
+
+        // USTL_CONSTEXPR
+        // static auto const IsPtrOrRefV = traits::IsPtrV<Element> || traits::IsRefV<Element>;
+
+        // typedef traits::AddPtrT<traits::AddConstT<traits::RemovePtrT<Element>>> AsConstValue;
+
+        // template <typename U = T>
+        // USTL_FORCEINLINE USTL_CONSTEXPR
+        // auto as_const() const -> traits::EnableIfT<IsPtrOrRefV, Result<AsConstValue, Error>> {
+        //     if (is_ok()) {
+        //         return Result<AsConstValue, Error>(ok());
+        //     }
+        //     return Result<AsConstValue, Error>(err());
+        // }
 
         auto operator&(Self &&other) -> Self &
         {}
@@ -221,9 +272,29 @@ namespace ustl {
         {}
 
         USTL_FORCEINLINE
+        auto operator*() -> RefMut {
+            return unwrap();
+        }
+
+        USTL_FORCEINLINE
+        auto operator*() const -> Ref {
+            return unwrap();
+        }
+
+
+        USTL_FORCEINLINE
+        auto operator->() -> PtrMut {
+            return &unwrap();
+        }
+
+        USTL_FORCEINLINE
+        auto operator->() const -> Ptr {
+            return &unwrap();
+        }
+
+        USTL_FORCEINLINE
         operator bool() const USTL_NOEXCEPT
         {  return this->is_ok();  }
-    
     private:
         result::StorageTrivial<T, E> storage_;
     };
@@ -236,6 +307,10 @@ namespace ustl {
     USTL_FORCEINLINE USTL_CONSTEXPR
     auto ok(T t) -> Ok<T>
     {  return Ok<T>(ustl::forward<T>(t));  }
+
+    USTL_FORCEINLINE USTL_CONSTEXPR
+    auto err() -> Err<>
+    {  return Err<void>();  }
 
     template <typename E>
     USTL_FORCEINLINE USTL_CONSTEXPR

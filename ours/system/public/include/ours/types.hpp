@@ -35,7 +35,7 @@ namespace ours {
     typedef ::ustl::u32     PhysAddr;
 #endif
 
-    typedef u32   CpuId;
+    typedef u32   CpuNum;
     typedef u32   HIrqNum;
     typedef u32   VIrqNum;
 
@@ -45,5 +45,18 @@ namespace ours {
     struct KoId     { u32 _0; };
 
 } // namespace ours
+
+    // Th following is for conveniency of development now.
+    typedef ::ustl::i8        i8;
+    typedef ::ustl::i16       i16;
+    typedef ::ustl::i32       i32;
+    typedef ::ustl::i64       i64;
+    typedef ::ustl::usize     usize;
+
+    typedef ::ustl::u8        u8;
+    typedef ::ustl::u16       u16;
+    typedef ::ustl::u32       u32;
+    typedef ::ustl::u64       u64;
+    typedef ::ustl::isize     isize;
 
 #endif // #ifndef OURS_TYPES_HPP

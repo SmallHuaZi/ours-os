@@ -15,4 +15,12 @@
 #define OMI_SIZEOF_HEADER   32
 #define OMI_HEADER_MAGIC   0x5352554F
 
+#define OMI_HEADER_ALIGNMENT 8
+
+#define OMIT_CONTAINER     0    // Container
+#define OMIT_KERNEL     1       // Kernel image
+#define OMIT_USBOOT     2       // User boot
+
+#define OMIF_ZIPPED    1
+
 #endif // #ifndef OMI_DEFINES_HPP

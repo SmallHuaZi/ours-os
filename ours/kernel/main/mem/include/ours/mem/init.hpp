@@ -52,7 +52,7 @@ namespace ours::mem {
         Sched,
     };
     INIT_CODE
-    auto reclaim_early_memory(RemTag = RemTag::All) -> Status;
+    auto reclaim_init_area(RemTag = RemTag::All) -> Status;
 
 } // namespace ours::mem
 

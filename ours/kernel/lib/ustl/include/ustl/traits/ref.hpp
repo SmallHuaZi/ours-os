@@ -16,6 +16,12 @@
 
 namespace ustl::traits {
     template <typename T>
+    using IsRef = std::is_reference<T>;
+
+    template <typename T>
+    static auto const IsRefV = std::is_reference_v<T>;
+
+    template <typename T>
     using RemoveRefT = std::remove_reference_t<T>;
 
     template <typename T>

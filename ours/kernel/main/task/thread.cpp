@@ -10,4 +10,7 @@ namespace ours::task {
     auto Thread::detach() -> void
     {}
 
+    auto Thread::Current::preempt() -> void {
+    }
+
 } // namespace ours::task

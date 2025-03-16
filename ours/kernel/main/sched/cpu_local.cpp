@@ -9,8 +9,8 @@ namespace ours {
     static ustl::LazyInit<sched::MainScheduler>  LOCAL_SCHEDULER;
 
     template <>
-    auto CpuLocal::access<sched::MainScheduler>(CpuId cpuid) -> sched::MainScheduler * {
-        return Self::access(LOCAL_SCHEDULER.data(), cpuid);
+    auto CpuLocal::access<sched::MainScheduler>(CpuNum CpuNum) -> sched::MainScheduler * {
+        return Self::access(LOCAL_SCHEDULER.data(), CpuNum);
     }
 
 } // namespace ours

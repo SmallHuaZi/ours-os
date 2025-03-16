@@ -6,10 +6,9 @@ namespace gktl {
     extern Ctor const CTORS_END[] LINK_NAME("__ctors_end");
 
     INIT_CODE
-    auto init_static_objects() -> void
-    {
-        for(auto ctor = CTORS_START; ctor != CTORS_END; ++ctor) {
+    auto init_static_objects() -> void {
+        for (auto ctor = CTORS_START; ctor != CTORS_END; ++ctor) {
             (*ctor)();
         }
     }
-}
+} // namespace gktl

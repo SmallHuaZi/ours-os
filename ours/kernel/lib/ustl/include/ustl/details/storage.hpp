@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_RESULT_DETAILS_STORAGE_HPP
 #define USTL_RESULT_DETAILS_STORAGE_HPP 1
 
@@ -18,7 +17,6 @@
 #include <ustl/traits/void.hpp>
 #include <ustl/traits/is_same.hpp>
 #include <ustl/traits/conditional.hpp>
-// #include <boost/outcome/detail/basic_result_storage.hpp>
 
 namespace ustl::result {
     enum class Status: u16 {
@@ -84,21 +82,22 @@ namespace ustl::result {
         typedef traits::ConditionalT<traits::IsSameV<T, E>, DisableInPlaceElement, T>     VoidOrElement;
     
         typedef traits::DevoidT<VoidOrError>        Error;
-        static_assert(!traits::IsVoidV<Error>, "Never void");
+        static_assert(!traits::IsVoidV<Error>, "Never be void");
 
         typedef traits::DevoidT<VoidOrElement>      Element;
-        static_assert(!traits::IsVoidV<Element>, "Never void");
+        static_assert(!traits::IsVoidV<Element>, "Never be void");
 
         USTL_CONSTEXPR
         StorageTrivial() USTL_NOEXCEPT
             : empty_()
         {}
 
-        StorageTrivial(Self &&) = default;                  // NOLINT
-        StorageTrivial(Self const &) = default;             // NOLINT
-        auto operator=(Self &&) -> StorageTrivial & = default;       // NOLINT
-        auto operator=(Self const &) -> StorageTrivial & = default;  // NOLINT
-        ~StorageTrivial() = default;
+        StorageTrivial(Self &&) = default;
+        StorageTrivial(Self const &) = default;
+        auto operator=(Self &&) -> StorageTrivial & = default;
+        auto operator=(Self const &) -> StorageTrivial & = default;
+        ~StorageTrivial()
+        {}
 
         USTL_CONSTEXPR
         explicit StorageTrivial(StatusField status) USTL_NOEXCEPT
@@ -108,14 +107,14 @@ namespace ustl::result {
 
         template <typename... Args>
         USTL_CONSTEXPR
-        explicit StorageTrivial(Inplace<Element>, Args &&...args) USTL_NOEXCEPT
+        explicit StorageTrivial(USTL_MAYBE_UNUSED Inplace<Element>, Args &&...args) 
             : value_(static_cast<Args &&>(args)...), 
               status_(Status::HaveValue)
         {}
 
         template <typename U, typename... Args>
         USTL_CONSTEXPR
-        StorageTrivial(Inplace<Element>, InitializerList<U> il, Args &&...args)
+        StorageTrivial(USTL_MAYBE_UNUSED Inplace<Element>, InitializerList<U> il, Args &&...args)
             : value_(il, static_cast<Args &&>(args)...), 
               status_(Status::HaveValue)
         {}
@@ -135,12 +134,12 @@ namespace ustl::result {
         {}
 
         USTL_CONSTEXPR 
-        auto swap(StorageTrivial &o) USTL_NOEXCEPT -> void
+        auto swap(StorageTrivial &other) USTL_NOEXCEPT -> void
         {
             // storage is trivial, so just use assignment
             auto temp = static_cast<StorageTrivial &&>(*this);
-            *this = static_cast<StorageTrivial &&>(o);
-            o = static_cast<StorageTrivial &&>(temp);
+            *this = static_cast<StorageTrivial &&>(other);
+            other = static_cast<StorageTrivial &&>(temp);
         }
 
         union {

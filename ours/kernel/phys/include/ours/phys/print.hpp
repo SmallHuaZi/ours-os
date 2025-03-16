@@ -17,6 +17,7 @@
 #include <ustl/views/string_view.hpp>
 
 namespace ours::phys {
+    auto vprint(ustl::views::StringView fmt) -> void;
     auto vprint(ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void;
 
     template <typename... Args> 
@@ -27,7 +28,7 @@ namespace ours::phys {
     auto println(ustl::views::StringView fmt, Args &&...args) -> void
     { 
         vprint(fmt, ustl::fmt::make_format_args(args...)); 
-        vprint("\n", ustl::fmt::make_format_args());
+        vprint("\n");
     }
 
 } // namespace ours::phys

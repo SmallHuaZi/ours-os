@@ -14,7 +14,7 @@
 #include <ours/init.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/physmap.hpp>
-#include <ours/mem/constant.hpp>
+#include <ours/mem/cfg.hpp>
 
 #include <ours/phys/handoff.hpp>
 

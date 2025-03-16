@@ -17,11 +17,16 @@ namespace ours {
         Ok,
         Fail,
         OutOfMem,
+        OutOfRange,
         InvalidArguments,
         Unimplemented,
         Unsupported,
         Unreachable,
         Error,
+        InternalError,
+        TimeOut,
+        NotFound,
+        ShouldWait,
         MaxCount,
     };
 

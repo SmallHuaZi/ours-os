@@ -1,6 +1,7 @@
 
 # This is the base of kernel virtual address space
 set(KERNEL_BASE 0xffffff8000100000)
+set(PHYS_LOAD_ADDRESS 0x100000)
 
 set(MAX_PAGE_SIZE 0x1000)
 

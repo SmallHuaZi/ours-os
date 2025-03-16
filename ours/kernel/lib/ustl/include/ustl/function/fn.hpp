@@ -9,15 +9,14 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_FUNCTION_FN_HPP
 #define USTL_FUNCTION_FN_HPP 1
 
-#include <boost/function.hpp>
+#include <functional>
 
 namespace ustl::function {
     template <typename F>
-    using Fn = ::boost::function<F>;
+    using Fn = ::std::function<F>;
 
 } // namespace ustl::function
 

@@ -35,7 +35,7 @@ namespace ours::mem {
             auto free_object(PmFrame *object) -> void;
 
             usize order;
-            usize cpuid;
+            usize CpuNum;
         };
     };
 

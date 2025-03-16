@@ -1,13 +1,17 @@
-add_library(ours_kernel_main_irq_headers INTERFACE)
-add_library(ours::kernel::main::irq::headers ALIAS ours_kernel_main_irq_headers)
-target_include_directories(ours_kernel_main_irq_headers
+target_include_directories(kernel_main_headers
 INTERFACE
     "include"
 )
 
-add_library(ours_kernel_main_irq INTERFACE)
-add_library(ours::kernel::main::irq ALIAS ours_kernel_main_irq)
-target_link_libraries(ours_kernel_main_irq 
+add_library(kernel_main_irq INTERFACE)
+add_library(kernel::main::irq ALIAS kernel_main_irq)
+target_link_libraries(kernel_main_irq 
 INTERFACE
-    ours_kernel_main_irq_headers
+    kernel::main::headers
+)
+
+target_sources(kernel_main_irq 
+INTERFACE
+    "cpu_local.cpp"
+    "init.cpp"
 )

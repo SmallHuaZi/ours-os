@@ -27,16 +27,16 @@ namespace ours::mem {
         usize nr_presents = 0;
         bootmem::IterationContext context(BOOTMEM, MAX_NODES, bootmem::RegionType::Normal, start, end);
         while (auto region = BOOTMEM->iterate(context)) {
-            if (region->size < FRAME_SIZE) {
+            if (region->size < PAGE_SHIFT) {
                 continue;
             }
-            auto base = ustl::mem::align_up(region->base, FRAME_SIZE);
-            auto end = ustl::mem::align_down(region->end(), FRAME_SIZE);
-            if (end - base < FRAME_SIZE) {
+            auto base = ustl::mem::align_up(region->base, PAGE_SHIFT);
+            auto end = ustl::mem::align_down(region->end(), PAGE_SHIFT);
+            if (end - base < PAGE_SHIFT) {
                 continue;
             }
 
-            nr_presents += (end - base) / FRAME_SIZE;
+            nr_presents += (end - base) / PAGE_SHIFT;
         }
 
         return nr_presents;

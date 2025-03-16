@@ -183,7 +183,11 @@ namespace ours::mem {
     }
 
     INIT_CODE
-    auto init_early_pmm(phys::MemoryHandoff &) -> Status
-    {  return Status::Unimplemented; }
+    auto init_early_pmm(phys::MemoryHandoff &mh) -> Status
+    {  
+        EarlyMem::BOOTMEM = PhysMap::phys_to_virt<bootmem::IBootMem>(mh.bootmem);
+        // Verifies the signature of bootmem
+        return Status::Ok; 
+    }
 
 } // namespace ours::mem

@@ -1,26 +1,34 @@
-add_library(ours_kernel_phys_headers INTERFACE)
-add_library(ours::kernel::phys::headers ALIAS ours_kernel_phys_headers)
-target_include_directories(ours_kernel_phys_headers
+add_library(kernel_phys_headers INTERFACE)
+add_library(kernel::phys::headers ALIAS kernel_phys_headers)
+target_include_directories(kernel_phys_headers
 INTERFACE
     "include"
 )
-target_link_libraries(ours_kernel_phys_headers
+target_link_libraries(kernel_phys_headers
 INTERFACE
-    ours::kernel::common::headers
-    ours::kernel::phys::lib::bootmem::headers
+    kernel::main::headers
+    kernel::phys::lib::bootmem::headers
 )
 
-add_executable(ours_kernel_phys)
-add_executable(ours::kernel::phys ALIAS ours_kernel_phys)
-target_compile_options(ours_kernel_phys
+add_executable(kernel_phys)
+add_executable(kernel::phys ALIAS kernel_phys)
+target_sources(kernel_phys
+PRIVATE
+    "acpi.cpp"
+    "console.cpp"
+    "loader.cpp"
+    "panic.cpp"
+)
+
+target_compile_options(kernel_phys
 PRIVATE
 # "-v"
-"-g"
+    "-g"
     "-O0"
     "-stdlib=libc++"
     "-ffreestanding"
     # "-fPIC"
-    # "-fno-PIE" 
+    "-fno-PIE" 
     "-fno-rtti"
     "-fno-builtin"
     # "-fno-leading-underscore"
@@ -28,18 +36,24 @@ PRIVATE
     "-fno-stack-protector"
     "-fno-use-cxa-atexit"
     "-Wno-write-strings"
+    "-mno-red-zone"
+    "-mno-mmx" 
+    "-mno-sse"
+    "-fno-asynchronous-unwind-tables"
+    "-fno-strict-aliasing"
 )
-target_link_libraries(ours_kernel_phys
+target_link_libraries(kernel_phys
 PRIVATE
-    ours::kernel::phys::headers
-    ours::kernel::phys::arch
-    ours::kernel::phys::lib::bootmem
-    ours::kernel::lib::libc
-    ours::kernel::lib::gktl::goi
-    ours::kernel::lib::omi
+    kernel::phys::headers
+    kernel::phys::arch
+    kernel::phys::lib::bootmem
+    kernel::lib::libc
+    kernel::lib::gktl::goi
+    kernel::lib::omi
+    kernel::lib::acpi
     "libgcc.a"
 )
-target_link_options(ours_kernel_phys
+target_link_options(kernel_phys
 PRIVATE
 # "-v"
     # Link to libgcc for some builtin routine.
@@ -50,15 +64,15 @@ PRIVATE
     "-Wl,--no-relax"
     "-Wl,--build-id=none"
     "-Wl,--no-warn-rwx-segments"
-    # This is a hosted dependency flag
-    "-L/usr/lib/gcc/x86_64-linux-gnu/13/32"
+    "-Wl,--defsym,PHYS_LOAD_ADDRESS=${PHYS_LOAD_ADDRESS}"
     "-fno-register-global-dtors-with-atexit"
     "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/phys.ld"
     "-static"
+
+    # WARN This is a hosted dependency flag
+    "-L/usr/lib/gcc/x86_64-linux-gnu/13"
 )
 
-add_dependencies(ours_kernel_phys ours_kernel_main_image)
+add_dependencies(kernel_phys kernel_main_image)
 
 add_subdirectory("lib")
-add_subdirectory("core")
-add_subdirectory("arch")

@@ -8,16 +8,20 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_TYPES_HPP
 #define OURS_MEM_TYPES_HPP 1
 
+#include <ours/panic.hpp>
+#include <ours/types.hpp>
 #include <ours/marker.hpp>
-#include <ours/mem/constant.hpp>
+#include <ours/mem/cfg.hpp>
 
 #include <ustl/views/span.hpp>
+#include <arch/paging/mmu_flags.hpp>
 
 namespace ours::mem {
+    using arch::paging::MmuFlags;
+
     enum ZoneType {
         Dma OURS_IF_NOT_CFG(ZONE_DMA, = -1),
         Dma32 OURS_IF_NOT_CFG(ZONE_DMA32, = Dma),
@@ -33,8 +37,8 @@ namespace ours::mem {
             case ZoneType::Dma:     return "Dma";
             case ZoneType::Dma32:   return "Dma32";
             case ZoneType::Normal:  return "Normal";
-            default: return "Anonymous type";
         }
+        OX_PANIC("Anonymous zone type is not allowed.");
     }
 
     /// `SecNum` is a shordhand of section table entry
@@ -47,11 +51,11 @@ namespace ours::mem {
 
     FORCE_INLINE CXX11_CONSTEXPR 
     static auto pfn_to_phys(Pfn pfn) -> PhysAddr
-    {  return PhysAddr(pfn << FRAME_SHIFT);  }
+    {  return PhysAddr(pfn << PAGE_SHIFT);  }
 
     FORCE_INLINE CXX11_CONSTEXPR 
     static auto phys_to_pfn(PhysAddr phys_addr) -> Pfn
-    {  return Pfn(phys_addr >> FRAME_SHIFT);  }
+    {  return Pfn(phys_addr >> PAGE_SHIFT);  }
 
     FORCE_INLINE CXX11_CONSTEXPR
     static auto phys_to_secnum(PhysAddr phys_addr) -> SecNum
@@ -63,11 +67,11 @@ namespace ours::mem {
 
     FORCE_INLINE CXX11_CONSTEXPR
     static auto pfn_to_secnum(Pfn pfn) -> SecNum
-    {  return pfn >> (SECTION_SHIFT - FRAME_SHIFT);  }
+    {  return pfn >> (SECTION_SHIFT - PAGE_SHIFT);  }
 
     FORCE_INLINE CXX11_CONSTEXPR
     static auto secnum_to_pfn(SecNum secnum) -> Pfn
-    {  return secnum << (SECTION_SHIFT - FRAME_SHIFT);  }
+    {  return secnum << (SECTION_SHIFT - PAGE_SHIFT);  }
 
     /// A pre-allocated storage reserve designed for scenarios requiring specialized physical page management. 
     /// It serves two core purposes:
@@ -113,7 +117,8 @@ namespace ours::mem {
     class VmArea;
     class VmRootArea;
     class VmObject;
-
+    class VmObjectPaged;
+    class VmObjectPhysical;
 } // namespace ours::mem
 
 /// Mark types above as kernel object to enable particular static analysis.
@@ -124,5 +129,7 @@ OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmNode);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmArea);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmAspace);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmObject);
+OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmObjectPaged);
+OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmObjectPhysical);
 
 #endif // #ifndef OURS_MEM_TYPES_HPP

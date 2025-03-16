@@ -54,8 +54,8 @@ Region MemBlockTestFixture::PRESET_REGIONS[] = {
 auto MemBlockTestFixture::SetUp() -> void
 {
     memblock.init(bootstrap_regions.total, std::size(bootstrap_regions.total));
-    for (auto [base, size, type] : PRESET_REGIONS) {
-        memblock.add(base, size, RegionType(type));
+    for (auto [base, size, flags] : PRESET_REGIONS) {
+        memblock.add(base, size, flags.get<0>());
     }
 
     reserved_list = &memblock.reserved_list();

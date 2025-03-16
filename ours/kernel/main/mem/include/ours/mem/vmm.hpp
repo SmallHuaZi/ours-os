@@ -15,6 +15,7 @@
 #include <ours/mem/types.hpp>
 
 namespace ours::mem {
+    /// Do not use the following symbols directly.
     extern char const KERNEL_IMAGE_START[] LINK_NAME("__executable_start");
     extern char const KERNEL_IMAGE_END[] LINK_NAME("__executable_end");
 

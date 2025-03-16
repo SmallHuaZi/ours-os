@@ -21,10 +21,11 @@
 namespace gktl {
     enum InitLevel {
         ArchEarly = 0x1000,
-        PlatformEarly = 0x2000,
-        VmmInitialized = 0x3000,
-        Arch = 0x4000,
-        Platform = 0x5000,
+        PlatformEarly = ArchEarly + 0x1000,
+        VmmInitialized = PlatformEarly + 0x1000,
+        IrqInitialized = VmmInitialized + 0x1000,
+        Arch = IrqInitialized + 0x1000,
+        Platform = Arch + 0x1000,
     };
 
     struct InitHook

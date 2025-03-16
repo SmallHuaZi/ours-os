@@ -12,20 +12,20 @@ namespace ours {
     {  return STATIC_CPU_LOCAL_END - STATIC_CPU_LOCAL_START;  }
 
     ustl::collections::Array<isize, MAX_CPU_NUM>    CpuLocal::UNIT_OFFSET;
-    ustl::collections::Array<isize, mem::MAX_NODES> CpuLocal::GROUP_OFFSET;
+    ustl::collections::Array<isize, MAX_NODES>      CpuLocal::GROUP_OFFSET;
 
     struct CpuLocalChunk
     {
 
     };
 
-    auto CpuLocal::init(CpuId cpuid) -> Status
+    auto CpuLocal::init(CpuNum CpuNum) -> Status
     {
-        if (cpuid == BOOT_CPU_ID) {
+        if (CpuNum) {
             return Status::Ok;
         }
 
-        auto const nr_frames = static_cpu_local_area_size() / mem::FRAME_SIZE;
+        auto const nr_frames = static_cpu_local_area_size() / PAGE_SHIFT;
 
         mem::FrameList<> frame_list;
         if (Status::Ok == mem::alloc_frames(mem::GAF_KERNEL, &frame_list, nr_frames)) {

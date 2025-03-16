@@ -18,9 +18,24 @@ namespace ustl::sync {
     class LockGuard
     {
     public:
-        template <typename OtherLock>
-        LockGuard(OtherLock &lock)
-        {}
+        LockGuard(Lock &lock)
+            : lock_(&lock),
+              unlocked_(false)
+        { lock.lock(); }
+
+        auto unlock() {
+            if (!unlocked_) {
+                lock_->unlock();
+                unlocked_ = true;
+            }
+        }
+
+        ~LockGuard()
+        { unlock(); }
+    
+    private:
+        Lock *lock_;
+        bool unlocked_;
     };
 
     template <typename Lock>

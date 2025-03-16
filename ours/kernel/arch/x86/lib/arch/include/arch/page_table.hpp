@@ -1,0 +1,180 @@
+/// Copyright(C) 2024 smallhuazi
+///
+/// This program is free software; you can redistribute it and/or modify
+/// it under the terms of the GNU General Public License as published
+/// by the Free Software Foundation; either version 2 of the License, or
+/// (at your option) any later version.
+///
+/// For additional information, please refer to the following website:
+/// https://opensource.org/license/gpl-2-0
+///
+#ifndef ARCH_X86_PAGE_TABLE_HPP
+#define ARCH_X86_PAGE_TABLE_HPP 1
+
+#include <arch/paging/options.hpp>
+#include <arch/paging/page_table_ept.hpp>
+#include <arch/paging/page_table_mmu.hpp>
+#include <arch/paging/l4_paging.hpp>
+
+#include <gktl/canary.hpp>
+#include <ustl/option.hpp>
+#include <ustl/placeholders.hpp>
+#include <ustl/sync/atomic.hpp>
+#include <ustl/sync/mutex.hpp>
+#include <ustl/util/pack_options.hpp>
+#include <ustl/traits/is_base_of.hpp>
+#include <ustl/traits/function_detector.hpp>
+#include <ustl/views/span.hpp>
+
+namespace arch {
+namespace paging {
+    USTL_MPL_CREATE_METHOD_DETECTOR(Init, init);
+
+    /// `PageTable` is a high-level abstract to virutal memory mapping.
+    /// `|Mutex|` should provides the interface `lock` and `unlock` at least.
+    /// `|PageManager|`  should provides the interface `alloc_page` and `free_page`  at least.
+    template <typename Options>
+    class X86PageTable {
+        using Mmu = paging::X86PageTableMmu<Options>;
+        using Ept = paging::X86PageTableEpt<Options>;
+      public:
+        template <typename Derived>
+        CXX11_CONSTEXPR
+        auto init(PhysAddr pgd_pa, VirtAddr pgd_va) -> Status;
+
+        template <typename Derived>
+        CXX11_CONSTEXPR
+        auto init() -> Status;
+
+        template <typename... Args> 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto init_ept(Args... args) -> Status {
+            return init<Ept>(args...);
+        }
+
+        template <typename... Args> 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto init_mmu(Args... args) -> Status {
+            return init<Mmu>(args...);
+        }
+
+        /// Sees IX86PageTable::map_pages.
+        FORCE_INLINE
+        auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl action) -> ustl::Result<usize, Status> {
+            return pimpl_->map_pages(va, pa, n, flags, action);
+        }
+
+        /// Sees IX86PageTable::unmap_pages.
+        FORCE_INLINE
+        auto unmap_pages(VirtAddr va, usize n, UnMapControl control) -> Status {
+            return pimpl_->unmap_pages(va, n, control);
+        }
+
+        /// Sees IX86PageTable::protect_pages.
+        FORCE_INLINE
+        auto protect_pages(VirtAddr va, usize n, MmuFlags flags) -> Status {
+            return pimpl_->protect_pages(va, n, flags);
+        }
+
+        /// Sees IX86PageTable::query_mapping.
+        FORCE_INLINE
+        auto query_mapping(VirtAddr va, ai_out PhysAddr *pa, ai_out MmuFlags *flags) -> Status {
+            return pimpl_->query_mapping(va, pa, flags);
+        }
+
+        /// Sees IX86PageTable::harvest_accessed.
+        FORCE_INLINE
+        auto harvest_accessed(VirtAddr va, usize n, HarvestControl action) -> Status {
+            return pimpl_->harvest_accessed(va, n, action);
+        }
+
+        FORCE_INLINE
+        auto alias_to(X86PageTable const &other, VirtAddr base, usize nr_pages, usize level) -> Status {
+            return pimpl_->alias_to(*other.pimpl_, base, nr_pages, level);
+        }
+
+        FORCE_INLINE
+        auto install() const -> void {
+            pimpl_->install();
+        }
+
+      private: 
+        union Storage {
+            alignas(Mmu) char mmu_[sizeof(Mmu)];
+            alignas(Ept) char ept_[sizeof(Ept)];
+        } storage_;
+        paging::IX86PageTable *pimpl_;
+    };
+
+    template <typename Options>
+    template <typename Derived>
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto X86PageTable<Options>::init(PhysAddr pgd_pa, VirtAddr pgd_va) -> Status {
+        static_assert(traits::IsBaseOfV<IX86PageTable, Derived>, "You don't know?");
+
+        Derived *derived = new (&storage_) Derived();
+        pimpl_ = derived;
+        auto status = pimpl_->init(pgd_pa, pgd_va);
+        if (status != Status::Ok) {
+            return status;
+        }
+
+        if CXX20_CONSTEXPR (HasFninit<auto (Derived::*)() -> Status>::VALUE) {
+            status = derived->init();
+            if (status != Status::Ok) {
+                return status;
+            }
+        }
+
+        return Status::Ok;
+    }
+
+    template <typename Options>
+    template <typename Derived>
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto X86PageTable<Options>::init() -> Status {
+        // Try allocate page from PageSource
+        PhysAddr pgd_pa;
+        if (!pgd_pa) {
+            return Status::OutOfMem;
+        }
+
+        VirtAddr pgd_va;
+
+        return init(pgd_pa, pgd_va);
+    }
+
+    struct PageTableDefaultOptions {
+        CXX11_CONSTEXPR
+        static usize const PAGING_LEVEL = 4;
+
+        typedef ustl::sync::Mutex Mutex;
+        typedef void PageManager;
+        typedef void TlbInvalidator;
+    };
+
+    template <typename... Options>
+    struct MakeX86PageTable {
+        typedef typename ustl::PackOptions<PageTableDefaultOptions, Options...>::Type PackedOptions;
+
+        typedef X86PageTable<PackedOptions> Type;
+    };
+} // namespace paging
+
+    /// The `PageTable` type alias follows standard naming conventions for generic page table implementations.
+    /// It supports the following template parameters:
+    ///     1) \c `Mutex<>`       - Locking mechanism for concurrent access
+    ///     2) \c `PageManager<>` - Physical page allocation strategy
+    ///     3) \c `TlbInvalidator<>` - TLB shootdown handling
+    ///     4) \c `PagingConfig<>` - Paging config
+    ///
+    /// These parameters allow customization of:
+    ///   - Synchronization primitives
+    ///   - Memory management policies
+    ///   - Cache coherence protocols
+    template <typename... Options>
+    using PageTable = typename paging::MakeX86PageTable<Options...>::Type;
+
+} // namespace arch
+
+#endif // #ifndef ARCH_X86_PAGE_TABLE_HPP

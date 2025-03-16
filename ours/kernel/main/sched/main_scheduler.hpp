@@ -36,7 +36,7 @@ namespace ours::sched {
         auto reschedule() -> void;
 
     private:
-        CpuId this_cpu_;
+        CpuNum this_cpu_;
 
         typedef ustl::collections::Array<Scheduler *, NR_SCHEDULER> SchedulerSet;
         SchedulerSet schedulers_;

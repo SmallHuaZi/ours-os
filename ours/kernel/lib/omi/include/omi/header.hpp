@@ -8,42 +8,47 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OMI_OMI_HEADER_HPP
 #define OMI_OMI_HEADER_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/macro_abi.hpp>
 
 namespace omi {
     struct Header
     {
-        // Size of the payload immediately following this header.  This
+        u32 type;
+
+        // Size of the payload immediately following this header. This
         // does not include the header itself nor any alignment padding
         // after the payload.
-        ours::u32 length;
+        u32 length;
 
         // Flags for this item.
-        ours::u32 flags;
+        u32 flags;
+
+        // Enable if flags was set HeaderFlags::Compressed.
+        u32 extra;
 
         // Must be OMI_HEADER_MAGIC.
-        ours::u32 magic;
+        u32 magic;
 
         // Must be the CRC32 of payload if ZBI_FLAGS_CRC32 is set,
         // otherwise must be ZBI_ITEM_NO_CRC32.
-        ours::u32 check_code;
+        u32 check_code;
     };
 
     struct Kernel
     {
-        ours::usize entry_point;
-        ours::usize reserved_size;
+        usize entry_point;
+        usize reserved_size;
     };
 
     struct OmiKernelHeader
     {
         Header  file;
         Header  main;
-        Kernel  hhhh; 
+        Kernel  kernel;
     };
 
 } // namespace omi

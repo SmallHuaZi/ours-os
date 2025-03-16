@@ -21,6 +21,7 @@ namespace ustl::views {
     {
         typedef ::boost::span<T>    Base;
         using Base::Base;
+        using Base::operator=;
 
         typedef typename Base::iterator         IterMut;
         typedef typename Base::const_iterator   Iter;

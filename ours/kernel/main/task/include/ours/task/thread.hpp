@@ -36,7 +36,8 @@ namespace ours::task {
         MemoryAllocationDisabled,
     };
 
-    class Thread : public sched::SchedObject {
+    class Thread
+        : public sched::SchedObject {
         typedef Thread Self;
 
         SCHED_OBJECT_INTERFACE;
@@ -74,7 +75,7 @@ namespace ours::task {
 
         class Current;
       private:
-        CpuId this_cpu_;
+        CpuNum this_cpu_;
         CpuMask cpu_mask_;
         ArchThread arch_thread_;
         ustl::Rc<mem::VmAspace> aspace_;
@@ -97,8 +98,9 @@ namespace ours::task {
             return 0;
         }
 
-        static auto exit(isize retcode) -> void {
-        }
+        static auto exit(isize retcode) -> void;
+
+        static auto preempt() -> void;
     };
 
 } // namespace ours::task

@@ -10,11 +10,9 @@ namespace ours::sched {
     class SchedObject;
     struct SchedCommonData;
 
-    class Scheduler
-    {
-        typedef Scheduler   Self;
-
-    public:
+    class Scheduler {
+        typedef Scheduler Self;
+      public:
         virtual auto init() -> void = 0;
 
         virtual auto enqueue(SchedObject &obj) -> void = 0;
@@ -29,23 +27,18 @@ namespace ours::sched {
 
         virtual auto set_next(SchedObject &obj) -> void = 0;
 
-        OURS_CFG_SCHED(PREEMPT, 
-            auto preempt(SchedObject &obj) -> void
-        );
+        OURS_CFG_SCHED(PREEMPT, auto preempt(SchedObject &obj)->void);
 
-        OURS_CFG_SCHED(MIGRATE,
-            auto migrate(SchedObject &obj) -> void
-        );
-    
-    private:
+        OURS_CFG_SCHED(MIGRATE, auto migrate(SchedObject &obj)->void);
+      private:
         SchedCommonData *common_data_;
     };
 
-} // namespace ours
+} // namespace ours::sched
 
-#define OURS_SCHEDULER_API \
-    virtual auto pick_next() -> SchedObject * override; \
-    virtual auto enqueue(SchedObject &obj) -> void override; \
+#define OURS_SCHEDULER_API                                                                                                       \
+    virtual auto pick_next() -> SchedObject *override;                                                                           \
+    virtual auto enqueue(SchedObject &obj) -> void override;                                                                     \
     virtual auto dequeue(SchedObject &obj) -> void override;
 
 #endif // #ifndef OURS_SCHED_SCHEDULER_HPP

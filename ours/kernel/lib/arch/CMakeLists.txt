@@ -1,25 +1,22 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(arch VERSION "${OURS_VERSION}" LANGUAGES CXX)
+project(libarch VERSION "${OURS_VERSION}" LANGUAGES CXX)
 
-add_library(arch_headers INTERFACE)
-add_library(ours::kernel::lib::arch::headers ALIAS arch_headers)
-target_include_directories(arch_headers
+add_library(libarch_headers INTERFACE)
+add_library(kernel::lib::arch::headers ALIAS libarch_headers)
+target_include_directories(libarch_headers
 INTERFACE
     "include"
 )
-target_link_libraries(arch_headers
+target_link_libraries(libarch_headers
 INTERFACE
-    ours::kernel::common::headers
-    ours::kernel::main::mem::headers
+    # This is an error dependency.
+    kernel::main::headers
 )
 
-add_library(arch)
-add_library(ours::kernel::lib::arch ALIAS arch)
-target_link_libraries(arch
+add_library(libarch)
+add_library(kernel::lib::arch ALIAS libarch)
+target_link_libraries(libarch
 PUBLIC
-    arch_headers
+    libarch_headers
 )
-
-add_subdirectory(x86)
-add_subdirectory(generic)

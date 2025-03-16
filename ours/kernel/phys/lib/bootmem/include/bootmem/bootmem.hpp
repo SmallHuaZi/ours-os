@@ -120,6 +120,8 @@ namespace bootmem {
 
         virtual auto iterate(IterationContext &context) const -> ustl::Option<Region> = 0;
 
+        virtual auto set_node(PhysAddr base, PhysAddr size, NodeId nid) -> void = 0;
+
         auto count_present_blocks(PhysAddr start, PhysAddr end, usize bsize, usize balign, NodeId nid) const -> usize;
 
         auto start_address() const -> PhysAddr
@@ -127,6 +129,11 @@ namespace bootmem {
 
         auto end_address() const -> PhysAddr
         {  return end_address_;  }
+
+        auto set_alloc_bounds(PhysAddr start, PhysAddr end) -> void {
+            default_lowest_limit_ = start;
+            default_highest_limit_ = end;
+        }
 
         template <typename F>
             requires ustl::traits::Invocable<F, usize, usize>

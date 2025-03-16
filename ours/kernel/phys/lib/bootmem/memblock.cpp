@@ -50,7 +50,7 @@ namespace bootmem {
     }
 
     FORCE_INLINE
-    auto MemBlock::RegionList::grow(usize new_capacity, PhysAddr reserved_start, usize reserved_size) -> bool 
+    auto MemBlock::RegionList::grow(usize new_capacity, PhysAddr reserved_start, PhysAddr reserved_size) -> bool 
     {
         auto base_ = reinterpret_cast<PhysAddr>(regions_);
         auto size_ = capacity_;
@@ -330,8 +330,22 @@ namespace bootmem {
         return ustl::NONE;
     }
 
+    auto MemBlock::set_node(PhysAddr base, PhysAddr size, NodeId nid) -> void {
+        auto [start, end] = memories_.isolate(base, size);
+        if (start == end) {
+            return;
+        }
+
+        while (start != end) {
+            start->set_nid(nid);
+            ++start;
+        }
+        auto front = memories_.begin();
+        memories_.try_merge(start - front, end - front);
+    }
+
     /// [MemBlock]
-    auto MemBlock::allocate_bounded(usize size, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> usize 
+    auto MemBlock::allocate_bounded(usize size, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> PhysAddr
     {
         auto const matcher = [start, end] (PhysAddr base_aligned, usize size_aligned) {
             return base_aligned >= start && base_aligned + size_aligned <= end;

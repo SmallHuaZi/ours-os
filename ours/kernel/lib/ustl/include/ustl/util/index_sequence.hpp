@@ -56,6 +56,16 @@ namespace ustl {
     template <usize... N>
     using IndexSequence = IntegerSequence<usize, N...>;
 
+    template <typename This, This::Element New>
+    struct IntegerSequenceAppend;
+
+    template <typename Integer, Integer New, Integer... N>
+    struct IntegerSequenceAppend<IntegerSequence<Integer, N...>, New> {
+        typedef IntegerSequence<Integer, N..., New>  Type;
+    };
+
+    template <typename This, This::Element New>
+    using IntegerSequenceAppendT = typename IntegerSequenceAppend<This, New>::Type;
 
     template <typename Sequence1, typename Sequence2>
     struct MergeAndRenumber;

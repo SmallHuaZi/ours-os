@@ -239,7 +239,7 @@ namespace ours::mem {
                 n >>= 1;
             } else {
                 this->free_frames(list);
-                return frame.error();
+                return frame.unwrap_err();
             }
         }
 

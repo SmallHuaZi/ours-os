@@ -1,27 +1,26 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Kernel memory reclaim damon 
-project(kmrd VERSION "${OURS_VERSION}" LANGUAGES CXX)
+project(libkmrd VERSION "${OURS_VERSION}" LANGUAGES CXX)
 
-add_library(kmrd_headers INTERFACE)
-add_library(ours::kernel::lib::kmrd::headers ALIAS kmrd_headers)
-target_include_directories(kmrd_headers 
+add_library(libkmrd_headers INTERFACE)
+add_library(kernel::lib::kmrd::headers ALIAS libkmrd_headers)
+target_include_directories(libkmrd_headers 
 INTERFACE
     "include"
 )
-target_link_libraries(kmrd_headers 
+target_link_libraries(libkmrd_headers 
 INTERFACE
-    ours::kernel::main::task::headers
-    ours::kernel::common::headers
+    kernel::main::headers
 )
 
-add_library(kmrd)
-add_library(ours::kernel::lib::kmrd ALIAS kmrd)
-target_link_libraries(kmrd
+add_library(libkmrd)
+add_library(kernel::lib::kmrd ALIAS libkmrd)
+target_link_libraries(libkmrd
 PUBLIC
-    ours::kernel::lib::kmrd::headers
+    kernel::lib::kmrd::headers
 )
-target_sources(kmrd
+target_sources(libkmrd
 PRIVATE
     "damon.cpp"
 )

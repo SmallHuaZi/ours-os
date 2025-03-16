@@ -6,24 +6,13 @@ set(source_set
     "mod.cpp"
 )
 
-add_library(ours_kernel_sched_headers INTERFACE)
-add_library(ours::kernel::main::sched::headers ALIAS ours_kernel_sched_headers)
-target_include_directories(ours_kernel_sched_headers
-INTERFACE
-    "include"
-)
-target_link_libraries(ours_kernel_sched_headers
-INTERFACE
-    ours::kernel::common::headers
-)
-
-add_library(ours_kernel_sched INTERFACE)
-add_library(ours::kernel::main::sched ALIAS ours_kernel_sched)
-target_sources(ours_kernel_sched 
+add_library(kernel_sched INTERFACE)
+add_library(kernel::main::sched ALIAS kernel_sched)
+target_sources(kernel_sched 
 INTERFACE
     ${source_set}
 )
-target_link_libraries(ours_kernel_sched
+target_link_libraries(kernel_sched
 INTERFACE
-    ours::kernel::main::sched::headers
+    kernel::main::headers
 )

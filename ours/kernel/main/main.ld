@@ -9,7 +9,7 @@ PHDRS {
 }
 
 SECTIONS {
-    . = MAIN_BASE;
+    . = 0;
 
     PROVIDE_HIDDEN(__executable_start = .);
 
@@ -18,7 +18,7 @@ SECTIONS {
 
     .init.text : AT(ADDR(.init.text)) {
         PROVIDE_HIDDEN(__init_code_start = .);
-        *(.init.boot)
+        *(SORT_BY_ALIGNMENT(.init.boot*))
         *(SORT_BY_ALIGNMENT(.init.text*))
         PROVIDE_HIDDEN(__init_code_end = .);
     } :init
@@ -70,9 +70,21 @@ SECTIONS {
     . = ALIGN(CONSTANT(MAXPAGESIZE));
 
     PROVIDE_HIDDEN(__rodata_start = .);
+    .interp : { *(.interp) }
+    .dynamic : { *(.dynamic) }
+    .hash : { *(.hash) }
+    .gnu.hash : { *(.gnu.hash) }
+    .dynsym : { *(.dynsym) }
+    .dynstr : { *(.dynstr) }
+    .relr.auth.dyn : { *(.relr.auth.dyn) }
+    ASSERT(SIZEOF(.relr.auth.dyn) == 0, ".relr.auth.dyn is not supported")
+    .relr.dyn : { *(.relr.dyn) }
+
     .rodata : {
         *(SORT_BY_ALIGNMENT(.rodata*))
     } :rodata
+    
+    .got : { *(.got*) }
 
     .note.gnu.build-id : {
         PROVIDE_HIDDEN(__build_id_note_start = .);
@@ -110,6 +122,25 @@ SECTIONS {
     ASSERT(__init_start == __executable_start, "`.init*` sections should be put on the front of kernel iamge")
     ASSERT(__bss_end == __executable_end, "`.bss*` sections should be put on the tail of kernel iamge")
 
+    .got.plt (INFO) : { *(.got.plt) }
+    ASSERT(SIZEOF(.got.plt) == 0 || SIZEOF(.got.plt) == 0x18, "Unexpected GOT/PLT entries detected!")
+    .got : {
+        *(.got) *(.igot.*)
+    }
+    ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
+    .plt : {
+        *(.plt) *(.plt.*) *(.iplt)
+    }
+    ASSERT(SIZEOF(.plt) == 0, "Unexpected run-time procedure linkages detected!")
+    .rel.dyn : {
+        *(.rel.*) *(.rel_*)
+    }
+    ASSERT(SIZEOF(.rel.dyn) == 0, "Unexpected run-time relocations (.rel) detected!")
+    .rela.dyn : {
+        *(.rela.*) *(.rela_*)
+    }
+    ASSERT(SIZEOF(.rela.dyn) == 0, "Unexpected run-time relocations (.rela) detected!")
+
     /* Non-allocated section needs to be protected from GC with BFD ld. */
     .code-patches 0 : {
         KEEP(*(.code-patches))
@@ -128,7 +159,5 @@ SECTIONS {
  *
  * MI_* indicates the bounds of kernel code address range.
 */
-MI_CORE_START = __executable_start; /* Indentical with MI_CORE_LOAD_START */
-MI_CORE_LOAD_END = __rodata_end;
-MI_CORE_END = __executable_end;
-MI_CORE_SIZE = MI_CORE_END - MI_CORE_START;
+MAIN_LOAD_END = __data_end;
+MAIN_RESERVED_SIZE = __executable_end - __data_end;

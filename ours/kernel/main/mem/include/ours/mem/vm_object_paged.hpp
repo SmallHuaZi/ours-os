@@ -19,8 +19,9 @@ namespace ours::mem {
     class VmObjectPaged
         : public VmObject
     {
-    private:
-        
+    public:
+        static auto create() -> ustl::Rc<VmObjectPaged>;
+        static auto create_contiguous() -> ustl::Rc<VmObjectPaged>;
     };
 
 } // namespace ours::mem

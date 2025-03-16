@@ -129,6 +129,8 @@ namespace bootmem {
 
         auto iterate(IterationContext &context) const -> ustl::Option<Region> override;
 
+        auto set_node(PhysAddr base, PhysAddr size, NodeId nid) -> void override;
+
         // The following methods was marked public just for tests
         auto memories_list() -> RegionList &
         {  return memories_;  }

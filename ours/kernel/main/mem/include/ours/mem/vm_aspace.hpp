@@ -21,7 +21,7 @@
 #include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_root_area.hpp>
 #include <ours/mem/vm_fault.hpp>
-#include <ours/mem/arch_vm_aspace_constraints.hpp>
+#include <ours/mem/arch_vm_aspace.hpp>
 
 #include <ours/init.hpp>
 

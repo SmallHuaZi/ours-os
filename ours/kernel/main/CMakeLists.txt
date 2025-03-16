@@ -1,39 +1,81 @@
-add_subdirectory(arch)
+add_library(kernel_main_headers INTERFACE)
+add_library(kernel::main::headers ALIAS kernel_main_headers)
+target_include_directories(kernel_main_headers 
+INTERFACE
+    "include"
+)
+
+file(GLOB ALL_SUBDIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
+foreach(SUBDIR ${ALL_SUBDIRS})
+    if (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}/include)
+        target_include_directories(kernel_main_headers  INTERFACE ${SUBDIR}/include)
+    endif()
+endforeach()
+
+target_link_libraries(kernel_main_headers
+INTERFACE
+    system::public::headers
+    kernel::object::headers
+    kernel::lib::ktl::headers
+    kernel::lib::gktl::headers
+    kernel::lib::ustl::headers
+)
+
+add_executable(kernel_main)
+add_executable(kernel::main ALIAS kernel_main)
+
+target_link_libraries(kernel_main
+PRIVATE
+    kernel::main::headers
+)
+
 add_subdirectory(irq)
 add_subdirectory(mem)
 add_subdirectory(task)
 add_subdirectory(sched)
 
-add_executable(ours_kernel_main)
-add_executable(ours::kernel::main ALIAS ours_kernel_main)
-target_sources(ours_kernel_main
+target_compile_definitions(kernel_main
+PRIVATE
+    "OURS_CURRENT_TARGET_IS_MAIN=1"
+    "OURS_CURRENT_TARGET_IS_64BIT=OURS_CONFIG_TARGET_64BIT"
+)
+target_sources(kernel_main
 PRIVATE
     "main.ld"
-
     "panic.cpp"
     "start.cpp"
     "handoff.cpp"
     "cpu_local.cpp"
 )
-target_link_libraries(ours_kernel_main
+target_link_libraries(kernel_main
 PRIVATE
-    ours::kernel::main::arch
-    ours::kernel::main::mem
-    ours::kernel::main::task
-    ours::kernel::main::sched
-    ours::kernel::phys::headers
-    ours::kernel::lib::arch
-    ours::kernel::lib::libc
-    ours::kernel::lib::logz4
+    kernel::main::arch
+    kernel::main::irq
+    kernel::main::mem
+    kernel::main::task
+    kernel::main::sched
+    kernel::phys::headers
+    kernel::lib::gktl
+    kernel::lib::ktl
+    kernel::lib::ustl
+
+    kernel::lib::arch
+    kernel::lib::libc
+    kernel::lib::logz4
+
+    "libgcc.a"
+
+    cft::asmflags 
+    # cft::nopie
 )
 
-target_compile_options(ours_kernel_main
+target_compile_options(kernel_main
 PRIVATE
     "-mcmodel=kernel"
     "-O0"
     "-stdlib=libc++"
     "-ffreestanding"
-    # "-fPIC"
+    "-fPIE"
     # "-fno-PIE" 
     "-fno-rtti"
     "-fno-builtin"
@@ -48,16 +90,14 @@ PRIVATE
     "-fdefault-calling-conv=cdecl"
 )
 
-target_link_options(ours_kernel_main
+target_link_options(kernel_main
 PRIVATE
     "-v"
-    "-Wl,--no-pie"
-    "-Wl,--no-relax"
+    "-pie"
     "-Wl,--build-id=none"
     "-Wl,--no-warn-rwx-segments"
     "-Wl,-z,noexecstack"
     "-Wl,--emit-relocs"
-    "-lgcc"
     "-static"
     # Clang needs -mcmodel=kernel to tell it to use the right safe-stack
     # ABI for the kernel.
@@ -71,48 +111,11 @@ PRIVATE
     # This a temporary base address will be removed,
     # and it should provides by cofiguration files.
     "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/main.ld"
-    "-Wl,-defsym,MAIN_BASE=${KERNEL_BASE}"
     "-Wl,-z,max-page-size=${MAX_PAGE_SIZE}"
     "-Wl,--gc-sections"
     "-Wl,--emit-relocs"
 )
 
-make_image(ours_kernel_main_raw_image
-    TARGET ours::kernel::main
-)
-
-add_executable(ours_kernel_redundant_main_image)
-target_include_directories(ours_kernel_redundant_main_image
-PRIVATE
-    "${CMAKE_BINARY_DIR}/gen"
-)
-target_sources(ours_kernel_redundant_main_image
-PRIVATE
-    "image.ld"
-    "arch/${OURS_ARCH}/image.S"
-)
-target_link_libraries(ours_kernel_redundant_main_image
-PRIVATE
-    ours::kernel::common::headers
-    ours::kernel::lib::omi::headers
-)
-target_link_options(ours_kernel_redundant_main_image
-PRIVATE
-    "-v"
-    "-Wl,--no-pie;"
-    "-Wl,--no-relax"
-    "-Wl,--no-warn-rwx-segments"
-    "-Wl,--build-id=none;"
-    "-static"
-    "-mcmodel=kernel"
-    "-nostartfiles"
-    "-nodefaultlibs"
-    "-T${CMAKE_CURRENT_SOURCE_DIR}/image.ld"
-    "-Wl,--just-symbols=$<TARGET_FILE:ours_kernel_main>"
-)
-
-add_dependencies(ours_kernel_redundant_main_image ours_kernel_main_raw_image)
-
-make_image(ours_kernel_main_image
-    TARGET ours_kernel_redundant_main_image
+make_obi(kernel_main_image
+    TARGET kernel_main
 )
