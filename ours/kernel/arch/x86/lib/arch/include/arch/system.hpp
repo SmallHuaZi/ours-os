@@ -14,14 +14,18 @@
 #include <arch/types.hpp>
 #include <arch/sysreg.hpp>
 
-#define X86_IMPL_SYSREG(TAG, NAME)\
+#define X86_IMPL_SYSREG(DERIVED, NAME)\
     template <>\
     USTL_FORCEINLINE USTL_CONSTEXPR \
-    auto SysReg<TAG>::write(usize value) -> void\
-    { asm volatile("mov %0, %%" NAME : : "r"(static_cast<usize>(value))); }      \
+    auto SysReg<DERIVED>::write(DERIVED value) -> void\
+    { \
+        static_assert(sizeof(DERIVED) <= sizeof(usize), \
+                      "A system register is impossibly greater than the size a platform supports");\
+        asm volatile("mov %0, %%" NAME : : "r"(value)); \
+    } \
     template <>\
     USTL_FORCEINLINE USTL_CONSTEXPR \
-    auto SysReg<TAG>::read() -> Self \
+    auto SysReg<DERIVED>::read() -> Self \
     {\
         usize value;\
         asm volatile("mov %%" NAME ", %0" : "=r"(value));\
@@ -29,8 +33,16 @@
     }
 
 namespace arch {
+    using ustl::TypeList;
+    using ustl::Field;
+    using ustl::BitFields;
+    using ustl::bitfields::Id;
+    using ustl::bitfields::Name;
+    using ustl::bitfields::Bits;
+    using ustl::bitfields::Type;
+    using ustl::bitfields::Enable;
+
     struct Cr0;
-    struct Cr1;
     struct Cr2;
     struct Cr3;
     struct Cr4;
@@ -38,6 +50,7 @@ namespace arch {
     template <>
     struct SysRegTraits<Cr0>
     {
+        typedef usize   ValueType;
         enum RegisterBits {
             X87,
             Sse,
@@ -51,17 +64,17 @@ namespace arch {
             Pkru
         };
 
-        typedef ustl::TypeList<
-            ustl::BitField<ustl::FieldId<X87>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<Sse>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<Avx>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<BndReg>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<BndCsr>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<OpMask>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<ZmmHi256>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<Hi16Zmm>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<P0>, ustl::FieldName<"x87">>,
-            ustl::BitField<ustl::FieldId<Pkru>, ustl::FieldName<"x87">>
+        typedef TypeList<
+            Field<Id<X87>, Name<"x87">>,
+            Field<Id<Sse>, Name<"Sse">>,
+            Field<Id<Avx>, Name<"Avx">>,
+            Field<Id<BndReg>, Name<"BndReg">>,
+            Field<Id<BndCsr>, Name<"BndCsr">>,
+            Field<Id<OpMask>, Name<"OpMask">>,
+            Field<Id<ZmmHi256>, Name<"ZmmHi256">>,
+            Field<Id<Hi16Zmm>, Name<"Hi16Zmm">>,
+            Field<Id<P0>, Name<"P0">>,
+            Field<Id<Pkru>, Name<"Pkru">>
         > FieldList;
     };
 
@@ -69,8 +82,29 @@ namespace arch {
     X86_IMPL_SYSREG(Cr0, "cr0");
 
     template <>
-    struct SysRegTraits<Cr1>
+    struct SysRegTraits<Cr2> {
+        typedef usize   ValueType;
+        enum RegisterBits { Address };
+        typedef TypeList<Field<Id<Address>, Bits<ustl::NumericLimits<VirtAddr>::DIGITS>>>
+            FieldList;
+    };
+    struct Cr2: public SysReg<Cr2> {};
+    X86_IMPL_SYSREG(Cr2, "cr2");
+
+    template <>
+    struct SysRegTraits<Cr3> {
+        typedef usize   ValueType;
+        enum RegisterBits { PageTableAddress, };
+        typedef TypeList<Field<Id<PageTableAddress>, Bits<ustl::NumericLimits<PhysAddr>::DIGITS>>>
+            FieldList;
+    };
+    struct Cr3: public SysReg<Cr3> {};
+    X86_IMPL_SYSREG(Cr3, "cr3");
+
+    template <>
+    struct SysRegTraits<Cr4>
     {
+        typedef usize   ValueType;
         enum RegisterBits {
             Vme,
             Pvi,
@@ -92,65 +126,30 @@ namespace arch {
             OsxSave,
         };
         typedef ustl::TypeList<
-            ustl::BitField<ustl::FieldId<Vme>, ustl::FieldName<"vme">>,
-            ustl::BitField<ustl::FieldId<Pvi>, ustl::FieldName<"pvi">>,
-            ustl::BitField<ustl::FieldId<Tsd>, ustl::FieldName<"tsd">>,
-            ustl::BitField<ustl::FieldId<De>, ustl::FieldName<"de">>,
-            ustl::BitField<ustl::FieldId<Pse>, ustl::FieldName<"pse">>,
-            ustl::BitField<ustl::FieldId<Pae>, ustl::FieldName<"pae">>,
-            ustl::BitField<ustl::FieldId<Mce>, ustl::FieldName<"mce">>,
-            ustl::BitField<ustl::FieldId<Pge>, ustl::FieldName<"pge">>,
-            ustl::BitField<ustl::FieldId<Pce>, ustl::FieldName<"pce">>,
-            ustl::BitField<ustl::FieldId<OsFxsr>, ustl::FieldName<"osfxsr">>,
-            ustl::BitField<ustl::FieldId<OsMmexcpt>, ustl::FieldName<"osmmexcpt">>,
-            ustl::BitField<ustl::FieldId<Umip>, ustl::FieldName<"umip">>,
-            ustl::BitField<ustl::FieldId<La57>, ustl::FieldName<"la57">>,
-            ustl::BitField<ustl::FieldId<Vmxe>, ustl::FieldName<"vmxe">>,
-            ustl::BitField<ustl::FieldId<Smxe>, ustl::FieldName<"smxe">>,
-            ustl::BitField<ustl::FieldId<FsGsBase>, ustl::FieldName<"FsGsBase">>,
-            ustl::BitField<ustl::FieldId<Pcide>, ustl::FieldName<"Pcide">>,
-            ustl::BitField<ustl::FieldId<OsxSave>, ustl::FieldName<"osxsave">>
+            Field<Id<Vme>, Name<"vme">>,
+            Field<Id<Pvi>, Name<"pvi">>,
+            Field<Id<Tsd>, Name<"tsd">>,
+            Field<Id<De>, Name<"de">>,
+            Field<Id<Pse>, Name<"pse">>,
+            Field<Id<Pae>, Name<"pae">>,
+            Field<Id<Mce>, Name<"mce">>,
+            Field<Id<Pge>, Name<"pge">>,
+            Field<Id<Pce>, Name<"pce">>,
+            Field<Id<OsFxsr>, Name<"osfxsr">>,
+            Field<Id<OsMmexcpt>, Name<"osmmexcpt">>,
+            Field<Id<Umip>, Name<"umip">>,
+            Field<Id<La57>, Name<"la57">>,
+            Field<Id<Vmxe>, Name<"vmxe">>,
+            Field<Id<Smxe>, Name<"smxe">>,
+            Field<Id<FsGsBase>, Name<"FsGsBase">>,
+            Field<Id<Pcide>, Name<"Pcide">>,
+            Field<Id<OsxSave>, Name<"osxsave">>
         > FieldList;
     };
-    struct Cr1: public SysReg<Cr1> {};
-    X86_IMPL_SYSREG(Cr1, "cr1");
-
-    template <>
-    struct SysRegTraits<Cr2>
-    {  
-        enum { Address };
-        typedef ustl::TypeList<
-            // TODO(SmallHuaZi) Modifies the total bits to 
-            ustl::BitField<
-                ustl::FieldId<Address>, 
-                ustl::FieldBits<ustl::NumericLimits<VirtAddr>::DIGITS - 1>
-            >
-        > FieldList;
-    };
-    struct Cr2: public SysReg<Cr2> {};
-    X86_IMPL_SYSREG(Cr2, "cr2");
-
-    template <>
-    struct SysRegTraits<Cr3>
-    {  
-        enum RegisterBits {
-            PageTableAddress,
-        };
-        typedef ustl::TypeList<
-            ustl::BitField<ustl::FieldId<PageTableAddress>, ustl::FieldBits<63>>
-        > FieldList;  
-    };
-    struct Cr3: public SysReg<Cr3> {};
-    X86_IMPL_SYSREG(Cr3, "cr3");
-
-    template <>
-    struct SysRegTraits<Cr4>
-    {  typedef ustl::TypeList<>    FieldList;  };
     struct Cr4: public SysReg<Cr4> {};
     X86_IMPL_SYSREG(Cr4, "cr4");
 
-#undef X86_SYSREG
-
 } // namespace arch::x86
 
+#undef X86_SYSREG
 #endif // #ifndef ARCH_X86_SYSTEM_HPP

@@ -39,6 +39,63 @@
         ],
     },
     "settings": {
+        "todo-tree.tree.autoRefresh": true,
+        "todo-tree.highlights.customHighlight": {
+            "WARN": {
+                "foreground": "#3a3a3e",
+                "background": "#FFA500",
+                "iconColour": "#FFA500",
+                "icon": "alert",
+                "type": "tag"
+            },
+            "TODO": {
+                "foreground": "#3a3a3e",
+                "background": "#00bb5a",
+                "iconColour": "#00bb5a",
+                "icon": "check",
+                "type": "tag"
+            },
+            "FIXME": {
+                "foreground": "#3a3a3e",
+                "background": "#ff0303",
+                "iconColour": "#e03131",
+                "icon": "bug"
+            },
+            "REVIEW": {
+                "foreground": "#3a3a3e",
+                "background": "#2770d5",
+                "iconColour": "#2770d5",
+                "icon": "eye"
+            },
+            "HACK": {
+                "foreground": "#3a3a3e",
+                "background": "#f200ff",
+                "iconColour": "#f200ff",
+                "icon": "alert"
+            },
+            "REF": {
+                "foreground": "#3a3a3e",
+                "background": "#aaaaf3",
+                "iconColour": "#aaaaf3",
+                "icon": "link",
+                "type": "tag"
+            }
+        },
+        "todo-tree.general.tags": [
+            "BUG",
+            "HACK",
+            "HINT",
+            "WARN",
+            "FIXME",
+            "TODO",
+            "XXX",
+            "REVIEW",
+            "REF",
+        ],
+        "todo-tree.general.tagGroups": {
+            "BUG": ["BUG", "FIXME"]
+        },
+
         "editor.defaultFormatter": "xaver.clang-format",
         "editor.rulers": [
             130
@@ -121,34 +178,32 @@
         "version": "2.0.0",
         "tasks": [
             {
-                "label": "Launch QEMU",
+                "label": "Launch VM",
                 "type": "shell",
                 "isBackground": true,
-                "command": "sh ${workspaceFolder}/runvm.sh",
+                "command": "./prelaunch.sh",
                 "problemMatcher": {
                     "pattern": {
-                        "regexp": "^(Starting QEMU)",
-                        "line": 1,
+                        "regexp": ".",
                     },
                     "background": {
                         "activeOnStart": true,
-                        "beginsPattern": "^(Starting QEMU)",
-                        "endsPattern": "^(Starting QEMU)"
+                        "beginsPattern": ".",
+                        "endsPattern": "."
                     }
                 }
-            },
-            {
-                "label": "Make Image",
-                "type": "shell",
-                "isBackground": false,
-                "command": "./mkimg.sh target/build/Clang-18-x86_64-pc-linux-gnu/ours_kernel_phys ours.iso",
             },
             {
                 "label": "SetUp",
                 "dependsOn": [
                     "CMake: build",
-                    // "Make Image",
-                    // "Launch QEMU"
+                    "Launch VM",
+                ]
+            },
+            {
+                "label": "Build",
+                "dependsOn":[
+                    "CMake: build"
                 ]
             }
         ]
@@ -160,6 +215,7 @@
                 "name": "Debug in QEMU",
                 "type": "lldb",
                 "request": "launch",
+                "stopOnEntry": true,
                 "program": "${command:cmake.launchTargetPath}",
                 "targetCreateCommands": ["target create ${command:cmake.launchTargetPath}"],
                 "processCreateCommands": ["gdb-remote 1234"],
@@ -167,14 +223,14 @@
                     "platform select remote-linux",
                 ],
                 "preLaunchTask": "SetUp",
-                "sourceMap": {"ours/kernel/phys":"${workspaceFolder}/ours/kernel/phys"}
             },
             {
                 "name": "Debug Test",
                 "type": "lldb",
                 "request": "launch",
                 // ${command:cmake.getLaunchTargetDirectory}
-                "program": "${command:cmake.getLaunchTargetDirectory}/${input:SelectTestProgram}"///${input:SelectTestProgram}",
+                "program": "${command:cmake.getLaunchTargetDirectory}/${input:SelectTestProgram}",
+                "preLaunchTask": "Build"
             },
             {
                 "name": "Remote launch",
@@ -187,13 +243,6 @@
                 ],
                 "preLaunchTask": "SetUp",
             },
-            // {
-                // "name": "Debug Test",
-                // "type": "lldb-dap",
-                // "request": "launch",
-                // ${command:cmake.getLaunchTargetDirectory}
-                // "program": "${command:cmake.getLaunchTargetDirectory}/${input:SelectTestProgram}"///${input:SelectTestProgram}",
-            // }
         ],
         "inputs": [
             {

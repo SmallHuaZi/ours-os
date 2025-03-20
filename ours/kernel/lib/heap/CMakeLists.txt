@@ -19,7 +19,8 @@ PRIVATE
 target_link_libraries(heap
 PRIVATE
     kernel::main::headers
-    kernel::main::headers
+    kernel::lib::ustl::headers
+    kernel::lib::ktl::headers
     kernel::lib::ktl::headers
 PUBLIC
     kernel::lib::heap::headers

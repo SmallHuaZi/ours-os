@@ -5,45 +5,31 @@
 #include <ours/macro_abi.hpp>
 #include <ours/mem/cfg.hpp>
 
-#include <arch/x86/registers.hpp>
-
-// For load GDTR
-.extern PHYS_PGD 
-.extern TEMP_GDTR
-.extern KERNEL_VIRT_BASE
-.extern KERNEL_PHYS_BASE
+/// The symbols below should be defined in *.cpp files. It is because of
+/// controlling the size of them for difference in 32-bits and 64-bits platform.
+.extern g_kernel_virt_base
+.extern g_kernel_phys_base
+.extern g_kernel_stack_bottom
+.extern g_kernel_stack_size
 
 // Kernel entry point
 .extern start_kernel
 
 /// [[NO_RETURN]] 
-/// auto _start(VirtAddr relocated_base, PhysAddr handoff) -> void
+/// auto _start(PhysAddr handoff) -> void
 /// %rdi: relocated_base
-/// %rsi: handoff
 .align 8
 .function _start, global
     // Disable interrupts
     cli
 
     // Save handoff
-    mov %rsi, %r15
+    mov %rdi, %r15
 
-    // Page table has been changed, so we must reload the data before
-    // to rectify their address.
-    lea KERNEL_STACK_END(%rip), %rsp
+    mov %rsp, g_kernel_stack_bottom(%rip)
+    mov %cr3, %rax
+    mov %rax, g_pgd(%rip)
 
-    lgdt TEMP_GDTR(%rip)
-
-    // Save the relocated_base of our main module 
-    mov %rdi, KERNEL_VIRT_BASE(%rip)
-
-    pushq $X86_GDT_KERNEL_CODE64
-    lea .Lreload_cs(%rip), %rax
-    pushq %rax
-    lretq
-
-// Now we is on the high address. For ASLR, the code bottom is required being PIC.
-.Lreload_cs:
     // Zero our kernel segment data registers
     xor %eax, %eax
     mov %eax, %ds
@@ -62,9 +48,5 @@ idle:
     jmp idle
 .end_function
 
-.object KERNEL_STACK, bss, global, align=16
-    .skip KB(2)
-KERNEL_STACK_END:
-.end_object
-
+/// Export for main.ld
 .label MAIN_ENTRY, global, value=_start

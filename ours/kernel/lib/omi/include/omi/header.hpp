@@ -12,7 +12,6 @@
 #define OMI_OMI_HEADER_HPP 1
 
 #include <ours/types.hpp>
-#include <ours/macro_abi.hpp>
 
 namespace omi {
     struct Header
@@ -27,15 +26,17 @@ namespace omi {
         // Flags for this item.
         u32 flags;
 
-        // Enable if flags was set HeaderFlags::Compressed.
-        u32 extra;
-
         // Must be OMI_HEADER_MAGIC.
         u32 magic;
 
         // Must be the CRC32 of payload if ZBI_FLAGS_CRC32 is set,
         // otherwise must be ZBI_ITEM_NO_CRC32.
         u32 check_code;
+
+        // Enable if flags was set HeaderFlags::Compressed.
+        u32 extra;
+
+        usize extra_1;
     };
 
     struct Kernel

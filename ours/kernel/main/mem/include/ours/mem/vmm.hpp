@@ -34,16 +34,18 @@ namespace ours::mem {
     extern char const KERNEL_BSS_START[] LINK_NAME("__bss_start");
     extern char const KERNEL_BSS_END[] LINK_NAME("__bss_end");
 
-    NO_MANGLE PhysAddr KERNEL_PHYS_BASE;
-    NO_MANGLE VirtAddr KERNEL_VIRT_BASE;
+    NO_MANGLE PhysAddr g_kernel_phys_base;
+    NO_MANGLE VirtAddr g_kernel_virt_base;
 
     FORCE_INLINE
-    auto get_kernel_phys_base() -> PhysAddr
-    { return KERNEL_PHYS_BASE;  }
+    auto get_kernel_phys_base() -> PhysAddr { 
+        return g_kernel_phys_base;  
+    }
 
     FORCE_INLINE
-    auto get_kernel_virt_base() -> VirtAddr
-    { return KERNEL_VIRT_BASE;  }
+    auto get_kernel_virt_base() -> VirtAddr { 
+        return g_kernel_virt_base;  
+    }
 
     FORCE_INLINE
     auto get_kernel_size() -> usize

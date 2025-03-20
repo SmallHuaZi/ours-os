@@ -73,7 +73,7 @@ namespace ustl::io {
             //
             // The reported size must be at least sizeof(T), and must not be larger than
             // the number of bytes we have left in our buffer.
-            size_t desired_size = ptr->size();
+            usize desired_size = ptr->size();
             if (desired_size < sizeof(T) || desired_size > buffer_.size_bytes()) {
                 return nullptr;
             }
@@ -86,7 +86,7 @@ namespace ustl::io {
         /// Discard the given number of bytes.
         ///
         /// Return true if the bytes could be discarded, or false if there are insufficient bytes.
-        auto skip_bytes(size_t bytes) -> bool {
+        auto skip_bytes(usize bytes) -> bool {
             if (buffer_.size() < bytes) {
                 return false;
             }

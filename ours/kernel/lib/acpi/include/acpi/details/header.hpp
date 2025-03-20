@@ -21,14 +21,18 @@
 namespace acpi {
     typedef ours::Status    Status;
 
-    struct PACKED AcpiSignature {
+    union PACKED AcpiSignature {
         // Create an AcpiSignature from a C-style string.
         CXX11_CONSTEXPR
         AcpiSignature() = default;
 
         CXX11_CONSTEXPR
-        explicit AcpiSignature(const char name[4])
-            : value(name[0] << 24 | name[1] << 16 | name[2] << 8 | name[3]) {}
+        explicit AcpiSignature(char const name[4]) {
+            this->name[0] = name[0];
+            this->name[1] = name[1];
+            this->name[2] = name[2];
+            this->name[3] = name[3];
+        }
 
         // Operators.
         CXX11_CONSTEXPR
@@ -41,12 +45,21 @@ namespace acpi {
             return left.value != right.value;
         }
 
-        // Value, in big-endian format to match the in-memory representation.
-        //
-        // For example, on little-endian systems the signature "1234" will have a value
-        // 0x34'33'32'31, with bytes reversed.
         u32 value;
+        char name[4];
     };
+    static_assert(sizeof(AcpiSignature) == 4);
+
+    struct PACKED AcpiEntryHeader {
+        u8 type;
+        u8 length;
+
+        CXX11_CONSTEXPR
+        auto size() const -> u8 {
+            return length;
+        }
+    };
+    static_assert(sizeof(AcpiEntryHeader) == 2);
 
     /// System description table header.
     struct PACKED AcpiTableHeader {
@@ -65,16 +78,7 @@ namespace acpi {
         u32 creator_id;
         u32 creator_revision;
     };
-
-    struct PACKED AcpiEntryHeader {
-        u8 type;
-        u8 length;
-
-        CXX11_CONSTEXPR
-        auto size() const -> u8 {
-            return length;
-        }
-    };
+    static_assert(sizeof(AcpiTableHeader) == 36);
 
     template <typename Dest, typename Src>
     auto downcast(const Src* src) -> Dest const * {

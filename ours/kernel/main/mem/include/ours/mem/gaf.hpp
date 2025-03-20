@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_FLAGS_HPP
 #define OURS_MEM_FLAGS_HPP
 
@@ -22,11 +21,10 @@ namespace gafns {
     enum GafBits: usize {
         DmaBit,
         Dma32Bit,
-        ZoneRangeBit,
         RequiredBit,
         OnlyThisNodeBit,
         NeverFailBit,
-        ZeroFrameBit,
+        ZeroBit,
         ReclaimBit,
         DirectlyReclaimBit,
     };
@@ -36,12 +34,12 @@ namespace gafns {
     enum Gaf: usize {
         Dma             = BIT(DmaBit),
         Dma32           = BIT(Dma32Bit),
-        ZoneRange       = BIT(ZoneRangeBit),
-
         Required        = BIT(RequiredBit),
         OnlyThisNode    = BIT(OnlyThisNodeBit),
+
+        /// `PMM` will retry infinitely until it get an available frame.
         NeverFail       = BIT(NeverFailBit),
-        ZeroFrame       = BIT(ZeroFrameBit),
+        Zero            = BIT(ZeroBit),
 
         /// In process of an allocation, it indicates `PMM` under memory pressure
         /// that it could enable the back-side thread to reclaim frames and sleep
@@ -77,7 +75,8 @@ namespace gafns {
     }
 
 } // namespace ours::mem::gafns
-    typedef gafns::Gaf        Gaf;
+    // Export Gaf for user
+    using gafns::Gaf;
 
     CXX11_CONSTEXPR
     static auto const GAF_BOOT = Gaf::OnlyThisNode;

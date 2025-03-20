@@ -14,7 +14,8 @@
 #include <arch/paging/options.hpp>
 #include <arch/paging/page_table_ept.hpp>
 #include <arch/paging/page_table_mmu.hpp>
-#include <arch/paging/l4_paging.hpp>
+#include <arch/paging/x86_pagings.hpp>
+#include <arch/options.hpp>
 
 #include <gktl/canary.hpp>
 #include <ustl/option.hpp>
@@ -89,8 +90,8 @@ namespace paging {
         }
 
         FORCE_INLINE
-        auto alias_to(X86PageTable const &other, VirtAddr base, usize nr_pages, usize level) -> Status {
-            return pimpl_->alias_to(*other.pimpl_, base, nr_pages, level);
+        auto alias_to(X86PageTable const &other, VirtAddr base, usize nr_pages) -> Status {
+            return pimpl_->alias_to(*other.pimpl_, base, nr_pages);
         }
 
         FORCE_INLINE
@@ -141,12 +142,12 @@ namespace paging {
 
         VirtAddr pgd_va;
 
-        return init(pgd_pa, pgd_va);
+        return init<Derived>(pgd_pa, pgd_va);
     }
 
     struct PageTableDefaultOptions {
         CXX11_CONSTEXPR
-        static usize const PAGING_LEVEL = 4;
+        static usize const kPagingLevel = 4;
 
         typedef ustl::sync::Mutex Mutex;
         typedef void PageManager;
@@ -156,17 +157,17 @@ namespace paging {
     template <typename... Options>
     struct MakeX86PageTable {
         typedef typename ustl::PackOptions<PageTableDefaultOptions, Options...>::Type PackedOptions;
-
         typedef X86PageTable<PackedOptions> Type;
     };
 } // namespace paging
 
     /// The `PageTable` type alias follows standard naming conventions for generic page table implementations.
     /// It supports the following template parameters:
-    ///     1) \c `Mutex<>`       - Locking mechanism for concurrent access
-    ///     2) \c `PageManager<>` - Physical page allocation strategy
-    ///     3) \c `TlbInvalidator<>` - TLB shootdown handling
-    ///     4) \c `PagingConfig<>` - Paging config
+    ///     1) \c `MutexT<>`       - Locking mechanism for concurrent access
+    ///     2) \c `PageSourceT<>`  - Physical page allocation strategy
+    ///     3) \c `PageFlusherT<>` - TLB and cache shootdown handling
+    ///     4) \c `PagingLevelV<>` - Paging config
+    ///     5) \c `X86PageExt<>`   - Whether enable x86 page extension. It is only valid on 32-bits platform.
     ///
     /// These parameters allow customization of:
     ///   - Synchronization primitives

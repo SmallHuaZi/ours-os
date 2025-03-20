@@ -136,6 +136,12 @@
 #define X86_MSR_AMD_F10_DE_CFG 0xc0011029          // AMD Family 10h+ decode config
 #define X86_MSR_AMD_F10_DE_CFG_LFENCE_SERIALIZE (1 << 1)
 
+// EFER
+#define X86_EFER_SCE 0x00000001             /* Enable SYSCALL */
+#define X86_EFER_LME 0x00000100             /* Long mode enable */
+#define X86_EFER_LMA 0x00000400             /* Long mode active */
+#define X86_EFER_NXE 0x00000800             /* To enable execute disable bit */
+
 #define X86_MSR_AMD_LS_CFG 0xc0011020 // Load/store unit configuration
 #define X86_AMD_LS_CFG_F15H_SSBD (1ull << 54)
 #define X86_AMD_LS_CFG_F16H_SSBD (1ull << 33)

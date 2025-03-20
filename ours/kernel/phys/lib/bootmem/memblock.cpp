@@ -159,7 +159,7 @@ namespace bootmem {
         }
 
         IterMut first{}, last{};
-        auto end = base + size;
+        auto const end = base + size;
         for (auto i = 0; i < count_; ++i) {
             auto const rbase = regions_[i].base;
             auto const rend = regions_[i].end();

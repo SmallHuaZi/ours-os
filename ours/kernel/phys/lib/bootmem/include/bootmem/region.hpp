@@ -33,6 +33,14 @@ namespace bootmem {
     using ours::mem::NodeId;
     using ours::mem::Pfn;
 
+    using ustl::Field;
+    using ustl::BitFields;
+    using ustl::bitfields::Id;
+    using ustl::bitfields::Name;
+    using ustl::bitfields::Bits;
+    using ustl::bitfields::Type;
+    using ustl::bitfields::Enable;
+
     enum class RegionType : u16 {
         Normal,
         Unused,
@@ -46,7 +54,8 @@ namespace bootmem {
 
         Region(PhysAddr base, PhysAddr size, RegionType type, NodeId nid)
             : base(base),
-              size(size) {
+              size(size),
+              flags() {
             set_nid(nid);
             set_type(type);
         }
@@ -87,12 +96,10 @@ namespace bootmem {
         PhysAddr size;
 
         // clang-format off
-        typedef ustl::BitFields<
-            ustl::BitField<ustl::FieldId<0>, ustl::FieldBits<BIT_WIDTH(u16(RegionType::MaxNumType))>, ustl::FieldName<"Type">,
-                           ustl::FieldType<RegionType>>,
-            ustl::BitField<ustl::FieldId<1>, ustl::FieldBits<MAX_NODES_BITS>, ustl::FieldName<"Nid">, 
-                           ustl::FieldType<NodeId>>
-            > Flags;
+        typedef BitFields<
+            Field<Id<0>, Bits<BIT_WIDTH(u16(RegionType::MaxNumType))>, Name<"Type">, Type<RegionType>>,
+            Field<Id<1>, Bits<MAX_NODES_BITS>, Name<"Nid">, Type<NodeId>>
+        > Flags;
         // clang-format on
         Flags flags;
     };

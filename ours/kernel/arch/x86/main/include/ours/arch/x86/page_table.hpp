@@ -14,6 +14,7 @@
 #include <ours/mem/mod.hpp>
 #include <ours/mem/gaf.hpp>
 #include <ours/mem/memory_model.hpp>
+#include <ours/mutex.hpp>
 
 #include <arch/page_table.hpp>
 
@@ -24,7 +25,8 @@ namespace ours::mem::details {
         {  
             PhysAddr phys_addr;
             if (auto frame = alloc_frame(GAF_KERNEL, &phys_addr, 0)) {
-                frame->set_role(PfRole::Mmu);
+                frame->flags().set_role(PfRole::Mmu);
+                frame->increase_mapping();
                 return phys_addr;
             }
 
@@ -34,7 +36,8 @@ namespace ours::mem::details {
         static auto free_page(PhysAddr phys_addr) -> void
         {
             if (auto frame = MemoryModel::phys_to_frame(phys_addr)) {
-                frame->set_role(PfRole::Pmm);
+                frame->flags().set_role(PfRole::Pmm);
+                frame->decrease_mapping();
                 free_frame(frame, 0);
             }
         }
@@ -48,8 +51,9 @@ namespace ours::mem::details {
 
     typedef arch::PageTable
     <
-        arch::PageManager<PageAllocator>,
-        arch::TlbInvalidator<TlbInvalidator>
+        arch::paging::PageSourceT<PageAllocator>,
+        arch::paging::PageFlusherT<TlbInvalidator>,
+        arch::MutexT<Mutex>
     > PageTable;
 
 } // namespace ours::mem::details

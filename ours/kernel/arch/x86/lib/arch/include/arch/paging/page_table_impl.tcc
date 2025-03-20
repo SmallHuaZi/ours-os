@@ -120,7 +120,7 @@ namespace arch::paging {
         auto const derived = static_cast<Derived *>(this);
         auto const level_page_size = Self::page_size(level);
         auto const allow_large_page_mapping = bool(control & MapControl::TryLargePage);
-        auto const large_page_supported = derived->has_supported_page_size(level);
+        auto const large_page_supported = derived->level_can_be_terminal(LevelType(level));
         auto const max_entries = Self::max_entries(level);
 
         auto index = virt_to_index(level, context->virt_addr());
@@ -235,7 +235,7 @@ namespace arch::paging {
     {  return Status::Unimplemented;  }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages, usize level) -> Status
+    auto X86_PAGE_TABLE::alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages) -> Status
     {  return Status::Unimplemented;  }
 
 } // namespace arch::paging

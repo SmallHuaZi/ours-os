@@ -16,13 +16,7 @@
 #include <ustl/util/pack_options.hpp>
 
 namespace arch {
-    USTL_TYPE_OPTION(Mutex, Mutex);
-
-    USTL_TYPE_OPTION(PageManager, PageManager);
-
-    USTL_TYPE_OPTION(TlbInvalidator, TlbInvalidator);
-
-    USTL_CONSTANT_OPTION(PagingLevel, usize, PAGING_LEVEL);
+    USTL_TYPE_OPTION(MutexT, Mutex);
 
 } // namespace arch
 

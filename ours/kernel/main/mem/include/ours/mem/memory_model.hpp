@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_MEMORY_MODEL_HPP
 #define OURS_MEM_MEMORY_MODEL_HPP 1
 
@@ -19,34 +18,55 @@
 #include <ustl/bitfields.hpp>
 
 namespace ours::mem {
+namespace details {
+    using ustl::bitfields::Id;
+    using ustl::bitfields::Bits;
+    using ustl::bitfields::Name;
+    using ustl::bitfields::Type;
+
+    USTL_CONSTEXPR
+    static usize const USIZE_BITS = ustl::NumericLimits<usize>::DIGITS;
+
+    enum State {
+        Present,
+        Online,
+        MaxNumState,
+    };
+    CXX11_CONSTEXPR
+    static auto const STATE_BW = ustl::bit_width<usize>(MaxNumState);
+
+    typedef ustl::Field<Id<0>, Type<State>, Bits<STATE_BW>>  ControlField;
+    typedef ustl::Field<Id<1>, Type<PmFrame *>, Bits<USIZE_BITS - STATE_BW>> FrameMapField;
+
+    typedef ustl::BitFields<ustl::TypeList<FrameMapField, ControlField>> EncodedUsize;
+    static_assert(sizeof(EncodedUsize) == sizeof(usize), "This is not the thing we expect.");
+
     /// Leaf node
-    struct PmSection
-    {
-        enum State {
-            Present,
-            Online,
+    struct PmSection {
+        typedef ustl::views::Span<PmFrame>  FrameMap;
+
+        enum FieldId {
+            StateId,
+            FrameMapId,
         };
 
-        USTL_CONSTEXPR
-        static usize const USIZE_BITS = ustl::NumericLimits<usize>::DIGITS;
+        auto state() const -> State {
+            return value_.get<StateId>();
+        }
 
-        typedef ustl::BitField<
-            ustl::FieldId<0>,
-            ustl::FieldType<State>, 
-            ustl::FieldBits<SECTION_SHIFT>
-        > ControlField;
+        auto set_state() const -> State {
+            return value_.get<StateId>();
+        }
 
-        typedef ustl::BitField<
-            ustl::FieldId<1>,
-            ustl::FieldType<PmFrame *>, 
-            ustl::FieldBits<USIZE_BITS - SECTION_SHIFT>
-        > FrameMapField;
-
-        typedef ustl::BitFields<ustl::TypeList<FrameMapField, ControlField>> EncodedUsize;
-        static_assert(sizeof(EncodedUsize) == sizeof(usize), "This is not the thing we expect.");
+        auto frame_map() const -> FrameMap {
+            auto const raw_frame_map = value_.get<FrameMapId>();
+            return { raw_frame_map, 0 };
+        }
 
         EncodedUsize value_;
     };
+
+} // namespace ours::mem::details
 
     /// `MemoryModel` is a high-level abstract and implementation to physical memory layout.
     /// It's responsibility is to pre-allocate `PmFrame` and to provide a group of the convertion
@@ -84,7 +104,7 @@ namespace ours::mem {
 
         static auto depopulate(Pfn start, usize nr_frames) -> Status;
     private:
-        static PmSection *ste_;
+        static details::PmSection *ste_;
     };
 
 } // namespace ours::mem

@@ -79,6 +79,13 @@ namespace bootmem {
                 count_ -= last - first;
             }
 
+            auto at(usize index) const -> Region & {
+                if (index < count_) {
+                    return regions_[index];
+                }
+                UNREACHABLE();
+            }
+
             auto insert(usize index, Region const &region) -> void;
 
             auto push_back(Region const &region) -> void;

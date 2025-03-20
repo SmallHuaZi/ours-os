@@ -53,7 +53,7 @@
 
 #define X86_MAX_PTES    512
 
-/* page fault error code flags */
+/// Page fault error code flags
 #define PFEX_PRESENT    BIT(0)
 #define PFEX_WRITE      BIT(1)
 #define PFEX_USER       BIT(2)

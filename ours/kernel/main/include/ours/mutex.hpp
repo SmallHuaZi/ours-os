@@ -14,7 +14,9 @@
 
 namespace ours {
     class Mutex {
-
+    public:
+        auto lock() -> void {}
+        auto unlock() -> void {}
     };
 
 } // namespace ours

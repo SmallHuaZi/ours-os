@@ -24,7 +24,7 @@ namespace ours::phys {
     {
         /// Any `LegacyBoot` of legacy bootloader should provides a 
         /// specific implementation for this this method.
-        auto init_memory(usize params, Aspace *aspace) -> void;
+        auto init_memory(usize params) -> void;
 
         static auto get() -> LegacyBoot & {
             return LEGACY_BOOT;
@@ -32,6 +32,7 @@ namespace ours::phys {
 
         ustl::views::StringView name_;
         ustl::views::StringView clparams_;
+        ustl::views::Span<u8> ramdisk_;
         usize acpi_version; // New version if 1,
         usize acpi_rsdp;
 

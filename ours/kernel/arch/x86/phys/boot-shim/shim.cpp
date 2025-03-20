@@ -2,6 +2,7 @@
 #include <ours/phys/init.hpp>
 #include <ours/phys/print.hpp>
 #include <ours/phys/console.hpp>
+#include <ours/phys/aspace.hpp>
 
 #include "../legacy-boot.hpp"
 
@@ -17,7 +18,8 @@ namespace ours::phys {
         init_early_console();
         println("loader params at 0x{:X}", loader_param);
 
-        init_memory(loader_param, global_aspace());
+        Aspace aspace;
+        init_memory(loader_param, &aspace);
 
         /// Here the bootmem is available. We first allocate the init data by it.
         setup_init_data();

@@ -13,23 +13,26 @@
 #define ARCH_PAGING_MMU_FLAGS_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/config.hpp>
 #include <ours/macro_abi.hpp>
 
 #include <ustl/util/enum_bits.hpp>
 
 namespace arch::paging {
     enum class MmuFlags: usize {
-        Writable    = BIT(0),
-        Readable    = BIT(1),
-        Executable  = BIT(2),
+        Present     = BIT(0),
+        Writable    = BIT(1),
+        Readable    = BIT(2),
+        Executable  = BIT(3),
         PermMask    = Writable | Readable | Executable,
 
-        Cached      = BIT(3),
-        User        = BIT(4),
+        DisCache    = BIT(4),
+        User        = BIT(5),
     }; // enum class MmuFlags: usize
     USTL_ENABLE_ENUM_BITS(MmuFlags);
 
     template <typename ArchMmuFlags>
+    CXX11_CONSTEXPR
     auto down_cast(MmuFlags flags) -> ArchMmuFlags;
 
 } // namespace arch::paging

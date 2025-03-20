@@ -1,14 +1,18 @@
 #include <ours/arch/x86/init.hpp>
+#include <ours/phys/arch_paging.hpp>
+
 #include <arch/system.hpp>
 #include <arch/tlb.hpp>
 
 namespace ours {
+namespace mem {
+    NO_MANGLE PhysAddr g_pgd = 0;
+}
+    using mem::g_pgd;
     using arch::Cr3;
 
-    PhysAddr root_page_table;
-
     auto x86_setup_mmu_early() -> void {
-        root_page_table = Cr3::read().get<Cr3::PageTableAddress>();
+        g_pgd = Cr3::read().get<Cr3::PageTableAddress>();
     }
 
     auto x86_setup_mmu_percpu() -> void {
@@ -17,7 +21,7 @@ namespace ours {
 
     auto x86_setup_mmu() -> void {
         // Unmap low address.
-        reinterpret_cast<arch::Pte *>(root_page_table)[0] = 0;
+        reinterpret_cast<arch::Pte *>(g_pgd)[0] = 0;
         arch::tlb_flush_all();
 
         x86_setup_mmu_percpu();

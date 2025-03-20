@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef HEAP_NEW_HPP
 #define HEAP_NEW_HPP 1
 
@@ -29,15 +28,15 @@ auto operator delete(void *ptr) CXX11_NOEXCEPT -> void;
 auto operator delete[](void *ptr) CXX11_NOEXCEPT -> void;
 
 template <typename T, typename... Options>
-auto operator new(ours::usize size, ours::usize align, ktl::ObjectCache<T, Options...> *object_cache) CXX11_NOEXCEPT -> void *
+auto operator new(ours::usize size, ours::usize align, ktl::ObjectCache<T, Options...> *cache) CXX11_NOEXCEPT -> void *
 {}
 
 template <typename T, typename... Options>
-auto operator delete(void *ptr, ktl::ObjectCache<T, Options...> *object_cache) CXX11_NOEXCEPT -> void
+auto operator delete(void *ptr, ktl::ObjectCache<T, Options...> *cache) CXX11_NOEXCEPT -> void
 {}
 
 template <typename T, typename... Options>
-auto operator delete(void *ptr, ours::usize n, ktl::ObjectCache<T, Options...> *object_cache) CXX11_NOEXCEPT -> void
+auto operator delete(void *ptr, ours::usize n, ktl::ObjectCache<T, Options...> *cache) CXX11_NOEXCEPT -> void
 {}
 
 #endif // #ifndef HEAP_NEW_HPP

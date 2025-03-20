@@ -16,10 +16,17 @@ namespace ours::phys {
 
         auto status = acpi::enumerate_numa_region(acpi_parser.unwrap(), [](u32 numa_domain, acpi::NumaRegion const &region) {
             global_bootmem()->set_node(region.base, region.size, numa_domain);
-            println("NUMA region({}, {})", region.base, region.size);
+            println("NUMA({}) region({:X}, {:X})", numa_domain, region.base, region.size);
         });
         if (status != Status::Ok) {
             println("No NUMA");
+        }
+
+        // Dump all retions in bootmem.
+        auto bm = global_bootmem();
+        bootmem::IterationContext context{bm, bootmem::RegionType::Normal};
+        while (auto region = bm->iterate(context)) {
+            println("Region({:X}, {:X}, {})", region->base, region->size, region->nid());
         }
     }
 
@@ -27,9 +34,10 @@ namespace ours::phys {
     auto arch_init_memory(Aspace *aspace) -> void {}
 
     auto init_memory(usize params, Aspace *aspace) -> void {
-        LegacyBoot::get().init_memory(params, aspace);
+        LegacyBoot::get().init_memory(params);
+
         // For identity mapping in early stage.
-        global_bootmem()->set_alloc_bounds(0, GB(1));
+        global_bootmem()->set_allocation_bounds(0, GB(1));
 
         try_assign_node_for_bootmem(LegacyBoot::get());
 

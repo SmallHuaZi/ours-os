@@ -14,7 +14,6 @@
 
 #include <ours/mem/types.hpp>
 #include <ours/mem/vm_fault.hpp>
-#include <ours/mem/mmu_flags.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/function/fn.hpp>

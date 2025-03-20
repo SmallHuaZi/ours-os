@@ -111,7 +111,9 @@ namespace bootmem {
 
         virtual auto protect(PhysAddr base, usize size) -> Status = 0;
 
-        virtual auto allocate_bounded(usize size, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> PhysAddr = 0;
+        /// Allocate the `size` bytes of memory aligned to `align` in range from `start` to `end`.
+        /// Ensure the memory is matched to the designated node to the best of our ability.
+        virtual auto allocate_bounded(usize, usize, PhysAddr, PhysAddr, NodeId = MAX_NODES) -> PhysAddr = 0;
 
         auto allocate(usize size, usize align, NodeId nid = MAX_NODES) -> PhysAddr
         {  return allocate_bounded(size, align, default_lowest_limit_, default_highest_limit_, nid);  }
@@ -130,7 +132,8 @@ namespace bootmem {
         auto end_address() const -> PhysAddr
         {  return end_address_;  }
 
-        auto set_alloc_bounds(PhysAddr start, PhysAddr end) -> void {
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_allocation_bounds(PhysAddr start, PhysAddr end) -> void {
             default_lowest_limit_ = start;
             default_highest_limit_ = end;
         }

@@ -152,7 +152,7 @@ namespace acpi {
                 continue;
             }
 
-            if (validate_checksum(&*result, (*result)->length)) {
+            if (validate_checksum(*result, (*result)->length)) {
                 return result.unwrap();
             }
         }

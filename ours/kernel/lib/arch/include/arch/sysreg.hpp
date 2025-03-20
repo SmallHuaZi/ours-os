@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef ARCH_SYSREG_HPP
 #define ARCH_SYSREG_HPP 1
 
@@ -19,20 +18,30 @@ namespace arch {
     template <typename RegTag>
     struct SysRegTraits;
 
-    template <typename RegTag>
+    template <typename Derived>
     struct SysReg
-        : public SysRegTraits<RegTag>,
-          public ustl::MakeBitFieldsT<typename SysRegTraits<RegTag>::FieldList>
+        : public SysRegTraits<Derived>,
+          public ustl::BitFields<typename SysRegTraits<Derived>::FieldList>
     {
-        typedef RegTag Self;
-        typedef ustl::MakeBitFieldsT<typename SysRegTraits<RegTag>::FieldList>  Base;
+        typedef Derived Self;
+        typedef ustl::BitFields<typename SysRegTraits<Derived>::FieldList>  Base;
         using Base::Base;
 
         USTL_CONSTEXPR
         static auto read() -> Self;
 
         USTL_CONSTEXPR
-        static auto write(usize value) -> void;
+        static auto write(Derived) -> void;
+
+        FORCE_INLINE USTL_CONSTEXPR
+        static auto from_value(usize val) -> Self {
+            return {val};
+        }
+
+        FORCE_INLINE USTL_CONSTEXPR
+        auto write() const -> void {
+            write(*this);
+        }
     };
 
 } // namespace arch

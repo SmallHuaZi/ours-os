@@ -2,7 +2,7 @@
 #include <ours/mem/fault.hpp>
 
 #include <arch/x86/interrupt.hpp>
-#include <arch/x86/mmu.hpp>
+#include <arch/macro/mmu.hpp>
 #include <arch/system.hpp>
 
 #include <logz4/log.hpp>

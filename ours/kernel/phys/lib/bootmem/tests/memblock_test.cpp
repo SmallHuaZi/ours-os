@@ -15,9 +15,9 @@ protected:
     auto TearDown() -> void override
     {}
 
-    auto IsValidDeallocation(PhysAddr start, usize size, PhysAddr const final_allocated) -> bool;
+    auto validate_deallocation(PhysAddr start, usize size, PhysAddr const final_allocated) -> bool;
 
-    auto RandomInt(int start, int end) -> int
+    auto random_integer(int start, int end) -> int
     {
         std::random_device device;
         std::uniform_int_distribution<> uid(start, end);
@@ -65,7 +65,7 @@ auto MemBlockTestFixture::SetUp() -> void
     freepath.reserve(100);
 }
 
-auto MemBlockTestFixture::IsValidDeallocation(PhysAddr base, usize size, PhysAddr const final_allocated) -> bool
+auto MemBlockTestFixture::validate_deallocation(PhysAddr base, usize size, PhysAddr const final_allocated) -> bool
 {
     bool matched = std::any_of(reserved_list->begin(), reserved_list->end(), [base] (Region &region) {
         return region.end() == base || base + PAGE_SIZE == region.base;
@@ -118,13 +118,13 @@ TEST_F(MemBlockTestFixture, FixedSizeBlockAllocation) {
 
     PhysAddr const final_allocated = holding.back();
     while (!holding.empty()) {
-        auto const i = RandomInt(0, holding.size());
+        auto const i = random_integer(0, holding.size());
         auto const space = holding[i];
         holding.erase(holding.begin() + i);
         freepath.push_back(space);
 
         memblock.deallocate(space, 4096);
-        ASSERT_TRUE(IsValidDeallocation(space, PAGE_SIZE, final_allocated));
+        ASSERT_TRUE(validate_deallocation(space, PAGE_SIZE, final_allocated));
     }
 }
 
@@ -147,19 +147,19 @@ TEST_F(MemBlockTestFixture, RandomSizeBlockAllocation) {
     auto const n = std::size(map);
 
     for (auto i = 0; i < nr_actions; ++i) {
-        auto const size = map[RandomInt(0, n)];
+        auto const size = map[random_integer(0, n)];
         memblock.allocate(size, size);
     }
 
     PhysAddr const final_allocated = holding.back();
     while (!holding.empty()) {
-        auto const i = RandomInt(0, holding.size());
+        auto const i = random_integer(0, holding.size());
         auto const space = holding[i];
         holding.erase(holding.begin() + i);
         freepath.push_back(space);
 
         memblock.deallocate(space, 4096);
-        ASSERT_TRUE(IsValidDeallocation(space, PAGE_SIZE, final_allocated));
+        ASSERT_TRUE(validate_deallocation(space, PAGE_SIZE, final_allocated));
     }
 }
 

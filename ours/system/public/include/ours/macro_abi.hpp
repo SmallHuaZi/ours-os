@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MACRO_ABI_HPP
 #define OURS_MACRO_ABI_HPP 1
 
@@ -35,7 +34,6 @@
     (((ULL(1) << ((END_BIT) - (START_BIT) + ULL(1))) - ULL(1)) << (START_BIT))
 
 #define __BW_STEP(x, n) ((x) >= (ULL(1) << n) ? n + 1 : 0)
-/// [START_BIT, END_BIT)
 #define BIT_WIDTH(x) ( \
     __BW_STEP(x, 63) ?: __BW_STEP(x, 62) ?: __BW_STEP(x, 61) ?: __BW_STEP(x, 60) ?: \
     __BW_STEP(x, 59) ?: __BW_STEP(x, 58) ?: __BW_STEP(x, 57) ?: __BW_STEP(x, 56) ?: \

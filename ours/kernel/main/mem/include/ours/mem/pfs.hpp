@@ -8,22 +8,38 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_PF_FLAGS_HPP
 #define OURS_MEM_PF_FLAGS_HPP 1
 
 #include <ours/mem/types.hpp>
 #include <ours/mem/cfg.hpp>
-#include <ours/macro_abi.hpp>
 
 #include <ustl/bit.hpp>
+#include <ustl/bitfields.hpp>
 #include <ustl/util/enum_bits.hpp>
 
 namespace ours::mem {
 namespace pfns {
+    using ustl::TypeList;
+    using ustl::Field;
+    using ustl::BitFields;
+    using ustl::bitfields::Id;
+    using ustl::bitfields::Name;
+    using ustl::bitfields::Bits;
+    using ustl::bitfields::Type;
+    using ustl::bitfields::Enable;
+
+    enum PfsFieldId {
+        kFrameStateId,
+        kFrameRoleId,
+        kZoneId,
+        kNodeId,
+        kSectionId,
+    };
+
     /// `PfStates` is a shorthand of physical frame states.
     enum PfStatesBits {
-        ActiveBit = NR_ZONES_PER_NODE_BITS + MAX_NODES_BITS,
+        ActiveBit,
         PinnedBit,
         DirtyBit,
         UpToDateBit,
@@ -31,85 +47,100 @@ namespace pfns {
         BeingWaitingBit,
         FolioBit,
         ReclaimableBit,
-        MaxNumPfsBits,
+        MaxNumStateBits,
     };
-    CXX11_CONSTEXPR
-    static usize const PFSTATES_BITS = ustl::bit_width<usize>(MaxNumPfsBits);
-
-    enum PfStates: usize {
+    enum class PfStates {
         Active   = BIT(ActiveBit),
         Pinned   = BIT(PinnedBit),
         Dirty    = BIT(DirtyBit),
         UpToDate = BIT(UpToDateBit),
         Foreign  = BIT(ForeignBit),
     };
-    USTL_ENABLE_ENUM_BITS(PfStates);
 
-    enum PfRole: usize {
-        Io = BIT(MaxNumPfsBits),
+    enum PfRole {
+        Io,
         Lru,
         Mmu,
         Pmm,
         Heap,
-        MaxNumPfRole,
+        MaxNumRoles,
     };
-    CXX11_CONSTEXPR
-    static usize const PFROLE_BITS = ustl::bit_width<usize>(MaxNumPfRole);
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto get_role(usize flags) -> PfRole
-    {
-        CXX11_CONSTEXPR
-        auto const rolbootmemsk = BIT_RANGE(MaxNumPfsBits, PFROLE_BITS);
-        return PfRole(flags & rolbootmemsk);
-    }
+    typedef TypeList<
+        Field<Id<kFrameStateId>, Name<"State">,Type<PfStates>, Bits<BIT_WIDTH(MaxNumStateBits)>>,
+        Field<Id<kFrameRoleId>, Name<"Role">, Type<PfRole>, Bits<BIT_WIDTH(MaxNumRoles)>>,
+        Field<Id<kZoneId>, Name<"Zone">, Type<ZoneType>, Bits<BIT_WIDTH(MaxNumZoneType)>>,
+        Field<Id<kNodeId>, Name<"Nid">, Type<NodeId>, Bits<MAX_NODES_BITS>, Enable<OURS_CONFIG_NUMA>>,
+        Field<Id<kSectionId>, Name<"Sec">, Type<SecNum>, Bits<MAX_PHYSADDR_BITS - SECTION_SIZE_BITS>, Enable<1>>
+    > FieldList;
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto set_role(usize &flags, PfRole role) -> void
-    {
-        CXX11_CONSTEXPR
-        auto const rolbootmemsk = BIT_RANGE(MaxNumPfsBits, PFROLE_BITS);
-        flags &= ~rolbootmemsk; 
-        flags |= role;
-    }
+    struct FrameFlags {
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto nid() const -> NodeId {
+            return inner_.get<kNodeId>();
+        }
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto get_zone_type(usize flags) -> ZoneType
-    {
-        CXX11_CONSTEXPR
-        auto const ztmask = BIT_RANGE(MAX_NODES_BITS, MAX_NODES_BITS + NR_ZONES_PER_NODE_BITS);
-        return ZoneType((flags & ztmask) >> MAX_NODES_BITS);
-    }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_nid(NodeId nid) -> void {
+            inner_.set<kNodeId>(nid);
+        }
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto set_zone_type(usize &flags, ZoneType type) -> void 
-    {
-        CXX11_CONSTEXPR
-        auto const ztmask = BIT_RANGE(MAX_NODES_BITS, MAX_NODES_BITS + NR_ZONES_PER_NODE_BITS);
-        flags &= ~ztmask;
-        flags |= type << MAX_NODES_BITS;
-    }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto zone_type() const -> ZoneType {
+            return inner_.get<kZoneId>();
+        }
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto get_node_id(usize flags) -> NodeId 
-    {
-        CXX11_CONSTEXPR
-        auto const nidmask = BIT_RANGE(0, MAX_NODES_BITS);
-        return NodeId(flags & nidmask);
-    }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_zone_type(ZoneType type) -> void {
+            inner_.set<kZoneId>(type);
+        }
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto set_node_id(usize &flags, NodeId nid) -> void 
-    {
-        CXX11_CONSTEXPR
-        auto const nidmask = BIT_RANGE(0, MAX_NODES_BITS);
-        flags &= ~nidmask;
-        flags |= nid;
-    }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto secnum() -> SecNum {
+            return inner_.get<kSectionId>();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_secnum(SecNum secnum) -> void {
+            inner_.set<kSectionId>(secnum);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto role() const -> PfRole {
+            return inner_.get<kFrameRoleId>();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_role(PfRole role) -> void {
+            inner_.set<kFrameRoleId>(role);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto is_role(PfRole const role) const -> bool {
+            return role == inner_.get<kFrameRoleId>();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto state() const -> PfStates {
+            return inner_.get<kFrameStateId>();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_states(PfStates states) -> void {
+            inner_.set<kFrameStateId>(states);
+        }
+
+        BitFields<FieldList>    inner_;
+        // typedef decltype(inner_)::FieldList FieldList;
+        // typedef ustl::TypeListAtT<FieldList, kSectionId>    Field;
+        // static_assert(Field::SHIFT == 9);;
+    };
+    static_assert(sizeof(FrameFlags) <= sizeof(usize), "Never greater than the size target platform supports");
 
 } // namespace ours::mem::pfns
-    typedef pfns::PfStates      PfStates;
-    typedef pfns::PfRole        PfRole;
+    using pfns::PfStates;
+    using pfns::PfRole;
+    using pfns::FrameFlags;
 
 } // namespace ours::mem
 

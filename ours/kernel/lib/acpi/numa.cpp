@@ -7,7 +7,12 @@ using ours::Status;
 namespace acpi {
     auto enumerate_numa_region(AcpiParser const &parser, NumaRegionCommitFn const &commit) -> Status {
         auto const srat = get_table_by_signature(parser, AcpiSignature{"SRAT"});
+        if (!srat) {
+            return Status::NotFound;
+        }
+
         ustl::io::BinaryReader reader(srat, srat->size());
+        reader.skip_bytes(sizeof(AcpiSrat));
         while (reader) {
             auto header = reader.read<AcpiEntryHeader>();
             if (!header) {

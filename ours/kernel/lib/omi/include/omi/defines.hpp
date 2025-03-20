@@ -17,10 +17,11 @@
 
 #define OMI_HEADER_ALIGNMENT 8
 
-#define OMIT_CONTAINER     0    // Container
-#define OMIT_KERNEL     1       // Kernel image
-#define OMIT_USBOOT     2       // User boot
+#define OMIT_CONTAINER     0   // Container
+#define OMIT_KERNEL     1      // Kernel image
+#define OMIT_USBOOT     2      // User boot
 
-#define OMIF_ZIPPED    1
+#define OMIF_ZIPPED       1    // Zipped image
+#define OMIF_FIXED_ADDR   2    // Expectation to load at fixed address.
 
 #endif // #ifndef OMI_DEFINES_HPP

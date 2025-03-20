@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_PM_FRAME_HPP
 #define OURS_MEM_PM_FRAME_HPP 1
 
@@ -25,51 +24,39 @@ namespace ours::mem {
     {
         typedef PmFrame     Self;
     public:
-        auto set_flags(PfStates flags) -> void
-        {  this->flags_ |= flags;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto flags() -> FrameFlags & {
+            return this->flags_;
+        }
 
-        auto map_count() const -> usize
-        {  return this->mapped_count_;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto flags() const -> FrameFlags const & {
+            return this->flags_;
+        }
 
-        auto use_count() const -> usize
-        {  return this->reference_count_;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto increase_mapping() -> void {
+            num_mappings_ += 1;
+        }
 
-        auto is_active() const -> bool
-        {  return flags_ & PfStates::Active;  }
-
-        auto is_pinned() const -> bool
-        {  return flags_ & PfStates::Pinned;  }
-
-        auto is_role(PfRole role) const -> bool
-        {  return flags_ & role;  }
-
-        auto role() -> PfRole
-        {  return pfns::get_role(flags_);  }
-
-        auto set_role(PfRole role) -> void
-        {  return pfns::set_role(flags_, role);  }
-
-        auto zone_type() -> ZoneType 
-        {  return pfns::get_zone_type(flags_);  }
-
-        auto set_zone_type(ZoneType type) -> void 
-        {  return pfns::set_zone_type(flags_, type);  }
-
-        auto node_id() -> NodeId
-        {  return pfns::get_node_id(flags_);  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto decrease_mapping() -> void {
+            num_mappings_ += 1;
+        }
 
     private:
-        usize flags_;
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
         
         /// Maybe simultaneously held by multi-VmPage.
-        mutable ustl::sync::AtomicU32 mapped_count_;
-        mutable ustl::sync::AtomicU32 reference_count_;
+        mutable ustl::sync::AtomicU16 num_mappings_;
+        mutable ustl::sync::AtomicU16 num_references_;
 
+        FrameFlags flags_;
     public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedListOptions);
     };
     USTL_DECLARE_LIST_TEMPLATE(PmFrame, FrameList, PmFrame::ManagedListOptions);
+    static_assert(sizeof(PmFrame) <= sizeof(usize) << 8, "");
 
     FORCE_INLINE
     auto operator==(PmFrame const &x, PmFrame const &y) -> bool

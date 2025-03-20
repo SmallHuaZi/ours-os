@@ -24,6 +24,8 @@ namespace ours::phys {
         PhysAddr bootmem_phys_base;
         PhysAddr bootmem_phys_size;
         PhysAddr bootmem;
+        PhysAddr kernel_load_addr;
+        u32 stack_size;
     };
 
     ///
@@ -37,7 +39,6 @@ namespace ours::phys {
         }
 
         u32 const magic = MAGIC;
-        PhysAddr kernel_load_addr;
         PhysAddr efi_system_table;
         PhysAddr acpi_rsdp;
         MemoryHandoff mem;

@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_UTIL_MOVE_HPP
 #define USTL_UTIL_MOVE_HPP 1
 

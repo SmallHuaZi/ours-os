@@ -2,8 +2,9 @@
 #include <ours/mem/cfg.hpp>
 #include <ours/arch/x86/descriptor.hpp>
 
-#include <arch/x86/mmu.hpp>
-#include <arch/x86/registers.hpp>
+#include <arch/macro/mmu.hpp>
+#include <arch/macro/msr.hpp>
+#include <arch/macro/system.hpp>
 
 // Supposing _start64 is the head of phys, nameyly the first symbol.
 #define rva(symbol) (symbol - _start64)

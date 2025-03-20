@@ -40,15 +40,15 @@ namespace arch::x86 {
     };
 
 namespace details {
-    using ustl::BitField;
+    using ustl::Field;
     using ustl::BitFields;
-    using ustl::FieldId;
-    using ustl::EnableFieldIf;
-    using ustl::FieldBits;
-    using ustl::FieldType;
+    using ustl::bitfields::Id;
+    using ustl::bitfields::Enable;
+    using ustl::bitfields::Bits;
+    using ustl::bitfields::Type;
     using ustl::traits::IsSameV;
     using ustl::traits::ConditionalT;
-    using ustl::IntegerSequenceAppendT;
+    using ustl::IntegerSequencePushBackT;
 
     struct Desc32Tag {};
     struct Desc64Tag {};
@@ -61,7 +61,7 @@ namespace details {
         CXX11_CONSTEXPR
         static auto const Is64BitsV = IsSameV<Tag, Desc64Tag>;
 
-        enum Id {
+        enum FieldId {
             LimitLow16Id,
             BaseLow16Id,
             BaseMid8Id,
@@ -80,29 +80,29 @@ namespace details {
         };
 
         typedef ustl::TypeList<
-            BitField<FieldId<LimitLow16Id>, FieldBits<16>>,
-            BitField<FieldId<BaseLow16Id>, FieldBits<16>>,
-            BitField<FieldId<BaseMid8Id>, FieldBits<8>>,
+            Field<Id<LimitLow16Id>, Bits<16>>,
+            Field<Id<BaseLow16Id>, Bits<16>>,
+            Field<Id<BaseMid8Id>, Bits<8>>,
             // Access bytes
-            BitField<FieldId<AccessedId>, FieldBits<1>>,
-            BitField<FieldId<TypeId>, FieldBits<4>, FieldType<SegType>>, 
-            BitField<FieldId<DplId>, FieldBits<2>, FieldType<Dpl>>,
-            BitField<FieldId<PresentId>, FieldBits<1>>,
+            Field<Id<AccessedId>, Bits<1>>,
+            Field<Id<TypeId>, Bits<4>, Type<SegType>>, 
+            Field<Id<DplId>, Bits<2>, Type<Dpl>>,
+            Field<Id<PresentId>, Bits<1>>,
             //
-            BitField<FieldId<LimitHigh4Id>, FieldBits<4>>, 
+            Field<Id<LimitHigh4Id>, Bits<4>>, 
             // Flags
-            BitField<FieldId<Reserved1BitId>, FieldBits<1>>,
-            BitField<FieldId<LongModeId>, FieldBits<1>>,
-            BitField<FieldId<Addr32Id>, FieldBits<1>>,
-            BitField<FieldId<GranularityId>, FieldBits<1>>,
+            Field<Id<Reserved1BitId>, Bits<1>>,
+            Field<Id<LongModeId>, Bits<1>>,
+            Field<Id<Addr32Id>, Bits<1>>,
+            Field<Id<GranularityId>, Bits<1>>,
             //
-            BitField<FieldId<BaseHigh8Id>, FieldBits<8>>,
-            BitField<FieldId<BaseHigh32Id>, FieldBits<32>, EnableFieldIf<Is64BitsV>>,
-            BitField<FieldId<Reserved32Id>, FieldBits<32>, EnableFieldIf<Is64BitsV>>
+            Field<Id<BaseHigh8Id>, Bits<8>>,
+            Field<Id<BaseHigh32Id>, Bits<32>, Enable<Is64BitsV>>,
+            Field<Id<Reserved32Id>, Bits<32>, Enable<Is64BitsV>>
         > FieldList;
 
         typedef ustl::IndexSequence<BaseLow16Id, BaseMid8Id, BaseHigh8Id>  BaseField32;
-        typedef ConditionalT<Is64BitsV, IntegerSequenceAppendT<BaseField32, BaseHigh32Id>, BaseField32>  BaseField;
+        typedef ConditionalT<Is64BitsV, IntegerSequencePushBackT<BaseField32, BaseHigh32Id>, BaseField32>  BaseField;
 
         typedef ustl::IndexSequence<BaseLow16Id, BaseMid8Id, BaseHigh8Id>  LimitField;
 

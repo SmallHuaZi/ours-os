@@ -4,8 +4,6 @@
 
 #include <ours/init.hpp>
 
-#include <arch/x86/paging_traits.hpp>
-
 namespace ours::mem {
     /// Take out 2MB-size large page mapping as the following showed:
     /// +-------+---------+----------------+-------------------------+----------+-------+
@@ -32,7 +30,9 @@ namespace ours::mem {
     ///                                |
     ///                               [31]---KERNEL_PHYSMAP_PD[31][0..511]
     ///
-    PhysAddr PHYS_PGD;
+
+    /// In this file scope, it should be readonly.
+    NO_MANGLE PhysAddr const g_pgd;
 
     ArchVmAspace::ArchVmAspace(VirtAddr base, usize size, VmasFlags flags)
         : range_(base, size),
@@ -42,21 +42,27 @@ namespace ours::mem {
     auto ArchVmAspace::init() -> Status
     {
         if (bool(VmasFlags::Kernel & flags_)) [[unlikely]] {
-            auto const phys_pgd = PHYS_PGD;
+            // Kernel page table was provided by kernel.phys, so do not need to allocate memory. 
+            auto const phys_pgd = g_pgd;
             auto const virt_pgd = PhysMap::phys_to_virt(phys_pgd );
-            auto status = page_table_.init(phys_pgd, virt_pgd, flags_);
+            auto status = page_table_.init_mmu(phys_pgd, virt_pgd);
             if (status != Status::Ok) {
                 return status;
             }
-        } else [[likely]] {
-            auto status = page_table_.init(flags_);
+        } else if (bool(VmasFlags::Guest & flags_)) {
+            auto status = page_table_.init_ept();
+            if (status != Status::Ok) {
+                return status;
+            }
+        } else  [[likely]] {
+            auto status = page_table_.init_mmu();
             if (status != Status::Ok) {
                 return status;
             }
             // We should create an alias of kernel address space to avoid unnecessary switches.
             // And it could help us to call the routine passed by the driver of the user space correctly.
             auto &kpt = VmAspace::kernel_aspace()->arch_aspace().page_table_;
-            page_table_.alias_to(kpt, PhysMap::VIRT_BASE, PhysMap::SIZE / PAGE_SIZE, 4);
+            page_table_.alias_to(kpt, PhysMap::VIRT_BASE, PhysMap::SIZE / PAGE_SIZE);
         }
 
         return Status::Ok;

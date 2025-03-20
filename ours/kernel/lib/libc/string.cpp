@@ -1,74 +1,75 @@
-#include <cstdint>
+#include <cstring>
 #include <ours/config.hpp>
 #include <ours/types.hpp>
 
-NO_MANGLE
-auto memcpy(void *d, void const *s, size_t len) -> void * {
+NO_MANGLE WEAK
+auto memcpy(void *d, void const *s, size_t n) -> void * {
     auto md = static_cast<char *>(d);
     auto ms = static_cast<char const *>(s);
-
-    while (len--) {
-        *md++ = *ms++;
+    for (size_t i = 0; i < n; ++i) {
+        md[i] = ms[i];
     }
 
     return d;
 }
 
-NO_MANGLE
-auto memmove(void *d, const void *s, size_t n) -> void * {
+NO_MANGLE WEAK
+auto memmove(void *d, void const *s, size_t n) -> void * {
     auto md = static_cast<char *>(d);
     auto ms = static_cast<char const *>(s);
 
     if (size_t(ms) > size_t(md)) {
-        while (n--) {
-            *md++ = *ms++;
+        for (size_t i = 0; i < n; ++i) {
+            md[i]= ms[i];
         }
     } else {
-        for (ms += n, md += n; n--;) {
-            *--md = *--ms;
+        for (size_t i = n; i > 0; --i) {
+            md[i - 1]= ms[i - 1];
         }
     }
 
     return d;
 }
 
-NO_MANGLE
+NO_MANGLE WEAK
 auto memset(void *s, int c, size_t n) -> void * {
-    auto md = static_cast<size_t *>(s);
-    while (n-- != 0) {
-        *md = c;
-        ++md;
+    auto md = static_cast<u8 *>(s);
+    for (auto i = 0; i < n; ++i) {
+        md[i] = c;
     }
 
     return s;
 }
 
-NO_MANGLE
-auto memcmp(void const *x, void const *y, size_t len) -> int {
-    auto mx = static_cast<char const *>(x);
-    auto my = static_cast<char const *>(y);
+NO_MANGLE WEAK
+auto memcmp(void const *x, void const *y, size_t n) -> int {
+    auto p1 = static_cast<char const *>(x);
+    auto p2 = static_cast<char const *>(y);
 
-    while (len-- != 0 && *mx == *my) {
-        (void)++mx, (void)++my;
+    for (size_t i = 0; i < n; i++) {
+        if (p1[i] != p2[i]) {
+            return (p1[i] - p2[i]);
+        }
     }
 
-    return len ? (*mx > *my ? 1 : -1) : 0;
+    return 0;
 }
 
-NO_MANGLE
-auto memchr(void const *x, char const f, size_t len) -> void * {
-    auto mx = static_cast<char const *>(x);
-    auto range_end = static_cast<char const *>(x) + len;
+WEAK
+auto memchr(void const *str, int c, size_t n) noexcept -> void const * {
+    auto p = static_cast<char const *>(str);
 
-    while (f != *mx && mx != range_end) {
-        ++mx;
+    for (size_t i = 0; i < n; i++) {
+        if (p[i] == (char)c) {
+            return (void *)p;
+        }
     }
 
-    return (void *)(mx == range_end ? 0 : mx);
+    return NULL;
 }
 
-NO_MANGLE
-auto strlen(const char *p) -> size_t {
+NO_MANGLE WEAK
+auto strlen(char const *p) -> size_t {
     size_t n = 0;
     while (*p++ != 0) {
         n += 1;

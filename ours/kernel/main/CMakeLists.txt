@@ -19,6 +19,7 @@ INTERFACE
     kernel::lib::ktl::headers
     kernel::lib::gktl::headers
     kernel::lib::ustl::headers
+    kernel::lib::arch::headers
 )
 
 add_executable(kernel_main)

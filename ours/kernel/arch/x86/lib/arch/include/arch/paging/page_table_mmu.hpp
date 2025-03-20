@@ -11,7 +11,7 @@
 #ifndef ARCH_X86_PAGE_TABLE_MMU_HPP
 #define ARCH_X86_PAGE_TABLE_MMU_HPP 1
 
-#include <arch/x86/mmu.hpp>
+#include <arch/macro/mmu.hpp>
 #include <arch/paging/page_table_impl.hpp>
 #include <ustl/traits/integral_constant.hpp>
 
@@ -22,6 +22,8 @@ namespace arch::paging {
     {
         typedef X86PageTableMmu                  Self;
         typedef X86PageTableImpl<Self, Options>  Base;
+        using typename Base::PagingTraits;
+        using typename Base::LevelType;
 
         template <usize Level>
         using PageLevelTag = ustl::traits::IntegralConstant<usize, Level>;
@@ -30,8 +32,6 @@ namespace arch::paging {
 
         auto init() -> Status
         {  return Status::Unimplemented;  }
-
-        auto alias_kernel_mappings() -> Status;
 
         auto invalidate_tlb() -> void;
 
@@ -50,8 +50,8 @@ namespace arch::paging {
         static auto is_large_page_mapping(Pte pte) -> bool
         {  return pte & X86_MMUF_PAGE_SIZE;  }
 
-        static auto has_supported_page_size(usize level) -> bool
-        {  return Self::priv_has_supported_page_size(level, PageLevelTag<Base::top_level()>());  }
+        static auto level_can_be_terminal(LevelType level) -> bool
+        {  return PagingTraits::level_can_be_terminal(level); }
 
         static auto make_pte(PhysAddr phys, MmuFlags flags) -> Pte
         {  return Self::priv_make_pte(phys, flags, PageLevelTag<Base::top_level()>());  }
@@ -69,12 +69,6 @@ namespace arch::paging {
         {  return 0; }
 
         static auto priv_get_next_table_unchecked(Pte volatile *pte, PageLevelTag<5>) -> Pte volatile *
-        {  return 0; }
-
-        static auto priv_has_supported_page_size(usize level, PageLevelTag<4>) -> bool
-        {  return 0; }
-
-        static auto priv_has_supported_page_size(usize level, PageLevelTag<5>) -> bool
         {  return 0; }
     };
 

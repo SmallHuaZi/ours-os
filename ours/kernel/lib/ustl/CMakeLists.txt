@@ -14,3 +14,5 @@ target_link_libraries(ustl
 INTERFACE
     kernel::lib::ustl::headers 
 )
+
+add_subdirectory("tests")

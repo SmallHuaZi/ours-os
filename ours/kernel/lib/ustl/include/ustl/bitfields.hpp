@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_BITFIELDS_HPP
 #define USTL_BITFIELDS_HPP 1
 
@@ -16,12 +15,15 @@
 #include <ustl/config.hpp>
 #include <ustl/limits.hpp>
 #include <ustl/initializer_list.hpp>
+#include <ustl/util/visit.hpp>
 #include <ustl/util/fold.hpp>
+#include <ustl/traits/void.hpp>
 #include <ustl/util/find_if.hpp>
 #include <ustl/util/types_list.hpp>
 #include <ustl/util/fixed_string.hpp>
 #include <ustl/util/index_sequence.hpp>
 #include <ustl/util/pack_options.hpp>
+#include <ustl/views/span.hpp>
 #include <ustl/util/minmax.hpp>
 #include <ustl/traits/integral.hpp>
 #include <ustl/traits/is_convertible.hpp>
@@ -32,23 +34,79 @@
 
 /// Since C++17
 ///    1) CTAD.
-///    2) Auto template arguments. 
-
+///    2) Auto template arguments.
 namespace ustl {
 namespace bitfields {
-    template<int Id, int Bits, typename Type, util::FixedString Name, bool Enable>
-    struct FieldMetaData
-    {
+    /// Not be used now
+    enum class IdPolicy {
+        Auto,
+        Manually,
+    };
+
+    USTL_CONSTEXPR
+    static auto const ID_NONE = ustl::NumericLimits<usize>::DIGITS;
+
+    USTL_CONSTEXPR
+    static auto const START_BIT_NONE = ustl::NumericLimits<usize>::DIGITS;
+
+    /// Manually specifies the ID of a field. If not provided, it defaults to 
+    /// an auto-incrementing strategy.
+    USTL_CONSTANT_OPTION(Id, usize, ID);
+
+    /// Indicates how many bits the field needs.
+    USTL_CONSTANT_OPTION(Bits, usize, BITS);
+
+    /// Explicitly specify the start bit of a field. Please use with caution, 
+    /// as there is a high probability of overlap with other fields.
+    USTL_CONSTANT_OPTION(StartBit, usize, START_BIT);
+
+    /// The name of field used for pretty printting.
+    USTL_CONSTANT_OPTION(Name, util::FixedString, NAME);
+
+    /// Enable or disable the field. If a field is disabled, it will not consume 
+    /// memory, and any operations applied to it will have no effect.
+    USTL_CONSTANT_OPTION(Enable, bool, ENABLE);
+
+    /// Specify the storage type of the field. This offers convenience by reducing 
+    /// the need to explicitly provide the ID when invoking get and set methods.
+    USTL_TYPE_OPTION(Type, ValueType);
+
+    /// Metadata for a single field.
+    template<typename StorageUnit, int Id, int StartBit, int Bits, typename Type, util::FixedString Name, bool Enable>
+    struct FieldMetaData {
+        USTL_CONSTEXPR
+        static auto const IS_TEMPORARY = traits::IsVoidV<StorageUnit>;
+        typedef traits::ConditionalT<IS_TEMPORARY, usize, StorageUnit>   StorageUnitType;
+
+        /// The following is interface members.
+
         typedef Type    ValueType;
 
         USTL_CONSTEXPR
         static auto const ID = Id;
 
         USTL_CONSTEXPR
-        static auto const START_BIT = Bits;
+        static auto const BITS = Bits;
+
+        // Validate the range of filed .
+        static_assert(BITS <= ustl::NumericLimits<StorageUnitType>::DIGITS,
+                     "[ustl-error]: The field can not be cross multiple units");
 
         USTL_CONSTEXPR
-        static auto const BITS = Bits;
+        static StorageUnitType const START_BIT = StartBit;
+
+        USTL_CONSTEXPR
+        static StorageUnitType const SHIFT = IS_TEMPORARY ? 0 : (START_BIT % ustl::NumericLimits<StorageUnitType>::DIGITS);
+
+        // Validate the range of filed .
+        static_assert(SHIFT + BITS <= ustl::NumericLimits<StorageUnitType>::DIGITS,
+                     "[ustl-error]: The field can not be cross multiple units");
+
+        USTL_CONSTEXPR
+        static StorageUnitType const MASK = IS_TEMPORARY ? 0 : MakeBitMask<StorageUnitType, SHIFT, BITS>::VALUE;
+
+        USTL_CONSTEXPR
+        static auto const UNIT = IS_TEMPORARY ? 0 : StartBit / ustl::NumericLimits<StorageUnitType>::DIGITS;
 
         USTL_CONSTEXPR
         static auto const NAME = Name;
@@ -57,13 +115,119 @@ namespace bitfields {
         static auto const ENABLE = Enable;
     };
 
-    template<typename... Fields>
-    using FieldList = TypeList<Fields...>;
+    template <int Bits>
+    struct SkipBit;
 
-    /// Not be used now
-    enum class IdPolicy {
-        Auto,
-        Manually,
+    struct DefaultFieldMetaData {
+        typedef usize   ValueType;
+        typedef void    StorageUnitType;
+
+        USTL_CONSTEXPR
+        static auto const BITS = 1;
+
+        USTL_CONSTEXPR
+        static auto const START_BIT = START_BIT_NONE;
+
+        USTL_CONSTEXPR
+        static auto const ENABLE = true;
+
+        USTL_CONSTEXPR
+        static util::FixedString const NAME{"Anonymous"};
+    };
+
+    /// Make a metadata block from the given options.
+    ///
+    /// `Default` is namely `DefaultFieldMetaData` above.
+    ///
+    /// `Unnormalized` refers to a field provided by the user through Field<..>. 
+    /// It is an incomplete field lacking certain meta-information, requiring the 
+    /// internal library to fill in the missing details.
+    template <typename DefaultOrUnnormalized, typename... Options>
+    struct MakeBitField {
+        typedef typename PackOptions<DefaultOrUnnormalized, Options...>::Type
+            PackedOption;
+
+        typedef FieldMetaData<
+            typename PackedOption::StorageUnitType,
+            PackedOption::ID,
+            PackedOption::START_BIT,
+            PackedOption::BITS,
+            typename PackedOption::ValueType,
+            PackedOption::NAME,
+            PackedOption::ENABLE
+        > Type;
+    };
+
+    /// Export it for user
+    template <typename... Options>
+    using Field = typename MakeBitField<DefaultFieldMetaData, Options...>::Type;
+
+    /// Relocate all fields.
+    template <typename Storage, typename FieldList, int BitAcc = 0>
+    struct RelocateFields;
+
+    template <typename Storage, int BitAcc>
+    struct RelocateFields<Storage, TypeList<>, BitAcc> {
+        typedef TypeList<>  Type;
+    };
+
+    /// Internal auxiliary option.
+    USTL_TYPE_OPTION(StorageUnit, StorageUnitType);
+
+    /// This field is valid, now we must relocate it's position and store it to
+    /// the final list of field.
+    template <typename Storage, int BitAcc, typename HeadField, typename... TailFields>
+    struct RelocateFields<Storage, TypeList<HeadField, TailFields...>, BitAcc> {
+        USTL_CONSTEXPR
+        static auto const WAS_START_BIT_GIVEN = HeadField::START_BIT != START_BIT_NONE;
+
+        // Validate the given start bit
+        static_assert(!WAS_START_BIT_GIVEN || HeadField::START_BIT >= BitAcc,
+                      "[ustl-error]: The start bit of a field specified manually "
+                      "by user must not overlap with other fields");
+
+        USTL_CONSTEXPR
+        static auto const START_BIT = WAS_START_BIT_GIVEN ? HeadField::START_BIT : BitAcc;
+
+        // Do recursion to get the result from sub-branch.
+        typedef typename RelocateFields<Storage, TypeList<TailFields...>, START_BIT + HeadField::BITS>::Type
+            NewFieldListWithoutHeadField;
+        // Then we first fix the head field up.
+        typedef typename MakeBitField<HeadField, StorageUnit<Storage>, StartBit<START_BIT>>::Type
+            HeadFieldRelocated;
+        // Merge results from sub-branch and this node then to return it to parent node.
+        typedef TypeListPushFrontT<NewFieldListWithoutHeadField, HeadFieldRelocated>
+            Type;
+    };
+
+    /// Handle a null field.
+    template <typename Storage, int BitAcc, int SkippedBits, typename... TailFields>
+    struct RelocateFields<Storage, TypeList<SkipBit<SkippedBits>, TailFields...>, BitAcc> {
+        typedef typename RelocateFields<Storage, TypeList<TailFields...>, BitAcc + SkippedBits>::Type
+            Type;
+    };
+
+    template <typename FieldList>
+    struct FilterDisabledFields;
+
+    template <>
+    struct FilterDisabledFields<TypeList<>> {
+        typedef TypeList<>  Type;
+    };
+
+    template <typename HeadField, typename... Fields>
+    struct FilterDisabledFields<TypeList<HeadField, Fields...>> {
+        typedef typename FilterDisabledFields<TypeList<Fields...>>::Type NewFieldListWithoutHeadField;
+        typedef traits::ConditionalT<HeadField::ENABLE, 
+            TypeListPushFrontT<NewFieldListWithoutHeadField, HeadField>,
+            NewFieldListWithoutHeadField
+        > Type;
+    };
+
+    template <int BitsSkipped, typename... Fields>
+    struct FilterDisabledFields<TypeList<SkipBit<BitsSkipped>, Fields...>> {
+        typedef typename FilterDisabledFields<TypeList<Fields...>>::Type NewFieldListWithoutHeadField;
+        typedef TypeListPushFrontT<NewFieldListWithoutHeadField, SkipBit<BitsSkipped>> Type;
     };
 
     /// HasDuplicates
@@ -80,13 +244,23 @@ namespace bitfields {
         : traits::FalseType
     {};
 
+    template <int SkippedBits, typename... RemainingFields>
+    struct HasDuplicates<TypeList<SkipBit<SkippedBits>, RemainingFields...>>
+        : public HasDuplicates<TypeList<RemainingFields...>> 
+    {};
+
     template <typename HeadField, typename... RemainingFields>
     struct HasDuplicates<TypeList<HeadField, RemainingFields...>>
         : traits::IntegralConstantInterface<HasDuplicates<TypeList<HeadField, RemainingFields...>>, bool>
     {
         template <typename Field>
         struct IsDuplicatedWith
-            : public traits::BoolConstant<HeadField::ID == Field::ID>  
+            : public traits::BoolConstant<HeadField::ID == Field::ID>
+        {  typedef bool    RetType;  };
+
+        template <int BitsSkipped>
+        struct IsDuplicatedWith<SkipBit<BitsSkipped>>
+            : public traits::FalseType
         {  typedef bool    RetType;  };
 
         typedef HasDuplicates<TypeList<RemainingFields...>>   NextIteration;
@@ -115,24 +289,27 @@ namespace bitfields {
     template <typename FieldList, usize Id>
     using GetFieldT = typename GetField<FieldList, Id>::Type;
 
-    template <typename FieldList, usize Id>
-    struct GetFieldBits
-        : public traits::IntConstant<GetFieldT<FieldList, Id>::BITS>
-    {};
-
-    /// TotalOccupiedBits 
+    /// TotalOccupiedBits
     template <typename FieldList>
     struct TotalOccupiedBits;
 
+    template <>
+    struct TotalOccupiedBits<TypeList<>>
+        : public traits::IntConstant<0>
+    {};
+
     template <typename... Fields>
     struct TotalOccupiedBits<TypeList<Fields...>>
-        : traits::IntegralConstantInterface<TotalOccupiedBits<TypeList<Fields...>>, usize>
+        : public traits::IntegralConstantInterface<TotalOccupiedBits<TypeList<Fields...>>, usize>
     {
-        typedef TypeList<Fields...>     FieldList;
-
         template <typename Field>
         struct GetOccupiedBits
             : public traits::IntConstant<Field::BITS>
+        {  typedef isize    RetType;  };
+
+        template <int BitsSkipped>
+        struct GetOccupiedBits<SkipBit<BitsSkipped>>
+            : public traits::IntConstant<BitsSkipped>
         {  typedef isize    RetType;  };
 
         USTL_CONSTEXPR
@@ -141,36 +318,24 @@ namespace bitfields {
         };
     };
 
-    template <typename FieldList>
-    struct CalculateOccupiedUsize;
+    template <typename Unit, typename FieldList>
+    struct CalculateOccupiedUnits;
 
-    template <typename... Fields>
-    struct CalculateOccupiedUsize<TypeList<Fields...>>
-        : traits::IntegralConstantInterface<CalculateOccupiedUsize<TypeList<Fields...>>, usize>
+    template <typename Unit, typename... Fields>
+    struct CalculateOccupiedUnits<Unit, TypeList<Fields...>>
+        : public traits::IntegralConstantInterface<CalculateOccupiedUnits<Unit, TypeList<Fields...>>, usize>
     {
         typedef TypeList<Fields...>     FieldList;
 
         USTL_CONSTEXPR
-        static usize const BITS = ustl::NumericLimits<usize>::DIGITS;
+        static usize const BITS = ustl::NumericLimits<Unit>::DIGITS;
 
         typedef ustl::traits::ConditionalT<sizeof...(Fields) == 0,
-            traits::IntConstant<1>, 
+            traits::IntConstant<1>,
             TotalOccupiedBits<FieldList>>   GetOccupiedBits;
 
         USTL_CONSTEXPR
         static usize const VALUE = (GetOccupiedBits() + BITS - 1) / BITS; // align up
-    };
-
-    template <typename FieldList, usize Start, usize End>
-    struct TotalOccupiedUsizeRange;
-
-    template <usize Start, usize End, typename... Fields>
-    struct TotalOccupiedUsizeRange<TypeList<Fields...>, Start, End>
-    {
-        typedef TypeListSubList<TypeList<Fields...>, Start, End>::Type  TargetFields;
-
-        USTL_CONSTEXPR
-        static usize const VALUE = CalculateOccupiedUsize<TargetFields>();
     };
 
     template <typename FieldList, usize... Ids>
@@ -197,7 +362,7 @@ namespace bitfields {
 
         template <typename Field>
         struct GetOccupiedBits
-        {  
+        {
             typedef usize    RetType;
 
             USTL_CONSTEXPR
@@ -210,167 +375,68 @@ namespace bitfields {
         };
     };
 
-    /// FindBitPos
-    template <typename FieldList, usize Id>
-    struct FindBitPos;
-
-    template <usize Id, typename... Fields>
-    struct FindBitPos<TypeList<Fields...>, Id>
-        : traits::IntegralConstantInterface<FindBitPos<TypeList<Fields...>, Id>, usize>
-    {
-        typedef TypeList<Fields...>     FieldList;
-
-        template <typename Field>
-        struct AddBitsIfIdLesserThanThis 
-            : public traits::IntConstant<Field::ID < Id ? Field::BITS : 0>
-        {  typedef isize    RetType;  };
-
-        USTL_CONSTEXPR
-        static usize const VALUE = {
-            util::Fold<AddBitsIfIdLesserThanThis, util::Accumulator::IntAdd, Fields...>::VALUE
-        };
+    template <int TotalBits>
+    struct GetStorageType {
+        typedef traits::ConditionalT<TotalBits < sizeof(u8) * 8, u8,
+                traits::ConditionalT<TotalBits < sizeof(u16) * 8, u16,
+                traits::ConditionalT<TotalBits < sizeof(u32) * 8, u32, 
+                //traits::ConditionalT<TotalBits < sizeof(u64) * 8, u64, 
+                //traits::ConditionalT<TotalBits < sizeof(u128) * 8, u128,
+                usize // By default, we use `usize` but `u64`.
+            >>> Type;
     };
 
-    /// FindUnderlyingTypeIndex
-    template <typename FieldList, usize Id>
-    struct FindUsizeIndex;
+    /// FIXME(SmallHuaZi) This feature is still in the experimental phase, and there are many
+    /// scenarios we have not yet accounted for, such as alignment storage, fields spanning multiple
+    /// usizes, etc. Please use it with caution.
+    ///
+    /// TODO(SmallHuaZi)
+    ///      1. Implement serialzation to support pretty print.
+    ///      2. Provide reference to fields, namely BitFieldRef<>
+    template<typename StorageUnitT, typename FieldListT>
+    struct BitFieldsImpl {
+        typedef BitFieldsImpl       Self;
+        typedef StorageUnitT        StorageUnit; 
+        typedef FieldListT          FieldList;
 
-    template <usize Id, typename... Fields>
-    struct FindUsizeIndex<TypeList<Fields...>, Id>
-        : traits::IntegralConstantInterface<FindUsizeIndex<TypeList<Fields...>, Id>, usize>
-    {
-        typedef TypeList<Fields...>     FieldList;
-
-        USTL_CONSTEXPR
-        static usize const VALUE = FindBitPos<FieldList, Id>::VALUE / ustl::NumericLimits<usize>::DIGITS;
-    };
-
-    /// GetFieldMask
-    template <typename FieldList, usize Id>
-    struct GetFieldMask;
-
-    template <usize Id, typename... Fields>
-    struct GetFieldMask<TypeList<Fields...>, Id> 
-        : traits::IntegralConstantInterface<GetFieldMask<TypeList<Fields...>, Id>, usize>
-    {
-        typedef TypeList<Fields...>     FieldList;
-
-        USTL_CONSTEXPR
-        static usize const BITPOS = FindBitPos<FieldList, Id>();
-
-        USTL_CONSTEXPR
-        static usize const BITS = GetFieldT<FieldList, Id>::BITS;
-
-        USTL_CONSTEXPR
-        static usize const VALUE = MakeBitMask<usize, BITPOS, BITS>::VALUE;
-    };
-
-    /// GetFieldShift
-    template <typename FieldList, usize Id>
-    struct GetFieldShift;
-
-    template <usize Id, typename... Fields>
-    struct GetFieldShift<TypeList<Fields...>, Id>
-        : traits::IntegralConstantInterface<GetFieldShift<TypeList<Fields...>, Id>, usize>
-    {
-        typedef TypeList<Fields...>     FieldList;
-
-        USTL_CONSTEXPR
-        static usize const BITS = ustl::NumericLimits<usize>::DIGITS;
-
-        USTL_CONSTEXPR
-        static usize const VALUE = FindBitPos<FieldList, Id>() - FindUsizeIndex<FieldList, Id>() * BITS;
-    };
-
-    struct DefaultFieldOptions
-    {
-        typedef usize   Type;
-
-        USTL_CONSTEXPR 
-        static auto const BITS = 1;
-
-        USTL_CONSTEXPR 
-        static auto const ENABLE = true;
-
-        USTL_CONSTEXPR 
-        static util::FixedString const NAME{"Anonymous"};
-    };
-
-    template <typename... Options>
-    struct MakeBitField
-    {
-        typedef typename PackOptions<DefaultFieldOptions, Options...>::Type 
-            PackedOption;
-
-        typedef FieldMetaData<
-            PackedOption::ID, 
-            PackedOption::ENABLE ?PackedOption::BITS : 0, 
-            typename PackedOption::Type,
-            PackedOption::NAME,
-            PackedOption::ENABLE
-        > Type;
-    };
-
-    template <typename... Options>
-    struct BitField
-        : public bitfields::MakeBitField<Options...>::Type
-    {
-        typedef typename bitfields::MakeBitField<Options...>::Type     Base;
-        using Base::Base;
-    };
-
-    template<typename... Fields>
-    class BitFields
-        : public BitFields<FieldList<Fields...>>
-    {
     public:
-        typedef BitFields<FieldList<Fields...>>   Base;
-        using Base::Base;
-    };
+        USTL_CONSTEXPR
+        static usize const NUM_BITS = TotalOccupiedBits<FieldList>();
 
-    /// This option is used to support `operator|[=]` and `operator&[=]` for some enum fields.
-    /// It is very optional, please ensure only one field specified the enum type, otherwise causing
-    /// a static assertion error.
-    USTL_CONSTANT_OPTION(EnableBitOpForEnumField, bool, ENABLE_BITOP_FOR_ENUM_FIELD);
-
-    template<typename... Fields>
-    class BitFields<FieldList<Fields...>>
-    {
-        typedef BitFields               Self;
-        typedef TypeList<Fields...>     FieldList;
-        static_assert(!bitfields::HasDuplicates<FieldList>::VALUE, "Has duplicated field");
-
-        template <usize Id>
-        using ValueTypeOf = typename bitfields::GetFieldT<FieldList, Id>::ValueType;
+        USTL_CONSTEXPR
+        static usize const NUM_UNITS = CalculateOccupiedUnits<StorageUnit, FieldList>();
 
         template <usize Id>
         USTL_CONSTEXPR
-        static auto const IsFieldEnabledV = bitfields::GetFieldT<FieldList, Id>::ENABLE;
-    public:
-        USTL_CONSTEXPR 
-        BitFields() = default;
-    
-        USTL_CONSTEXPR 
-        BitFields(ustl::InitializerList<usize> const &val) { 
-            ustl::algorithms::copy_n(val.begin(), NUM_USIZE, values);  
+        static auto const IsFieldEnabledV = GetFieldT<FieldList, Id>::ENABLE;
+
+        template <usize Id>
+        using ValueTypeOf = typename GetFieldT<FieldList, Id>::ValueType;
+
+        USTL_CONSTEXPR
+        BitFieldsImpl() = default;
+
+        USTL_CONSTEXPR
+        BitFieldsImpl(ustl::InitializerList<usize> const &val) {
+            ustl::algorithms::copy_n(val.begin(), NUM_UNITS > val.size() ? val.size() : NUM_UNITS, values);
         }
-    
+
         template<usize Id>
-        USTL_FORCEINLINE USTL_CONSTEXPR 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto set(ValueTypeOf<Id> const &value) USTL_NOEXCEPT -> void {
-            priv_set<Id>(value, traits::BoolConstant<IsFieldEnabledV<Id>>()); 
+            priv_set<Id>(value, traits::BoolConstant<IsFieldEnabledV<Id>>());
         }
-    
+
         template<usize Id>
-        USTL_FORCEINLINE USTL_CONSTEXPR 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto get() const USTL_NOEXCEPT -> ValueTypeOf<Id> {
             return priv_get<Id>(traits::BoolConstant<IsFieldEnabledV<Id>>());
         }
 
         template <typename Container, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto pack(IndexSequence<Ids...>) const USTL_NOEXCEPT -> Container {  
-            return pack<Container, Ids...>();  
+        auto pack(IndexSequence<Ids...>) const USTL_NOEXCEPT -> Container {
+            return pack<Container, Ids...>();
         }
 
         /// Takes multiple fields and combines them into a single `Int`.
@@ -383,90 +449,127 @@ namespace bitfields {
             return out;
         }
 
-        /// Takes multiple fields and combines them into a single `Int`.
-        template <typename Contaienr, usize Id, usize... Ids>
+        /// Takes multiple fields and combines them into a single `Layout`.
+        template <typename Layout, usize Id, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto pack_to(Contaienr &out) const USTL_NOEXCEPT -> void {
-            static_assert(sizeof(Contaienr) * ustl::NumericLimits<u8>::DIGITS 
-                          >= TotalOccupiedUsizeByIds<FieldList, Id, Ids...>::VALUE, 
-                "[Error]: The size of the specified type must be at least as large as the required size.");
-            usize const tmp[] = { get<Id>(), get<Ids>()... };
+        auto pack_to(Layout &out) const USTL_NOEXCEPT -> void {
+            static_assert(sizeof(Layout) * 8 >= TotalOccupiedUsizeByIds<FieldList, Id, Ids...>::VALUE,
+                          "[ustl-error]: The size of the specified type must be at least as large as the required size.");
+            typedef IndexSequence<0, GetField<FieldList, Ids>::BITS...>     BitsOfAllField;
+            typedef IntegerSequenceCalculatePresumT<BitsOfAllField>         ShiftsOnFlatLayout;
 
             // TODO(SmallHuaZi) using class template instead of fold expression to provide
-            // compatibility for lower version of c++.
-            out = Contaienr(get<Id>()) | (((Contaienr(get<Ids>()) << GetFieldBits<FieldList, Id>())) | ...);
+            // compatibility for older version of c++.
+            out = Layout(get<Id>()) | (((Layout(get<Ids>()) << GetField<FieldList, Id>::BITS)) | ...);
         }
 
         template <typename Container, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto unpack(Container const &container, IndexSequence<Ids...>) const USTL_NOEXCEPT -> void {  
+        auto unpack(Container const &container, IndexSequence<Ids...>) const USTL_NOEXCEPT -> void {
             return unpack<Container, Ids...>(container);
         }
-    
+
         template <typename Container, usize Id, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
         auto unpack(Container const &container) const USTL_NOEXCEPT -> void {
         }
 
         template <typename Enum>
-        USTL_FORCEINLINE USTL_CONSTEXPR 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto operator|(Enum value) -> Self;
 
     private:
         template<usize Id>
-        USTL_FORCEINLINE USTL_CONSTEXPR 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto priv_set(ValueTypeOf<Id> const &value, traits::TrueType) USTL_NOEXCEPT -> void {
-            USTL_CONSTEXPR 
-            usize const idx = FindUsizeIndex<FieldList, Id>();
-            values[idx] &= (~GetFieldMask<FieldList, Id>()) | static_cast<usize>(value) << GetFieldShift<FieldList, Id>();
+            // Defining the variables is just to observe their value. Usually them will
+            // be optimized out. So don't worry that them occupy the statck space.
+            USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::UNIT;
+            USTL_CONSTEXPR usize const mask = GetFieldT<FieldList, Id>::MASK;
+            USTL_CONSTEXPR usize const shift = GetFieldT<FieldList, Id>::SHIFT;
+
+            values[idx] &= ~mask;
+            values[idx] |= usize(value) << shift;
         }
 
         template<usize Id>
-        USTL_FORCEINLINE USTL_CONSTEXPR 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto priv_set(ValueTypeOf<Id> const &value, traits::FalseType) USTL_NOEXCEPT -> void
         {}
 
         template<usize Id>
-        USTL_FORCEINLINE USTL_CONSTEXPR 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto priv_get(traits::TrueType) const USTL_NOEXCEPT -> ValueTypeOf<Id> {
             typedef ValueTypeOf<Id> Result;
-            USTL_CONSTEXPR 
-            usize const idx = FindUsizeIndex<FieldList, Id>();
-            return Result((values[idx] & GetFieldMask<FieldList, Id>()) >> GetFieldShift<FieldList, Id>());
+            USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::UNIT;
+            USTL_CONSTEXPR usize const mask = GetFieldT<FieldList, Id>::MASK;
+            USTL_CONSTEXPR usize const shift = GetFieldT<FieldList, Id>::SHIFT;
+            return Result((values[idx] & mask) >> shift);
         }
 
         template<usize Id>
-        USTL_FORCEINLINE USTL_CONSTEXPR 
+        USTL_FORCEINLINE USTL_CONSTEXPR
         auto priv_get(traits::FalseType) const USTL_NOEXCEPT -> ValueTypeOf<Id> {
+            // TODO (SmallHuaZi): Handle the scenario where a field is disabled as an optional configuration item.
+            //  1. Strict Constraint: Treat it as a hard error at compile time.
+            //  2. Flexible Mode: Return a default value to the caller, supporting scenarios where a flag is only 
+            //     applicable on 64-bit platforms but defaults to zero on 32-bit platforms. It is frequently seen.
             return ValueTypeOf<Id>();
         }
 
-        USTL_CONSTEXPR
-        static usize const NUM_USIZE = bitfields::CalculateOccupiedUsize<FieldList>();
-        usize values[NUM_USIZE];
+        template <typename Layout, usize... Id>
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto priv_pack_to(Layout &out, IndexSequence<Id...>) const USTL_NOEXCEPT -> void {
+            
+        }
+
+        StorageUnit values[NUM_UNITS];
     };
+
+    template <typename... Fields>
+    struct MakeBitFields {
+        typedef typename MakeBitFields<TypeList<Fields...>>::Type    Type;
+    };
+
+    template <typename... Fields>
+    struct MakeBitFields<TypeList<Fields...>> {
+        typedef TypeList<Fields...>     RawFieldList;
+        static_assert(!bitfields::HasDuplicates<RawFieldList>::VALUE, "Has duplicated fields");
+
+        typedef typename FilterDisabledFields<RawFieldList>::Type  FieldListFiltered;
+
+        USTL_CONSTEXPR 
+        static usize const NUM_BITS = TotalOccupiedBits<FieldListFiltered>();
+
+        typedef typename GetStorageType<NUM_BITS>::Type   StorageUnit;
+        typedef typename RelocateFields<StorageUnit, FieldListFiltered>::Type  FieldList;
+        typedef BitFieldsImpl<StorageUnit, FieldList>    Type;
+    };
+
+    template <typename... Fields>
+    using BitFields = typename MakeBitFields<Fields...>::Type;
+
+
+    /// This option is used to support `operator|[=]` and `operator&[=]` for some enum fields.
+    /// It is very optional, please ensure only one field specified the enum type, otherwise causing
+    /// a static assertion error.
+    USTL_CONSTANT_OPTION(EnableBitOpForEnumField, bool, ENABLE_BITOP_FOR_ENUM_FIELD);
+
 } // namespace bitfields
-
-    USTL_CONSTANT_OPTION(FieldId, usize, ID);
-    USTL_CONSTANT_OPTION(FieldBits, usize, BITS);
-    USTL_CONSTANT_OPTION(FieldName, util::FixedString, NAME);
-    USTL_TYPE_OPTION(FieldType, Type);
-    USTL_CONSTANT_OPTION(EnableFieldIf, bool, ENABLE);
-
-    using bitfields::BitField;
+    using bitfields::Field;
     using bitfields::BitFields;
 
-    template <typename Fields>
-    struct MakeBitFields;
+    template <typename... Fields>
+    struct SizeOf<bitfields::BitFieldsImpl<Fields...>>
+        : public traits::IntConstant<sizeof...(Fields)>
+    {};
 
-    template<typename... Fields>
-    struct MakeBitFields<TypeList<Fields...>>
-    {
-        typedef BitFields<Fields...>    Type;  
+    /// TODO(SmallHuaZi) Create a Map<Index, Id> at compile time to avoid the assumption
+    /// that requires `Id` to be forcibly identical to `Index`.
+    /// Note that this map does not refer to the collection `ustl::collections::Map`.
+    template <usize I, typename... Fields>
+    struct Getter<bitfields::BitFieldsImpl<Fields...>, I> {
     };
-
-    template<typename FieldList>
-    using MakeBitFieldsT = typename MakeBitFields<FieldList>::Type;
 
 } // namespace ustl
 

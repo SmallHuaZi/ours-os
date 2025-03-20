@@ -218,7 +218,7 @@ namespace ours::mem {
 
     auto PmNode::free_frame(PmFrame *frame, usize order) -> void
     {
-        auto const ztype = frame->zone_type();
+        auto const ztype = frame->flags().zone_type();
         auto const zone = zone_queues_.local_zone(ztype);
 
         DEBUG_ASSERT(zone, "");

@@ -66,7 +66,7 @@ namespace arch::paging {
 
         virtual auto harvest_accessed(VirtAddr va, usize n, HarvestControl control) -> Status = 0;
 
-        virtual auto alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages, usize level) -> Status = 0;
+        virtual auto alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages) -> Status = 0;
 
         auto install() const -> void {
             auto cr3 = Cr3::read();
@@ -132,16 +132,19 @@ namespace arch::paging {
               nr_mapped_(),
               synchroniser_() {}
 
-        FORCE_INLINE CXX11_CONSTEXPR auto consume(usize page_size) -> void {
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto consume(usize page_size) -> void {
             Base::consume(page_size);
             nr_mapped_ += page_size / 4096;
         }
 
-        FORCE_INLINE CXX11_CONSTEXPR auto mapped() -> usize {
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto mapped() -> usize {
             return nr_mapped_;
         }
 
-        FORCE_INLINE CXX11_CONSTEXPR auto synchroniser() -> Synchroniser & {
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto synchroniser() -> Synchroniser & {
             return synchroniser_;
         }
 
@@ -152,24 +155,27 @@ namespace arch::paging {
 
     template <typename PagingOptions>
     struct PagingOptionsTraits {
-        typedef typename PagingOptions::Mutex Mutex;
+        typedef typename PagingOptions::Mutex   Mutex;
 
         CXX11_CONSTEXPR
-        static usize const PagingLevelV = PagingOptions::PagingLevelV;
+        static auto const kPagingLevel = PagingOptions::kPagingLevel;
     };
 
     /// CRTP class `X86PageTable` is a high-level implementation of architecturelly page table.
-    template <typename Derived, typename PagingOptions>
+    template <typename Derived, typename Options>
     class X86PageTableImpl: public IX86PageTable {
+        typedef IX86PageTable    Base;
         typedef X86PageTableImpl Self;
-        typedef PagingOptionsTraits<PagingOptions> Options;
-        typedef typename Options::Mutex Mutex;
-        typedef PagingTraits<Options::PagingLevelV> PagingTraits;
-        typedef MappingContext<Derived> MappingContext;
+      protected:
+        typedef PagingOptionsTraits<Options> OptionsTraits;
+        typedef typename OptionsTraits::Mutex Mutex;
+        typedef typename MakePagingTraits<OptionsTraits::kPagingLevel>::Type   PagingTraits;
+        typedef typename PagingTraits::LevelType    LevelType;
 
+        typedef MappingContext<Derived> MappingContext;
       public:
         X86PageTableImpl() = default;
-        ~X86PageTableImpl() override = default;
+        virtual ~X86PageTableImpl() override = default;
 
         /// Sees IX86PageTable::map_pages.
         auto map_pages_with_altmap(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, Altmap *altmap)
@@ -190,27 +196,27 @@ namespace arch::paging {
         /// Sees IX86PageTable::harvest_accessed.
         auto harvest_accessed(VirtAddr, usize, HarvestControl) -> Status override;
 
-        auto alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages, usize level) -> Status override;
+        auto alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages) -> Status override;
 
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto top_level() -> usize {
-            return PagingTraits::PAGE_LEVEL;
+            return OptionsTraits::kPagingLevel;
         }
 
       private:
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto virt_to_index(usize level, VirtAddr virt) -> usize {
-            return PagingTraits::virt_to_index(level, virt);
+            return PagingTraits::virt_to_index(LevelType(level), virt);
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto page_size(usize level) -> usize {
-            return PagingTraits::page_size(level);
+            return PagingTraits::page_size(LevelType(level));
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto max_entries(usize level) -> usize {
-            return PagingTraits::max_entry(level);
+            return PagingTraits::max_entries(LevelType(level));
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 

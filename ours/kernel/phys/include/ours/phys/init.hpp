@@ -15,29 +15,22 @@
 #include <ours/types.hpp>
 #include <ours/config.hpp>
 
-#include <omi/header.hpp>
 #include <bootmem/bootmem.hpp>
 
 namespace ours::phys {
-    struct Aspace;
     struct Handoff;
 
     extern char const IMAGE_START[] LINK_NAME("__image_start");
     extern char const IMAGE_END[] LINK_NAME("__image_end");
 
-    static auto global_aspace() -> Aspace * {
-        extern Aspace   *ASPACE;
-        return ASPACE;
-    }
-
     static auto global_bootmem() -> bootmem::IBootMem * {
-        extern bootmem::IBootMem   *BOOTMEM;
-        return BOOTMEM;
+        extern bootmem::IBootMem   *gBootMem;
+        return gBootMem;
     }
 
     static auto global_handoff() -> Handoff * {
-        extern Handoff  *HANDOFF;
-        return HANDOFF;
+        extern Handoff  *gHandoff;
+        return gHandoff;
     }
 
     auto init_early_console() -> void;

@@ -26,11 +26,6 @@ using ustl::algorithms::clamp;
 using ustl::mem::construct_at;
 
 namespace ours::mem {
-    NO_MANGLE {
-        PhysAddr KERNEL_PHYS_BASE;
-        VirtAddr KERNEL_VIRT_BASE;
-    }
-
     struct PresetVmaInfo
     { 
         char const *name;
@@ -125,25 +120,25 @@ namespace ours::mem {
             .name = "k:code",
             .base = VirtAddr(KERNEL_CODE_START),
             .size = usize(KERNEL_CODE_END - KERNEL_CODE_START),
-            .rights = MmuFlags::Executable | MmuFlags::Readable | MmuFlags::Cached
+            .rights = MmuFlags::Executable | MmuFlags::Readable
         },
         {
             .name = "k:data",
             .base = VirtAddr(KERNEL_DATA_START),
             .size = usize(KERNEL_DATA_END - KERNEL_DATA_START),
-            .rights = MmuFlags::Writable | MmuFlags::Readable | MmuFlags::Cached
+            .rights = MmuFlags::Writable | MmuFlags::Readable
         },
         {
             .name = "k:rodata",
             .base = VirtAddr(KERNEL_RODATA_START),
             .size = usize(KERNEL_RODATA_END - KERNEL_RODATA_START),
-            .rights = MmuFlags::Readable | MmuFlags::Cached
+            .rights = MmuFlags::Readable
         },
         {
             .name = "k:bss",
             .base = VirtAddr(KERNEL_BSS_START),
             .size = usize(KERNEL_BSS_END - KERNEL_BSS_START),
-            .rights = MmuFlags::Readable | MmuFlags::Cached
+            .rights = MmuFlags::Readable
         },
         {
             .name = "k:init",

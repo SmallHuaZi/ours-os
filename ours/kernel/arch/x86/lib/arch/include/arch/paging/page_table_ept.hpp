@@ -20,8 +20,11 @@ namespace arch::paging {
     {
         typedef X86PageTableEpt     Self;
         typedef X86PageTableImpl<Self, Options> Base;
+
+        using typename Base::PagingTraits;
+        using typename Base::LevelType;
     public:
-        ~X86PageTableEpt() override = default;
+        virtual ~X86PageTableEpt() override = default;
 
         auto init() -> Status
         { return Status::Unimplemented;  }
@@ -38,8 +41,10 @@ namespace arch::paging {
 
         static auto is_present(Pte pte) -> bool
         { return false;  }
-        static auto has_supported_page_size(usize level) -> bool
+
+        static auto level_can_be_terminal(LevelType level) -> bool
         { return false;  }
+
         static auto make_pte(PhysAddr phys, MmuFlags flags) -> Pte
         { return {};  }
 
