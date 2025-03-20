@@ -8,9 +8,8 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
-#ifndef OURS_OBJECT_KERNEL_OBJECT_HPP
-#define OURS_OBJECT_KERNEL_OBJECT_HPP 1
+#ifndef OURS_OBJECT_DISPATCHER_HPP
+#define OURS_OBJECT_DISPATCHER_HPP 1
 
 #include <ours/types.hpp>
 
@@ -19,10 +18,10 @@
 #include <ustl/sync/atomic.hpp>
 
 namespace ours::object {
-    class KernelObject
-        : private ustl::RefCounter<KernelObject>
+    class Dispatcher
+        : private ustl::RefCounter<Dispatcher>
     {
-        typedef KernelObject   Self;
+        typedef Dispatcher   Self;
     public:
         auto id() const -> KoId
         {  return koid_;  }
@@ -38,20 +37,18 @@ namespace ours::object {
 
         auto remove_observer()
         {}
-
     protected:
-        KernelObject(char const *name);
-        KernelObject(KernelObject const &other);
-
+        Dispatcher(char const *name);
     protected:
         KoId koid_;
         ustl::sync::AtomicU32  handle_count_;
         ustl::sync::AtomicU32  signal_count_;
 
-        static constexpr u32 const MAX_NAME_SIZE = 32;
+        CXX11_CONSTEXPR
+        static auto const MAX_NAME_SIZE = 32;
         char name_[MAX_NAME_SIZE];
     };
 
 } // namespace ours
 
-#endif // #ifndef OURS_OBJECT_KERNEL_OBJECT_HPP
+#endif // #ifndef OURS_OBJECT_DISPATCHER_HPP

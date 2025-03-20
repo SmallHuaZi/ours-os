@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef KTL_OBJECT_CACHE_HPP
 #define KTL_OBJECT_CACHE_HPP 1
 

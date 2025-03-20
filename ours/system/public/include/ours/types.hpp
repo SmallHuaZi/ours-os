@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_TYPES_HPP
 #define OURS_TYPES_HPP 1
 
@@ -40,8 +39,7 @@ namespace ours {
     typedef u32   VIrqNum;
 
     /// For type check.
-    struct Handle   { u32 _0; };
-    struct Signal   { u32 _0; };
+    struct Signals  { u32 _0; };
     struct KoId     { u32 _0; };
 
 } // namespace ours

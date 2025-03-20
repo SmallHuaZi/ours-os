@@ -1,14 +1,8 @@
-#include "ktl/object_cache.hpp"
 #include <heap/scope.hpp>
+#include <ktl/object_cache.hpp>
+#include <ours/mem/mod.hpp>
 
-auto operator new(ours::usize size) -> void *
-{  return operator new(size, alignof(void *), ours::mem::GAF_KERNEL);  }
+struct PageAllocator;
 
-auto operator new(ours::usize size, ours::usize align, ours::mem::Gaf gaf) CXX11_NOEXCEPT -> void *
-{ return nullptr; }
-
-auto operator delete(void *ptr) CXX11_NOEXCEPT -> void
-{}
-
-auto operator delete[](void *ptr) CXX11_NOEXCEPT -> void
-{}
+template <int NumBytes>
+using ObjectCache = ktl::ObjectCache<u8, PageAllocator, NumBytes>;

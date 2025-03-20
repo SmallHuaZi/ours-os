@@ -40,7 +40,7 @@ namespace arch {
 
         FORCE_INLINE USTL_CONSTEXPR
         auto write() const -> void {
-            write(*this);
+            return Self::write(*static_cast<Derived const *>(this));
         }
     };
 
