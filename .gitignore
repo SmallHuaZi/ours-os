@@ -1,5 +1,10 @@
 target
 mkimg.sh
 runvm.sh
+prelaunch.sh
 ours.iso
 convert.py
+
+ours-dev.srctrlbm
+ours-dev.srctrldb
+ours-dev.srctrlprj
