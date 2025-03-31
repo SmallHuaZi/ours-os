@@ -28,8 +28,8 @@ namespace arch::io {
                       "Parameter of RegisterAddr<> should derive from RegisterBase");
 
         // Instantiate a RegisterBase using the value of the register read from MMIO.
-        template <typename T>
-        auto read_from(T *reg_io) const -> RegType {
+        template <typename IoProvider>
+        auto read_from(IoProvider &reg_io) const -> RegType {
             RegType reg;
             reg.set_reg_addr(reg_addr_);
             reg.read_from(reg_io);
@@ -49,7 +49,7 @@ namespace arch::io {
         }
 
       private:
-        const u32 reg_addr_;
+        u32 const reg_addr_;
     };
 } // namespace arch::io
 

@@ -25,11 +25,13 @@
 #   define CXX20_CONSTEXPR  constexpr
 #   define CXX20_CONSTEVAL  consteval
 #   define CXX20_CONSTINIT  constinit
+#   define CXX20_REQUIRES(...)  requires __VA_ARGS__
 #else
 #   define CXX20_INLINE
 #   define CXX20_CONSTEXPR
 #   define CXX20_CONSTEVAL
 #   define CXX20_CONSTINIT
+#   define CXX20_REQUIRES(...)
 #endif // #if __cplusplus > 202003ull
 
 #if __cplusplus > 202302ull

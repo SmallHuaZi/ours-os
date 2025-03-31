@@ -17,8 +17,10 @@ namespace ours {
     {
         // Reclaim memories occupied by the early infomation.
         init_arch();
+        set_init_level(gktl::InitLevel::Arch);
 
         init_platform();
+        set_init_level(gktl::InitLevel::Platform);
 
         // reclaim_init_area(mem::RemTag::All);
 
@@ -35,16 +37,14 @@ namespace ours {
         gktl::init_static_objects();
         setup_handoff(handoff);
 
-        // Set up early memory manager.
-        mem::init_early_pmm(PHYS_HANDOFF->mem);
-
-        CpuLocal::init(0);
-
         init_arch_early();
         set_init_level(gktl::InitLevel::ArchEarly);
 
         init_platform_early();
         set_init_level(gktl::InitLevel::PlatformEarly);
+
+        // At this point, `PMM` must be initialized.
+        CpuLocal::init(0);
 
         mem::init_vmm();
         set_init_level(gktl::InitLevel::VmmInitialized);
@@ -56,7 +56,7 @@ namespace ours {
         // First thing we should do is to initialize our system logger.
         log::init(0);
 
-        auto laborer = task::Thread::spawn("laborer", labour_routine);
+        auto const laborer = task::Thread::spawn("laborer", labour_routine);
         laborer->detach();
         laborer->resume();
 

@@ -13,6 +13,7 @@
 
 #include <arch/types.hpp>
 #include <arch/macro/mmu.hpp>
+#include <arch/paging/arch_mmu_flags.hpp>
 #include <arch/paging/paging_dispatcher.hpp>
 
 namespace arch::paging {
@@ -35,17 +36,13 @@ namespace arch::paging {
         static auto const kVirtAddrExt = VirtAddrExt::Canonical;
 
         CXX11_CONSTEXPR
-        static X86PagingLevel const kNextLevelMap[] { 
-            X86PagingLevel::MaxNumLevels,
+        static X86PagingLevel const kAllLevels[] { 
             X86PagingLevel::PageTable,
             X86PagingLevel::PageDirectory,
             X86PagingLevel::PageDirectoryPointerTable,
             X86PagingLevel::PageMapLevel4,
+            X86PagingLevel::PageMapLevel5,
         };
-
-        template <LevelType Level>
-        CXX11_CONSTEXPR 
-        static auto const kNextLevel = kNextLevelMap[usize(Level)];
     };
 
     /// Usually active on 32-bit platform
@@ -90,7 +87,7 @@ namespace arch::paging {
     };
 
     template <>
-    struct PagingDispatcher<2> {
+    struct PagingDispatcher<X86PagingLevel::PageDirectory> {
         typedef X86L2Paging   Type;
     };
 
@@ -137,8 +134,64 @@ namespace arch::paging {
     };
 
     template <>
-    struct PagingDispatcher<3> {
+    struct PagingDispatcher<X86PagingLevel::PageDirectoryPointerTable> {
         typedef X86L3Paging  Type;
+    };
+
+    template <X86PagingLevel TopLevelV, X86PagingLevel Level>
+    struct X86Pte {
+        typedef PhysAddr   ValueType;
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto make(ValueType addr, X86MmuFlags flags, bool terminal) -> X86Pte {
+            if (!terminal) { 
+                return { (addr & X86_PFN_MASK) | ValueType(flags) | X86_KERNEL_PD_FLAGS };
+            }
+            
+            if CXX17_CONSTEXPR (Level == X86PagingLevel::PageTable) {
+                return { (addr & X86_PFN_MASK) | ValueType(flags) | X86_KERNEL_PAGE_FLAGS };
+            } else {
+                return { (addr & X86_PFN_MASK) | ValueType(flags) | X86_KERNEL_HUGE_PAGE_FLAGS };
+            }
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto make_terminal(ValueType addr, X86MmuFlags flags) -> X86Pte {
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto address() const -> PhysAddr {
+            return inner_ & X86_PFN_MASK;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto is_present() const -> bool {
+            return inner_ & X86_MMUF_PRESENT;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto is_terminal() const -> bool {
+            if (!is_present()) {
+                return false;
+            }
+            if CXX17_CONSTEXPR (Level == X86PagingLevel::PageTable) {
+                return true;
+            }
+            if CXX11_CONSTEXPR (Level == X86PagingLevel::PageDirectory || 
+                                Level == X86PagingLevel::PageDirectoryPointerTable) {
+                return (inner_ & X86_MMUF_PAGE_SIZE);
+            }
+            return false;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto arch_mmu_flags() -> X86MmuFlags {
+            static_assert(sizeof(X86_MMUF_MASK) == sizeof(inner_));
+            static_assert(sizeof(X86MmuFlags) == sizeof(inner_));
+            return X86MmuFlags(inner_ & X86_MMUF_MASK);
+        }
+
+        PteVal inner_;
     };
 
     /// Common to L4 and L5 paging.
@@ -148,7 +201,7 @@ namespace arch::paging {
         typedef typename Base::LevelType   LevelType;
 
         template <LevelType Level>
-        struct Pte;
+        using Pte = X86Pte<TopLevelV, Level>;
 
         CXX11_CONSTEXPR 
         static auto const kPagingLevel = TopLevelV;
@@ -199,19 +252,13 @@ namespace arch::paging {
         }
     };
 
-    template <X86PagingLevel TopLevelV, usize MaxPhysAddrSize>
-    template <X86PagingLevel Level>
-    struct X86Paging<TopLevelV, MaxPhysAddrSize>::Pte {
-
-    };
-
     template <>
-    struct PagingDispatcher<4> {
+    struct PagingDispatcher<X86PagingLevel::PageMapLevel4> {
         typedef X86Paging<X86PagingLevel::PageMapLevel4, 52>  Type;
     };
 
     template <>
-    struct PagingDispatcher<5> {
+    struct PagingDispatcher<X86PagingLevel::PageMapLevel5> {
         typedef X86Paging<X86PagingLevel::PageMapLevel5, 57>  Type;
     };
 

@@ -25,20 +25,13 @@ namespace arch::paging {
         typedef typename Paging::LevelType  LevelType;
         static_assert(traits::IsEnumV<LevelType> || traits::IsIntegralV<LevelType>);
 
-        CXX11_CONSTEXPR 
-        static auto const kPagingLevel = Paging::kPagingLevel;
+        using Paging::kPagingLevel;
+        using Paging::kTableAlignmentLog2;
+        using Paging::kMaxPhysAddrSize;
+        using Paging::kVirtAddrExt;
 
         CXX11_CONSTEXPR 
-        static auto const kTableAlignmentLog2 = Paging::kTableAlignmentLog2;
-
-        CXX11_CONSTEXPR 
-        static auto const kTableAlignment = BIT(Paging::kTableAlignmentLog2);
-
-        CXX11_CONSTEXPR 
-        static auto const kMaxPhysAddrSize = Paging::kMaxPhysAddrSize;
-
-        CXX11_CONSTEXPR 
-        static auto const kVirtAddrExt = Paging::kVirtAddrExt;
+        static auto const kTableAlignment = BIT(kTableAlignmentLog2);
 
         template <LevelType Level>
         CXX11_CONSTEXPR 
@@ -52,23 +45,24 @@ namespace arch::paging {
         using Pte = typename Paging::template Pte<Level>;
 
         template <LevelType Level>
+        using PteVal = typename Pte<Level>::ValueType;
+
+        template <LevelType Level>
         CXX11_CONSTEXPR 
-        static auto const kSizeOfPte = sizeof(typename Pte<Level>::ValueType);
+        static auto const kSizeOfPte = sizeof(PteVal<Level>);
 
         template <LevelType Level>
         CXX11_CONSTEXPR 
         static auto const kSizeOfTable = kNumPtes<Level> * kSizeOfPte<Level>;
 
-        template <LevelType Level>
-        CXX11_CONSTEXPR 
-        static auto const kPageSize = Paging::template kPageSize<Level>;
-
-        template <LevelType Level>
-        CXX11_CONSTEXPR 
-        static auto const kNextLevel = Paging::template kNextLevel<Level>;
+        static auto const kFinalLevel = Paging::kAllLevels[0];
 
         /// The methods below provide the capability to dynamically dispatch 
         /// handling logic across different levels of the page table.
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto next_level(LevelType level) -> LevelType {
+            return Paging::kAllLevels[usize(level) - 1];
+        }
 
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto virt_to_index(LevelType level, VirtAddr addr) -> usize {
@@ -77,7 +71,7 @@ namespace arch::paging {
 
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto page_size(LevelType level) -> usize {
-            return Paging::page_size(level);
+            return Paging::kPageSizeMap[usize(level)];
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 
@@ -91,7 +85,7 @@ namespace arch::paging {
         }
     };
 
-    template <int PagingLevel, typename... Options>
+    template <auto PagingLevel, typename... Options>
     struct MakePagingTraits {
         typedef typename PagingDispatcher<PagingLevel, Options...>::Type Paging;
         typedef PagingTraits<Paging>    Type;

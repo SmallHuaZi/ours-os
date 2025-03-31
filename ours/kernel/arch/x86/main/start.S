@@ -10,7 +10,6 @@
 .extern g_kernel_virt_base
 .extern g_kernel_phys_base
 .extern g_kernel_stack_bottom
-.extern g_kernel_stack_size
 
 // Kernel entry point
 .extern start_kernel

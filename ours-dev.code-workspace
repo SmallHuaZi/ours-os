@@ -171,6 +171,10 @@
         "editor.cursorBlinking": "smooth",
         "vim.smartRelativeLine": false,
         "vim.cursorStylePerMode.insert": "line",
+        "lldb.displayFormat": "auto",
+        "lldb.showDisassembly": "auto",
+        "lldb.dereferencePointers": true,
+        "lldb.consoleMode": "commands",
     },
 
     // Tasks run with the "Tasks: Run Task" command (bind a shortcut!).

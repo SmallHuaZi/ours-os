@@ -19,8 +19,13 @@
 #include <ours/phys/handoff.hpp>
 
 namespace ours {
-    INIT_DATA
-    extern phys::Handoff *PHYS_HANDOFF;
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto global_handoff() -> phys::Handoff & {
+        INIT_DATA
+        extern phys::Handoff *PHYS_HANDOFF;
+
+        return *PHYS_HANDOFF;
+    }
 
     /// Set up `|handoff|` 
     INIT_CODE

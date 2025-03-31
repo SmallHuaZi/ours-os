@@ -36,19 +36,16 @@ namespace arch::paging {
         static auto is_flags_allowed(MmuFlags) -> bool
         { return false;  }
 
-        static auto is_large_page_mapping(Pte pte) -> bool
+        static auto is_large_page_mapping(PteVal pte) -> bool
         { return false;  }
 
-        static auto is_present(Pte pte) -> bool
+        static auto is_present(PteVal pte) -> bool
         { return false;  }
 
         static auto level_can_be_terminal(LevelType level) -> bool
         { return false;  }
 
-        static auto make_pte(PhysAddr phys, MmuFlags flags) -> Pte
-        { return {};  }
-
-        static auto get_next_table_unchecked(ai_virt Pte volatile *pte) -> Pte volatile *
+        static auto make_pteval(LevelType level, PhysAddr phys, MmuFlags flags) -> PteVal
         { return {};  }
     };
 

@@ -15,8 +15,8 @@
 #include <arch/types.hpp>
 
 namespace arch {
-    struct EarlyTicks {
-        typedef EarlyTicks      Self;
+    struct Tick {
+        typedef Tick   Self;
 
         FORCE_INLINE
         static auto get() -> Self {
@@ -26,6 +26,11 @@ namespace arch {
         FORCE_INLINE
         static auto zero() -> Self {
             return {0};
+        }
+
+        auto operator-=(Self const &other) -> Self & {
+            tsc -= other.tsc;
+            return *this;
         }
 
         u64 tsc;

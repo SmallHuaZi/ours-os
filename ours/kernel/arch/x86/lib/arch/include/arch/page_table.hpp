@@ -147,10 +147,29 @@ namespace paging {
 
     struct PageTableDefaultOptions {
         CXX11_CONSTEXPR
-        static usize const kPagingLevel = 4;
+        static auto const kPagingLevel = X86PagingLevel::PageMapLevel4;
 
         typedef ustl::sync::Mutex Mutex;
-        typedef void PageManager;
+
+        /// We provide a identity mapping converter as default.
+        struct PhysToVirt {
+            FORCE_INLINE CXX11_CONSTEXPR
+            auto phys_to_virt(PhysAddr addr) -> VirtAddr {
+                return addr;
+            }
+        };
+
+        /// The example code which nerver be invoked. 
+        struct PageAllocator {
+            auto alloc_pages(usize size, usize alignment) -> PhysAddr {
+                OX_PANIC("Nerver call this {}", __func__);
+            }
+
+            auto free_pages(PhysAddr page, usize n) -> void {
+                OX_PANIC("Nerver call this {}", __func__);
+            }
+        };
+
         typedef void TlbInvalidator;
     };
 

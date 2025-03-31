@@ -11,6 +11,8 @@
 #include <arch/system.hpp>
 
 namespace ours::phys {
+    LegacyBoot LegacyBoot::g_legacy_boot;
+
     NO_MANGLE NO_RETURN
     auto phys_main(PhysAddr loader_param) -> void
     {
@@ -18,13 +20,10 @@ namespace ours::phys {
         init_early_console();
         println("loader params at 0x{:X}", loader_param);
 
-        Aspace aspace;
-        init_memory(loader_param, &aspace);
+        LegacyBoot::get().parse_params(loader_param);
 
-        /// Here the bootmem is available. We first allocate the init data by it.
-        setup_init_data();
-
-        probe_topology();
+        // Temporary entry
+        obi_main(PhysAddr(LegacyBoot::get().ramdisk_.data()));
 
         panic("Never reach at here");
     }

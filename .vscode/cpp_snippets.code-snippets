@@ -17,7 +17,7 @@
 	// }
 	"Declare protective marco for header": {
 		"scope": "cpp",
-		"prefix": "cppheader",
+		"prefix": "inc-guard",
 		"body": [
 			"// ${1:${TM_DIRECTORY/.*\\/include\\/(.*)/${1:/downcase}/i}} ${2:${1/(.*)/${1:/upcase}/i}_${TM_FILENAME/(.*)\\.hpp$/${1:/upcase}_HPP/i}}",
 			"/// Copyright(C) 2024 smallhuazi",
@@ -29,7 +29,7 @@
 			"///",
 			"/// For additional information, please refer to the following website:",
 			"/// https://opensource.org/license/gpl-2-0",
-			"///\n",
+			"///",
 			"#ifndef ${3:${2/[\\/]/_/g}}",
 			"#define $3 1\n",
 			"namespace ${4:${1/[\\/]/::/g}} {",

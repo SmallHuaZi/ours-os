@@ -12,6 +12,8 @@
 #define OURS_OBJECT_DISPATCHER_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/rights.hpp>
+#include <ours/config.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/option.hpp>
@@ -47,6 +49,13 @@ namespace ours::object {
         CXX11_CONSTEXPR
         static auto const MAX_NAME_SIZE = 32;
         char name_[MAX_NAME_SIZE];
+    };
+
+    template <typename Derived, Rights default_rights, SigSet>
+    class SoloDispatcher
+        : public Dispatcher
+    {
+
     };
 
 } // namespace ours

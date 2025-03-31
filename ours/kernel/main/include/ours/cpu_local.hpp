@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef GKTL_CPULOCAL_HPP
 #define GKTL_CPULOCAL_HPP 1
 
@@ -67,7 +66,7 @@ namespace ours {
         typedef CpuLocal    Self;
     public:
         INIT_CODE
-        static auto init(CpuNum CpuNum) -> Status;
+        static auto init(u32 nr_cpu) -> Status;
 
         static auto cpu_num() -> CpuNum
         { return arch_current_cpu(); }

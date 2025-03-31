@@ -1,5 +1,5 @@
 #include <ours/arch/x86/init.hpp>
-#include <ours/phys/arch_paging.hpp>
+#include <ours/phys/arch-paging.hpp>
 
 #include <arch/system.hpp>
 #include <arch/tlb.hpp>
@@ -21,7 +21,7 @@ namespace mem {
 
     auto x86_setup_mmu() -> void {
         // Unmap low address.
-        reinterpret_cast<arch::Pte *>(g_pgd)[0] = 0;
+        reinterpret_cast<arch::PteVal *>(g_pgd)[0] = 0;
         arch::tlb_flush_all();
 
         x86_setup_mmu_percpu();

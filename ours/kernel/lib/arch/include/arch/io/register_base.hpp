@@ -19,42 +19,49 @@
 #include <ustl/util/visit.hpp>
 
 namespace arch::io {
-    template <typename Derived, typename SizeType>
+    /// struct DummyRegister
+    /// { details... };
+    ///
+    /// struct DummyIo {
+    ///     auto write_to(usize addr, )
+    /// };
+    ///
+    /// struct IoDispatcher
+    /// {  typedef DummyIo  Type;  }
+    template <typename Register>
+    struct IoDispatcher;
+
+    template <typename Derived, typename IntType>
     class RegisterBase {
-        static_assert(ustl::traits::IsBaseOfV<RegisterBase, Derived>, "Derived must be the subclass of this");
+        typedef Derived    Self;
+        static_assert(ustl::traits::IsBaseOfV<Self, Derived>, "Derived must be a subclass of this");
     public:
-        typedef Derived             Self;
-        typedef SizeType            ValueType;
+        typedef IntType             ValueType;
         typedef ValueType *         PtrMut;
         typedef ValueType const *   Ptr;
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto reg_addr() const -> u32 {
+        auto addr() const -> u32 {
             return addr_;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto set_reg_addr(u32 addr) -> void {
+        auto set_addr(u32 addr) -> void {
             addr_ = addr;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto reg_value() const -> ValueType {
+        auto value() -> ValueType & {
             return value_;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto value_ptr() -> PtrMut {
-            return &value_;
+        auto value() const -> ValueType const & {
+            return value_;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto value_ptr() const -> Ptr {
-            return &value_;
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto set_reg_value(ValueType value) ->  Self & {
+        auto set_value(ValueType value) ->  Self & {
             value_ = value;
             return *static_cast<Self *>(this);
         }
@@ -79,28 +86,14 @@ namespace arch::io {
             return *static_cast<Self *>(this);
         }
 
-        // Invokes print_fn(const char* buf) once for each field, including each
-        // RsvdZ field, and one extra time if there are any undefined bits set.
-        // The callback argument must not be accessed after the callback
-        // returns.  The callback will be called once for each field with a
-        // null-terminated string describing the name and contents of the field.
-        //
-        // Printed fields will look like: "field_name[26:8]: 0x00123 (291)"
-        // The undefined bits message will look like: "unknown set bits: 0x00301000"
-        //
-        // WARNING: This will substantially increase code size and stack usage at the
-        // call site. https://fxbug.dev/42147424 tracks investigation to improve this.
-        //
-        // Example use:
-        // reg.Print([](const char* arg) { printf("%s\n", arg); });
         template <typename F>
         FORCE_INLINE CXX11_CONSTEXPR
         auto for_each_field(F &&f) const -> void {
         }
 
-      private:
-        u32 addr_;
+    private:
         ValueType value_;
+        u32 addr_;
     };
 
 } // namespace arch::io

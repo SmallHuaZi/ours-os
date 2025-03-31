@@ -63,7 +63,7 @@ function(make_obi image_name)
     )
     target_link_libraries(${image_name}.elf
     PRIVATE
-        kernel::lib::omi::headers
+        kernel::lib::omitl::headers
     )
     target_link_options(${image_name}.elf
     PRIVATE

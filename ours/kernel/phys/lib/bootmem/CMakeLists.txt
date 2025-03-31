@@ -16,8 +16,8 @@ add_library(bootmem INTERFACE)
 add_library(kernel::phys::lib::bootmem ALIAS bootmem)
 target_sources(bootmem
 INTERFACE 
-    "${CMAKE_CURRENT_SOURCE_DIR}/bootmem.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/memblock.cpp"
+    # "${CMAKE_CURRENT_SOURCE_DIR}/bootmem.cpp"
+    # "${CMAKE_CURRENT_SOURCE_DIR}/memblock.cpp"
 )
 target_link_libraries(bootmem
 INTERFACE

@@ -4,16 +4,13 @@
 #include <ustl/mem/align.hpp>
 
 namespace ours::mem {
-    INIT_DATA
-    bootmem::IBootMem *EarlyMem::BOOTMEM;
-
     auto EarlyMem::init(phys::MemoryHandoff &handoff) -> void
     {}
 
     auto EarlyMem::get_node_pfn_range(NodeId nid) -> gktl::Range<Pfn>
     {
         Pfn start = ustl::NumericLimits<Pfn>::max(), end = 0;
-        bootmem::IterationContext context(BOOTMEM, nid, bootmem::RegionType::Normal);
+        EarlyMem::IterationContext context(bootmem::RegionType::Normal, nid);
         while (auto region = EarlyMem::iterate(context)) {
             start = ustl::algorithms::min(start, phys_to_pfn(region->base));
             end = ustl::algorithms::max(end, phys_to_pfn(region->end()));
@@ -25,8 +22,8 @@ namespace ours::mem {
     auto EarlyMem::count_present_frames(Pfn start, Pfn end) -> usize
     {
         usize nr_presents = 0;
-        bootmem::IterationContext context(BOOTMEM, MAX_NODES, bootmem::RegionType::Normal, start, end);
-        while (auto region = BOOTMEM->iterate(context)) {
+        EarlyMem::IterationContext context(start, end, bootmem::RegionType::Normal, MAX_NODES);
+        while (auto region = iterate(context)) {
             if (region->size < PAGE_SHIFT) {
                 continue;
             }

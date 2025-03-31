@@ -26,20 +26,16 @@ namespace ours {
     typedef ::ustl::u64       u64;
     typedef ::ustl::isize     isize;
 
-#ifdef OURS_CONFIG_TARGET_64BIT
-    typedef ::ustl::u64     VirtAddr;
-    typedef ::ustl::u64     PhysAddr;
-#else
-    typedef ::ustl::u32     VirtAddr;
-    typedef ::ustl::u32     PhysAddr;
-#endif
+    typedef usize     VirtAddr;
+    typedef usize     PhysAddr;
 
     typedef u32   CpuNum;
     typedef u32   HIrqNum;
     typedef u32   VIrqNum;
 
     /// For type check.
-    struct Signals  { u32 _0; };
+    struct CpuSet   { u32 _0; };
+    struct SigSet   { u32 _0; };
     struct KoId     { u32 _0; };
 
 } // namespace ours

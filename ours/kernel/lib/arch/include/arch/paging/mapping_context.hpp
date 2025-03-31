@@ -26,7 +26,8 @@ namespace arch::paging {
         VirtAddrCursor(VirtAddr virt, usize size)
             : addr_(virt),
               size_(size),
-              consumed_(0) {}
+              consumed_(0) 
+        {}
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto size() const -> usize {
@@ -57,11 +58,12 @@ namespace arch::paging {
             : page_size_(page_size),
               count_(n),
               addrs_(phys),
-              consumed_(0) {}
+              consumed_(0) 
+        {}
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto phys_addr() const -> PhysAddr {
-            return addrs_[count_] + consumed_;
+            return (*addrs_) + consumed_;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 

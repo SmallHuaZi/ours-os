@@ -4,3 +4,4 @@ target_include_directories(system_public_headers
 INTERFACE
     "include"
 )
+add_subdirectory("lib")

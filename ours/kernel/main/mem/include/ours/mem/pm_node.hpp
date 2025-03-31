@@ -21,13 +21,13 @@
 #include <ours/init.hpp>
 #include <ours/macro_abi.hpp>
 
+#include <ustl/array.hpp>
 #include <ustl/result.hpp>
 #include <ustl/views/span.hpp>
 #include <ustl/sync/atomic.hpp>
 #include <ustl/function/fn.hpp>
 #include <ustl/function/bind.hpp>
 #include <ustl/function/invoke.hpp>
-#include <ustl/collections/array.hpp>
 #include <ustl/collections/vec.hpp>
 #include <ustl/collections/intrusive/slist.hpp>
 #include <ustl/traits/is_same.hpp>

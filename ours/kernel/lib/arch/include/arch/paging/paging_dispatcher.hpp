@@ -44,7 +44,7 @@ namespace arch::paging {
     ///     struct X86ExtPaging {...};
     ///     template <> PagingDispatcher<3, X86PageExt> { typedef X86ExtPaging Type;  };
     ///     
-    template <usize PagingLevel, typename... Options>
+    template <auto PagingLevel, typename... Options>
     struct PagingDispatcher;
 
 } // namespace arch::paging

@@ -10,15 +10,33 @@ INTERFACE
     kernel::phys::lib::bootmem::headers
 )
 
+add_library(kernel_phys_aspace INTERFACE)
+target_sources(kernel_phys_aspace
+INTERFACE
+    "aspace.cpp"
+)
+target_link_libraries(kernel_phys_aspace
+INTERFACE
+    kernel_phys_headers
+)
+
 add_executable(kernel_phys)
 add_executable(kernel::phys ALIAS kernel_phys)
 target_sources(kernel_phys
 PRIVATE
-    "acpi.cpp"
     "console.cpp"
-    "loader.cpp"
     "panic.cpp"
+    "kernel-package.cpp"
+    "aspace.cpp"
+    "phys-load.cpp"
+    "memory.cpp"
 )
+
+if (NOT DEFINED OURS_CONFIG_ACPI)
+    target_sources(kernel_phys
+    PRIVATE "acpi.cpp" 
+    )
+endif()
 
 target_compile_options(kernel_phys
 PRIVATE
@@ -49,7 +67,7 @@ PRIVATE
     kernel::phys::lib::bootmem
     kernel::lib::libc
     kernel::lib::gktl::goi
-    kernel::lib::omi
+    kernel::lib::omitl
     kernel::lib::acpi
     "libgcc.a"
 )
@@ -76,3 +94,4 @@ PRIVATE
 add_dependencies(kernel_phys kernel_main_image)
 
 add_subdirectory("lib")
+add_subdirectory("tests")

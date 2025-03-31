@@ -16,10 +16,13 @@
 
 #include <ustl/array.hpp>
 #include <ustl/util/pair.hpp>
+#include <ustl/traits/is_invocable.hpp>
+#include <ustl/traits/invoke_result.hpp>
+#include <ustl/util/index_sequence.hpp>
 
 namespace arch::paging {
     template <typename ArchPaging>
-    struct Paging {
+    struct Paging  {
         typedef PagingTraits<ArchPaging>            PagingTraits;
         typedef typename PagingTraits::LevelType    LevelType;
 
@@ -29,49 +32,89 @@ namespace arch::paging {
         template <LevelType Level>
         using Table = ustl::Array<Pte<Level>, PagingTraits::template kNumPtes<Level>>;
 
-        template <typename PhysToTable, typename Allocator>
-        static auto map(PhysAddr table, PhysToTable &&phys_to_table, Allocator &&allocator, VirtAddr va, usize size, PhysAddr pa, 
-                        MmuFlags flags) -> ustl::Result<MapError> {
-            MappingVisitor<PagingTraits, Allocator> visitor(allocator, pa, size, flags);
+        template <typename Visitor, typename PhysToVirt>
+        struct MakeVisitResult {
+            template <LevelType Level>
+            struct VisitResultAt {
+                static_assert(ustl::traits::IsInvocableV<Visitor, Table<Level>&, Pte<Level>&, VirtAddr>);
+                typedef ustl::traits::InvokeResultT<Visitor, Table<Level>&, Pte<Level>&, VirtAddr>   ResultType;
+                typedef typename ResultType::Element    Type;
+                static_assert(ustl::traits::IsSameV<ResultType, ustl::Option<Type>>);
+            };
+
+            template <LevelType Level>
+            using VisitResultAtT = typename VisitResultAt<Level>::Type;
+
+            typedef typename VisitResultAt<PagingTraits::kFinalLevel>::Type  ValueType;
+            typedef ustl::Option<ValueType>    Type;
+
+            template <usize... LevelIndex>
+            CXX11_CONSTEXPR
+            static auto value_types_coincide(ustl::IndexSequence<LevelIndex...>) -> bool {
+                return (ustl::traits::IsSameV<ValueType, VisitResultAtT<PagingTraits::kAllLevels[LevelIndex]>> && ...);
+            }
+            static_assert(value_types_coincide(ustl::MakeIndexSequenceT<std::size(PagingTraits::kAllLevels)>()));
+        };
+
+        template <typename PhysToVirt, typename Visitor>
+        using VisitResult = typename MakeVisitResult<Visitor, PhysToVirt>::Type;
+
+        template <typename PhysToVirt>
+        static auto query(PhysAddr table, PhysToVirt &&phys_to_table, VirtAddr va) -> ustl::Option<QueryResult> {
+            QueryVisitor<PagingTraits> visitor{};
+            if (auto result = visit_page_tables(table, phys_to_table, visitor, va)) {
+                return result;
+            }
+
+            return ustl::NONE;
+        }
+
+        template <typename PhysToVirt, typename Allocator>
+        static auto map(PhysAddr table, PhysToVirt &&phys_to_table, Allocator &&allocator, VirtAddr va, PhysAddr pa, usize n,
+                        MmuFlags flags, usize page_size = PAGE_SIZE) -> ustl::Option<MapError> {
+            MappingVisitor<PagingTraits, Allocator> visitor(allocator, va, &pa, n, flags, page_size);
             while (visitor.remaining_size()) {
-                auto result = visit_page_tables(table, phys_to_table, visitor, va);
-                if (!result) {
-                    return result;
+                if (auto error = visit_page_tables(table, phys_to_table, visitor, va)) {
+                    return error;
                 }
             }
 
-            return ustl::ok(MapError::None);
+            return ustl::NONE;
         }
 
         // TODO(SmallHuaZi): Write the body.
-        template <typename PhysToTable, typename Allocator>
-        static auto unmap(PhysAddr table, PhysToTable &&phys_to_table, VirtAddr va, usize n) {
+        template <typename PhysToVirt, typename Allocator>
+        static auto unmap(PhysAddr table, PhysToVirt &&phys_to_table, VirtAddr va, usize n) {
             // Now it is unnecessary.
             // return visit_page_tables(table, phys_to_table, visitor, va);
         }
 
         template <typename PhysToVirt, typename Visitor>
-        static auto visit_page_tables(PhysAddr table, PhysToVirt &&p2v, Visitor &&visitor, VirtAddr addr) {
-            return visit_page_tables_from<PagingTraits::kPgingLevel>(table, p2v, visitor, addr);
+        static auto visit_page_tables(PhysAddr table, PhysToVirt &&p2v, Visitor &&visitor, VirtAddr addr)
+            -> VisitResult<PhysToVirt, Visitor> {
+            return visit_page_tables_from<PagingTraits::kPagingLevel>(table, p2v, visitor, addr);
         }
 
-        template <LevelType Level, typename PhysToTable, typename Visitor>
-        static auto visit_page_tables_from(PhysAddr pa_table, PhysToTable &&phys_to_table, Visitor &&visitor, VirtAddr addr) {
-            Table<Level> &table = phys_to_table(pa_table);
+        template <LevelType Level, typename PhysToVirt, typename Visitor>
+        static auto visit_page_tables_from(PhysAddr pa_table, PhysToVirt &&phys_to_table, Visitor &&visitor, VirtAddr addr) 
+            -> VisitResult<PhysToVirt, Visitor> {
             auto const index = PagingTraits::virt_to_index(Level, addr);
+            Table<Level> &table = *reinterpret_cast<Table<Level> *>(phys_to_table(pa_table));
             Pte<Level> &entry = table[index];
             if (auto result = visitor(table, entry, addr)) {
                 return *result;
             }
            
-            if CXX17_CONSTEXPR (usize(Level) == 0) {
+            if CXX17_CONSTEXPR (Level == PagingTraits::kFinalLevel) {
                 OX_PANIC("Now is in the leaf of table, no more anther level.");
+            } else {
+                return visit_page_tables_from<PagingTraits::next_level(Level)>(
+                    entry.address(), 
+                    phys_to_table, 
+                    visitor, 
+                    addr
+                );
             }
-            return visit_page_tables_from<PagingTraits::NextLevel<Level>>(entry.address(), phys_to_table, visitor, addr);
-        }
-
-        template <LevelType Level>
-        static auto get_virt_addr_bit_range() -> ustl::Pair<u16, u16> {
         }
     };
 } // namespace arch::paging

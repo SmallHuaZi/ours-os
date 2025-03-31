@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef LEGACY_BOOT_HPP
 #define LEGACY_BOOT_HPP
 
@@ -20,14 +19,13 @@
 namespace ours::phys {
     class Aspace;
 
-    struct LegacyBoot
-    {
+    struct LegacyBoot {
         /// Any `LegacyBoot` of legacy bootloader should provides a 
         /// specific implementation for this this method.
-        auto init_memory(usize params) -> void;
+        auto parse_params(usize params) -> void;
 
         static auto get() -> LegacyBoot & {
-            return LEGACY_BOOT;
+            return g_legacy_boot;
         }
 
         ustl::views::StringView name_;
@@ -36,13 +34,8 @@ namespace ours::phys {
         usize acpi_version; // New version if 1,
         usize acpi_rsdp;
 
-        static LegacyBoot LEGACY_BOOT;
+        static LegacyBoot g_legacy_boot;
     };
-
-    /// This will directly invokes `LegacyBoot::init_memory` method. If NUMA is enabled, 
-    /// the function will subsequently scan NUMA topology information to assign NUMA domains 
-    /// to memory blocks storing in `BootMem`.
-    auto init_memory(usize params, Aspace *aspace) -> void;
 
     auto init_uart_console() -> void;
 

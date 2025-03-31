@@ -11,20 +11,43 @@
 #ifndef OURS_PHYS_HANDOFF_HPP
 #define OURS_PHYS_HANDOFF_HPP 1
 
+#include <ours/cpu_mask.hpp>
 #include <ours/assert.hpp>
 #include <ours/mem/cfg.hpp>
 #include <ours/mem/node_mask.hpp>
-#include <ours/phys/arch_handoff.hpp>
+#include <ours/phys/arch-handoff.hpp>
+#include <ours/phys/arch-bootmem.hpp>
 
-#include <bootmem/bootmem.hpp>
 #include <ustl/views/span.hpp>
+#include <ustl/function/fn.hpp>
 
 namespace ours::phys {
+    struct EarlyMem {
+        template <typename T>
+        using Fn = ustl::function::Fn<T>;
+
+        // auto protect(base, size) -> void 
+        Fn<auto (PhysAddr, PhysAddr) -> void> protect;
+
+        // auto (size, alignment, start, end, nid) -> PhysAddr
+        Fn<auto (usize, usize, PhysAddr, PhysAddr, mem::NodeId) -> PhysAddr> allocate;
+
+        // auto deallocate(base, size) -> void
+        Fn<auto (PhysAddr, PhysAddr) -> void> deallocate;
+
+        // auto deallocate(BootMem::IterationContext &) -> void
+        Fn<auto (BootMem::IterationContext &) -> ustl::Option<bootmem::Region>> iterate;
+
+        PhysAddr start_address;
+        PhysAddr end_address;
+    };
+
     struct MemoryHandoff {
-        PhysAddr bootmem_phys_base;
-        PhysAddr bootmem_phys_size;
-        PhysAddr bootmem;
+        EarlyMem bootmem;
         PhysAddr kernel_load_addr;
+        mem::NodeMask possible_nodes_;
+        ustl::views::Span<u8> node_distance;
+        ustl::views::Span<CpuMask> cpus_on_node;
         u32 stack_size;
     };
 
@@ -39,6 +62,7 @@ namespace ours::phys {
         }
 
         u32 const magic = MAGIC;
+        u32 nr_cpus;
         PhysAddr efi_system_table;
         PhysAddr acpi_rsdp;
         MemoryHandoff mem;

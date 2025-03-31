@@ -1,0 +1,1 @@
+project('ours', ['c', 'c++', 'rust'],)

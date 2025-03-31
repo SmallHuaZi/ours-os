@@ -13,6 +13,7 @@
 
 #include <acpi/parser.hpp>
 #include <acpi/details/srat.hpp>
+#include <acpi/details/slit.hpp>
 #include <ustl/function/fn.hpp>
 
 namespace acpi {
@@ -21,11 +22,16 @@ namespace acpi {
         u64 size;
     };
 
+    auto count_numa_domain(IAcpiParser const &) -> usize;
+
     typedef ustl::function::Fn<void(u32 numa_domain, NumaRegion const &)> NumaRegionCommitFn;
-    auto enumerate_numa_region(AcpiParser const &, NumaRegionCommitFn const &) -> ours::Status;
+    auto enumerate_numa_region(IAcpiParser const &, NumaRegionCommitFn const &) -> ours::Status;
 
     typedef ustl::function::Fn<void(u32 cpunum, u32 numa_domain)> CpuNumaPairsCommitFn;
-    auto enumerate_cpu_numa_pairs(AcpiParser const &, CpuNumaPairsCommitFn const &) -> ours::Status;
+    auto enumerate_cpu_numa_pairs(IAcpiParser const &, CpuNumaPairsCommitFn const &) -> ours::Status;
+
+    typedef ustl::function::Fn<void(u32 from, u32 to, u8 distance)> NumaDistanceCommitFn;
+    auto enumerate_numa_domain_distance(IAcpiParser const &, NumaDistanceCommitFn const &) -> ours::Status;
 
 } // namespace acpi
 

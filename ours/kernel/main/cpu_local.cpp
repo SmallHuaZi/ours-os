@@ -2,10 +2,11 @@
 #include <ours/mem/mod.hpp>
 
 #include <arch/cache.hpp>
+#include <ustl/mem/align.hpp>
 
 namespace ours {
-    extern char STATIC_CPU_LOCAL_START[] LINK_NAME("__cpu_local_start");
-    extern char STATIC_CPU_LOCAL_END[] LINK_NAME("__cpu_local_end");
+    extern char const STATIC_CPU_LOCAL_START[] LINK_NAME("__cpu_local_start");
+    extern char const STATIC_CPU_LOCAL_END[] LINK_NAME("__cpu_local_end");
 
     FORCE_INLINE
     static auto static_cpu_local_area_size() -> usize
@@ -19,13 +20,9 @@ namespace ours {
 
     };
 
-    auto CpuLocal::init(CpuNum CpuNum) -> Status
+    auto CpuLocal::init(u32 nr_cpu) -> Status
     {
-        if (CpuNum) {
-            return Status::Ok;
-        }
-
-        auto const nr_frames = static_cpu_local_area_size() / PAGE_SHIFT;
+        auto const nr_frames = ustl::mem::align_up(static_cpu_local_area_size(), PAGE_SIZE);
 
         mem::FrameList<> frame_list;
         if (Status::Ok == mem::alloc_frames(mem::GAF_KERNEL, &frame_list, nr_frames)) {

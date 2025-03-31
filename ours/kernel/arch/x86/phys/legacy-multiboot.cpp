@@ -3,50 +3,47 @@
 
 #include <ours/phys/init.hpp>
 #include <ours/phys/print.hpp>
+#include <ours/phys/arch-bootmem.hpp>
 
 #include <ustl/mem/object.hpp>
 #include <bootmem/memblock.hpp>
 
 namespace ours::phys {
-    extern bootmem::IBootMem *gBootMem;
-    static bootmem::MemBlock gMemBlock;
-    static bootmem::Region gBootstrapRegions[200];
-
     static auto parse_memory_map(usize base, usize size) -> void
     {
+        auto mem = global_bootmem();
         auto const mmap = reinterpret_cast<MultibootTagMmap *>(base);
         auto const end = base + size - 1;
         auto entry = mmap->entries;
 
         char const *get_name[MultibootMmapEntry::MaxNumType] = {
-            [MultibootMmapEntry::Available] = "available",
-            [MultibootMmapEntry::Reserved] = "reserved",
-            [MultibootMmapEntry::AcpiReclaimable] = "acpi-reclaimable",
-            [MultibootMmapEntry::Nvs] = "acpi-nvs",
-            [MultibootMmapEntry::BadRam ] = "bad",
+            [MultibootMmapEntry::Available] = "Available",
+            [MultibootMmapEntry::Reserved] = "Reserved",
+            [MultibootMmapEntry::AcpiReclaimable] = "AcpiReclaimable",
+            [MultibootMmapEntry::Nvs] = "AcpiNvs",
+            [MultibootMmapEntry::BadRam ] = "Bad",
         };
 
+        println("{:16} | {:18} | {}", "Type", "Base", "Size");
         while (usize(entry) <= end) {
-            println("{}: base={:X}, size={:X}", get_name[entry->type], entry->addr, entry->len);
+            println("{:16} | 0x{:<16X} | 0x{:<X}", get_name[entry->type], entry->addr, entry->len);
             switch (entry->type) {
-                case MultibootMmapEntry::AcpiReclaimable:
-                    // Now i am not sure if this kind of region is reclaimable, through it was marked `*Reclaimable`.
-                    break;
+                case MultibootMmapEntry::BadRam:
                 case MultibootMmapEntry::Reserved:
-                    gMemBlock.protect(entry->addr, entry->len);
+                    mem->protect(entry->addr, entry->len);
+                    mem->add(entry->addr, entry->len, bootmem::RegionType::ReservedAndNoInit);
+                    break;
+                default:
+                    mem->add(entry->addr, entry->len, bootmem::RegionType::Normal);
                     break;
             }
 
-            gMemBlock.add(entry->addr, entry->len, bootmem::RegionType::Normal);
             entry = reinterpret_cast<MultibootMemoryMap *>(reinterpret_cast<u8 *>(entry) + mmap->entry_size);
         }
     }
 
-    auto LegacyBoot::init_memory(usize param) -> void
+    auto LegacyBoot::parse_params(usize param) -> void
     {
-        ustl::mem::construct_at(&gMemBlock);
-        gMemBlock.init(gBootstrapRegions, std::size(gBootstrapRegions));
-
         println("Multiboot info size {}", *reinterpret_cast<usize *>(param));
         auto tag = reinterpret_cast<MultibootTag *>(param + 8);
         while (tag->type != MULTIBOOT_TAG_TYPE_END) {
@@ -78,7 +75,7 @@ namespace ours::phys {
                 }
                 case MULTIBOOT_TAG_TYPE_MODULE: {
                     auto mod = reinterpret_cast<MultibootTagModule *>(tag);
-                    println("`ours-image` has been load at {:X}", mod->mod_start);
+                    println("`OBI` has been load at 0x{:X}", mod->mod_start);
                     auto start = reinterpret_cast<u8 *>(mod->mod_start);
                     ustl::mem::construct_at(&ramdisk_, start, mod->mod_end - mod->mod_start);
                     break;
@@ -89,8 +86,6 @@ namespace ours::phys {
                 }
             }
         }
-
-        gBootMem = &gMemBlock;
     }
 
 } // namespace ours::phys

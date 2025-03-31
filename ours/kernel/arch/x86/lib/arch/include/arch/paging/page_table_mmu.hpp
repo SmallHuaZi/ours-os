@@ -13,6 +13,7 @@
 
 #include <arch/macro/mmu.hpp>
 #include <arch/paging/page_table_impl.hpp>
+#include <arch/paging/arch_mmu_flags.hpp>
 #include <ustl/traits/integral_constant.hpp>
 
 namespace arch::paging {
@@ -22,11 +23,9 @@ namespace arch::paging {
     {
         typedef X86PageTableMmu                  Self;
         typedef X86PageTableImpl<Self, Options>  Base;
+
         using typename Base::PagingTraits;
         using typename Base::LevelType;
-
-        template <usize Level>
-        using PageLevelTag = ustl::traits::IntegralConstant<usize, Level>;
     public:
         ~X86PageTableMmu() override = default;
 
@@ -44,32 +43,24 @@ namespace arch::paging {
         static auto is_flags_allowed(MmuFlags) -> bool
         {  return false; }
 
-        static auto is_present(Pte pte) -> bool
+        static auto is_present(PteVal pte) -> bool
         {  return pte & X86_MMUF_PRESENT;  }
 
-        static auto is_large_page_mapping(Pte pte) -> bool
+        static auto is_large_page_mapping(PteVal pte) -> bool
         {  return pte & X86_MMUF_PAGE_SIZE;  }
 
         static auto level_can_be_terminal(LevelType level) -> bool
         {  return PagingTraits::level_can_be_terminal(level); }
 
-        static auto make_pte(PhysAddr phys, MmuFlags flags) -> Pte
-        {  return Self::priv_make_pte(phys, flags, PageLevelTag<Base::top_level()>());  }
+        static auto make_pteval(LevelType level, PhysAddr phys, MmuFlags flags) -> PteVal {
+            auto arch_flags = mmuflags_cast<X86MmuFlags>(flags) | X86MmuFlags::Present;
+            if (level != PagingTraits::kFinalLevel) {
+                arch_flags |= X86MmuFlags::PageSize;
+            }
 
-        static auto get_next_table_unchecked(ai_virt Pte volatile *pte) -> Pte volatile *
-        {  return Self::priv_get_next_table_unchecked(0, PageLevelTag<Base::top_level()>());  }
-    private:
-        static auto priv_make_pte(PhysAddr phys, MmuFlags flags, PageLevelTag<4>)
-        {  return 0; }
-
-        static auto priv_make_pte(PhysAddr phys, MmuFlags flags, PageLevelTag<5>)
-        {  return 0; }
-
-        static auto priv_get_next_table_unchecked(Pte volatile *pte, PageLevelTag<4>) -> Pte volatile *
-        {  return 0; }
-
-        static auto priv_get_next_table_unchecked(Pte volatile *pte, PageLevelTag<5>) -> Pte volatile *
-        {  return 0; }
+            // FIXME(SmallHuaZi) `phys` should does bit-and with address mask.
+            return PteVal(PteVal(arch_flags) | phys);
+        }
     };
 
 } // namespace arch::paging 

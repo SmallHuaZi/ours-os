@@ -16,7 +16,7 @@
 #include <ustl/util/enum_bits.hpp>
 
 namespace arch::paging {
-    enum class ArchMmuFlags: usize {
+    enum class X86MmuFlags: usize {
         Present      = X86_MMUF_PRESENT,
         Writable     = X86_MMUF_WRITABLE,
         User         = X86_MMUF_USER,
@@ -26,33 +26,58 @@ namespace arch::paging {
         Dirty        = X86_MMUF_DIRTY,
         PageSize     = X86_MMUF_PAGE_SIZE,
         Global       = X86_MMUF_GLOBAL,
-        NoExcutable  = X86_MMUF_NOEXCUTABLE,
+        NoExecutable  = X86_MMUF_NOEXECUTABLE,
     };
-    USTL_ENABLE_ENUM_BITS(ArchMmuFlags);
+    USTL_ENABLE_ENUM_BITS(X86MmuFlags);
 
     template <>
     FORCE_INLINE CXX11_CONSTEXPR
-    auto down_cast(MmuFlags const flags) -> ArchMmuFlags
-    {
-        ArchMmuFlags target{};
+    auto mmuflags_cast(MmuFlags const flags) -> X86MmuFlags {
+        X86MmuFlags target{};
         if (bool(flags & MmuFlags::Present)) {
-            target |= ArchMmuFlags::Present;
+            target |= X86MmuFlags::Present;
         }
         if (!bool(flags & MmuFlags::Executable)) {
-            target |= ArchMmuFlags::NoExcutable;
+            target |= X86MmuFlags::NoExecutable;
         }
         if (bool(flags & MmuFlags::Writable)) {
-            target |= ArchMmuFlags::Writable;
+            target |= X86MmuFlags::Writable;
         }
         if (bool(flags & MmuFlags::User)) {
-            target |= ArchMmuFlags::User;
+            target |= X86MmuFlags::User;
         }
-        if (bool(flags & MmuFlags::DisCache)) {
-            target |= ArchMmuFlags::Discache;
+        if (bool(flags & MmuFlags::Discache)) {
+            target |= X86MmuFlags::Discache;
         }
 
         return target;
     }
+
+    template <>
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto mmuflags_cast(X86MmuFlags const flags) -> MmuFlags {
+        MmuFlags target{};
+        if (bool(flags & X86MmuFlags::Present)) {
+            target |= MmuFlags::Present;
+        }
+        if (!bool(flags & X86MmuFlags::NoExecutable)) {
+            target |= MmuFlags::Executable;
+        }
+        if (bool(flags & X86MmuFlags::Writable)) {
+            target |= MmuFlags::Writable;
+        }
+        if (bool(flags & X86MmuFlags::User)) {
+            target |= MmuFlags::User;
+        }
+        if (bool(flags & X86MmuFlags::Discache)) {
+            target |= MmuFlags::Discache;
+        }
+        target |= MmuFlags::Readable;
+
+        return target;
+    }
+
+    typedef X86MmuFlags     ArchMmuFlags;
 
 } // namespace arch::paging
 

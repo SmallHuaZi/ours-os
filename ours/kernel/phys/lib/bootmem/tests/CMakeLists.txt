@@ -1,5 +1,5 @@
 # 查找所有以 _test.cpp 结尾的文件
-file(GLOB TEST_SOURCES "*_test.cpp")
+file(GLOB TEST_SOURCES "*test.cpp")
 
 # 添加 Google Test
 enable_testing()

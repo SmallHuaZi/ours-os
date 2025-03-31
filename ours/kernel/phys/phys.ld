@@ -9,7 +9,7 @@ PHDRS {
 
 SECTIONS {
     . = PHYS_LOAD_ADDRESS;
-
+    PROVIDE_HIDDEN(__executable_start = .);
     . = ALIGN(8);
     .boot : {
         *(.boot.header*)
@@ -59,4 +59,5 @@ SECTIONS {
         *(.sbss*) *(.bss* COMMON)
         PROVIDE_HIDDEN(__bss_end = .);
     }
+    PROVIDE_HIDDEN(__executable_end = .);
 }

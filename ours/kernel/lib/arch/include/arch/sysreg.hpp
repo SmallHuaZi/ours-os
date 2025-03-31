@@ -20,11 +20,11 @@ namespace arch {
 
     template <typename Derived>
     struct SysReg
-        : public SysRegTraits<Derived>,
-          public ustl::BitFields<typename SysRegTraits<Derived>::FieldList>
+        : SysRegTraits<Derived>,
+          ustl::BitFields<ustl::bitfields::StorageUnit<usize>, typename SysRegTraits<Derived>::FieldList>
     {
         typedef Derived Self;
-        typedef ustl::BitFields<typename SysRegTraits<Derived>::FieldList>  Base;
+        typedef ustl::BitFields<ustl::bitfields::StorageUnit<usize>, typename SysRegTraits<Derived>::FieldList>  Base;
         using Base::Base;
 
         USTL_CONSTEXPR

@@ -1,5 +1,5 @@
 #include <ours/arch/asm.hpp>
-#include <omi/asm.hpp>
+#include <omitl/asm.hpp>
 
 .extern MAIN_RESERVED_SIZE
 .extern MAIN_LOAD_END
@@ -7,7 +7,7 @@
 
 // Header
 .section .image.header, "a", %progbits
-.omi.kernel.image.object    kernel_image, MAIN_LOAD_END, 1, (.Limage.body.end - .Limage.body.start)
+.omi.kernel.image.object    kernel_image, MAIN_LOAD_END //, 1, (.Limage.body.end - .Limage.body.start)
 .omi.kernel.header.object   MAIN_ENTRY, MAIN_RESERVED_SIZE
 
 // TODO(SmallHuaZi) This is a wordaround and will be removed in the near future.

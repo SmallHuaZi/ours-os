@@ -11,6 +11,8 @@
 #ifndef HEAP_LIB_HPP
 #define HEAP_LIB_HPP 1
 
+#include <ours/config.hpp>
+
 namespace heap {
     auto malloc() -> void;
 

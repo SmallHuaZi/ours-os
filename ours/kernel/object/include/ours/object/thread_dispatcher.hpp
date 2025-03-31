@@ -12,11 +12,10 @@
 #ifndef OURS_OBJECT_THREAD_DISPATCHER_HPP
 #define OURS_OBJECT_THREAD_DISPATCHER_HPP 1
 
-#include <ours/object/kernel_object.hpp>
+#include <ours/object/dispatcher.hpp>
 
 namespace ours::object {
     class ThreadDispatcher
-        : public KernelObject
     {
 
     }; // class ThreadDispatcher

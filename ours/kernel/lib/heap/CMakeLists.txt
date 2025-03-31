@@ -10,18 +10,17 @@ INTERFACE
     "include"
 )
 
-add_library(heap)
+add_library(heap INTERFACE)
 add_library(kernel::lib::heap ALIAS heap)
 target_sources(heap
-PRIVATE
+INTERFACE
     "scope.cpp"
 )
 target_link_libraries(heap
-PRIVATE
+INTERFACE
     kernel::main::headers
     kernel::lib::ustl::headers
     kernel::lib::ktl::headers
     kernel::lib::ktl::headers
-PUBLIC
     kernel::lib::heap::headers
 )

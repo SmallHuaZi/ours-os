@@ -32,7 +32,7 @@ namespace arch {
     using ours::mem::Altmap;
     using ours::HIrqNum;
     using ours::VIrqNum;
-    typedef ours::usize   Pte;
+    typedef ours::usize   PteVal;
 
 } // namespace arch
 

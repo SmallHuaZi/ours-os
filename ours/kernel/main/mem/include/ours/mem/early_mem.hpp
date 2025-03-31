@@ -22,6 +22,8 @@
 #include <ustl/function/fn.hpp>
 #include <ustl/algorithms/minmax.hpp>
 
+#include <gktl/range.hpp>
+
 #ifdef OURS_CONFIG_MEM_HOTPLUG
 #define MEM_INIT_CODE
 #define MEM_INIT_DATA
@@ -32,13 +34,12 @@
 
 namespace ours::mem {
     struct EarlyMem {
+        typedef phys::BootMem::IterationContext     IterationContext;
+
         static auto init(phys::MemoryHandoff &handoff) -> void;
 
-        static auto remove(PhysAddr base, usize size) -> void
-        {  BOOTMEM->remove(base, size);  }
-
         static auto protect(PhysAddr base, usize size) -> void
-        {  BOOTMEM->protect(base, size);  }
+        {  g_bootmem->protect(base, size);  }
 
         template <typename T>
         static auto allocate(usize n, NodeId nid) -> T *
@@ -48,47 +49,47 @@ namespace ours::mem {
         static auto allocate(usize n, usize align, NodeId nid) -> T *;
 
         template <typename T>
-        static auto allocate_bounded(usize n, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> T *;
+        static auto allocate(usize n, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> T *;
 
         template <typename T>
         static auto deallocate(T *ptr, usize size) -> void;
 
-        static auto iterate(bootmem::IterationContext &context) -> ustl::Option<bootmem::Region>
-        {  return BOOTMEM->iterate(context);  }
+        static auto iterate(IterationContext &context) -> ustl::Option<bootmem::Region>
+        {  return g_bootmem->iterate(context);  }
 
         static auto get_node_pfn_range(NodeId nid) -> gktl::Range<Pfn>;
 
         static auto count_present_frames(Pfn start, Pfn end) -> usize;
 
         static auto start_address() -> PhysAddr
-        {  return BOOTMEM->start_address();  }
+        {  return g_bootmem->start_address;  }
 
         INIT_DATA
-        static bootmem::IBootMem *BOOTMEM;
+        static inline phys::EarlyMem *g_bootmem;
     };
 
     template <typename T>
     inline auto EarlyMem::allocate(usize n, usize align, NodeId nid) -> T *
     {
-        DEBUG_ASSERT(BOOTMEM);
-        PhysAddr phys_addr = BOOTMEM->allocate(sizeof(T) * n, align, nid);
+        DEBUG_ASSERT(g_bootmem);
+        PhysAddr phys_addr = g_bootmem->allocate(sizeof(T) * n, align, g_bootmem->start_address, g_bootmem->end_address, nid);
         return PhysMap::phys_to_virt<T>(phys_addr);
     }
 
     template <typename T>
-    inline auto EarlyMem::allocate_bounded(usize n, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> T * 
+    inline auto EarlyMem::allocate(usize n, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> T * 
     {
-        DEBUG_ASSERT(BOOTMEM);
-        PhysAddr phys_addr = BOOTMEM->allocate_bounded(sizeof(T) * n, align, start, end, nid);
+        DEBUG_ASSERT(g_bootmem);
+        PhysAddr phys_addr = g_bootmem->allocate(sizeof(T) * n, align, start, end, nid);
         return PhysMap::phys_to_virt<T>(phys_addr);
     }
 
     template <typename T>
     inline auto EarlyMem::deallocate(T *ptr, usize n) -> void 
     {
-        DEBUG_ASSERT(BOOTMEM);
+        DEBUG_ASSERT(g_bootmem);
         PhysAddr phys_addr = PhysMap::virt_to_phys(ptr);
-        BOOTMEM->deallocate(ptr, sizeof(T) * n);
+        g_bootmem->deallocate(ptr, sizeof(T) * n);
     }
 
 } // namespace ours::mem

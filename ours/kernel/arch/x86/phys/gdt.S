@@ -38,6 +38,6 @@
 
 /// Executable stack
 .object g_early_stack, type=bss, scope=global, align=8
-    .skip (PAGE_SIZE << 2) 
+    .skip (PAGE_SIZE << 2) // 16K
 .label g_early_stack_end, global
 .end_object

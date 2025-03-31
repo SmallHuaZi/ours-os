@@ -18,7 +18,7 @@
 
 #include <ustl/views/span.hpp>
 
-#include <bootmem/bootmem.hpp>
+#include <ours/phys/arch-bootmem.hpp>
 
 #include <gktl/range.hpp>
 

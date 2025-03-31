@@ -1,5 +1,6 @@
 #include <ours/phys/handoff.hpp>
 #include <ours/mem/physmap.hpp>
+#include <ours/mem/early_mem.hpp>
 #include <ours/init.hpp>
 #include <ours/start.hpp>
 #include <ours/panic.hpp>
@@ -17,6 +18,8 @@ namespace ours {
     {
         auto const handoff = PhysMap::phys_to_virt<Handoff>(phys_addr);
         handoff->verify();
+
+        mem::EarlyMem::init(handoff->mem);
 
         PHYS_HANDOFF = handoff;
     }

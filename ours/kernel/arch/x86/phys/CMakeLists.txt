@@ -72,6 +72,9 @@ INTERFACE
     "gdt.S"
     "vga_console.cpp"
     "serial_console.cpp"
+    "numa.cpp"
+    "aspace.cpp"
+    "memory.cpp"
 )
 target_link_libraries(x86_phys_common
 INTERFACE
@@ -105,5 +108,5 @@ else()
     target_link_libraries(kernel_phys_arch INTERFACE x86_phys64)
 endif(DEFINED kernel_phys32_env)
 
-
+add_subdirectory("acpi")
 add_subdirectory("boot-shim")

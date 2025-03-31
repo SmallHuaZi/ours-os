@@ -18,6 +18,41 @@
 #include <ustl/option.hpp>
 
 namespace arch::paging {
+    struct QueryResult {
+        PhysAddr phys;
+        usize size;
+        MmuFlags flags;
+    };
+
+    template <typename PagingTraits>
+    struct QueryVisitor {
+        typedef typename PagingTraits::LevelType                LevelType;
+
+        template <LevelType Level>
+        using Pte = typename PagingTraits::template Pte<Level>;
+
+        template <LevelType Level>
+        using Table = ustl::Array<Pte<Level>, PagingTraits::template kNumPtes<Level>>;
+
+        template <LevelType Level>
+        auto operator()(Table<Level> &table, Pte<Level> &pte, VirtAddr addr) -> ustl::Option<QueryResult> {
+            if (!pte.is_present()) {
+                return ustl::none();
+            }
+
+            if (!pte.is_terminal()) {
+                return ustl::none();
+            }
+
+            QueryResult result;
+            result.size = PagingTraits::page_size(Level);
+            result.flags = mmuflags_cast(pte.arch_mmu_flags());
+            result.phys = pte.address();
+
+            return ustl::some(result);
+        }
+    };
+
     enum class MapError {
         None,
         Existent,
@@ -35,15 +70,14 @@ namespace arch::paging {
         template <LevelType Level>
         using Table = ustl::Array<Pte<Level>, PagingTraits::template kNumPtes<Level>>;
 
-        MappingVisitor(Allocator &&allocator, PhysAddr phys_addr, usize size, MmuFlags flags)
+        MappingVisitor(Allocator &&allocator, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
             : allocator_(allocator),
-              phys_addr_(phys_addr),
-              phys_cursor_(&phys_addr_, 1, size)
+              context_(va, pa, n, flags, page_size)
         {}
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto remaining_size() const -> usize {
-            return phys_cursor_.remaining_size();
+            return context_.remaining_size();
         }
 
         template <LevelType Level>
@@ -53,32 +87,35 @@ namespace arch::paging {
                     return MapError::Existent;
                 }
             }
-            CXX11_CONSTEXPR
+            // CXX11_CONSTEXPR
             auto const page_size = PagingTraits::page_size(Level);
-            auto const start_address = phys_cursor_.phys_addr();
-            auto const remaining_size = phys_cursor_.remaining_size();
+            auto const start_address = context_.phys_addr();
+            auto const remaining_size = context_.remaining_size();
 
             // Can we take a large page mapping?
-            CXX11_CONSTEXPR
+            // 1. Hardware support.
+            // 2. Size enough.
+            // 3. Physical and virutal address alignment.
             auto const is_terminal = PagingTraits::level_can_be_terminal(Level) &&
-                                     page_size < remaining_size &&
+                                     page_size <= remaining_size &&
                                      start_address % page_size == 0 &&
-                                     addr % page_size = 0;
+                                     addr % page_size == 0;
 
             PhysAddr phys_addr;
             // Non-terminal entry
             if (is_terminal) {
                 phys_addr = start_address;
-                phys_cursor_.consume(page_size);
+                context_.consume(page_size);
             } else {
-                phys_addr = allocator_(page_size, PagingTraits::kTableAlignment);
+                CXX11_CONSTEXPR auto const table_size = PagingTraits::template kSizeOfTable<Level>;
+                phys_addr = allocator_(table_size, PagingTraits::kTableAlignment);
                 if (!phys_addr) {
                     return MapError::NoMem;
                 }
             }
 
-            auto const flags = down_cast<ArchMmuFlags>(flags_);
-            pte = Pte<Level>::make(phys_addr, flags);
+            auto const flags = mmuflags_cast<ArchMmuFlags>(context_.flags());
+            pte = Pte<Level>::make(phys_addr, flags, is_terminal);
 
             if (is_terminal) {
                 return MapError::None;
@@ -86,10 +123,8 @@ namespace arch::paging {
             return ustl::NONE;
         }
 
-        MmuFlags flags_;
         Allocator allocator_;
-        PhysAddr phys_addr_;
-        PhysAddrCursor phys_cursor_;
+        GenericMappingContext context_;
     };
 
     template <typename PagingTraits, typename Allocator>

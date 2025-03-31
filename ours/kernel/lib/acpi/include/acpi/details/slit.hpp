@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef ACPI_DETAILS_SLIT_HPP
 #define ACPI_DETAILS_SLIT_HPP 1
 
@@ -23,6 +22,7 @@ namespace acpi {
 
         AcpiTableHeader header;
 	    u64 locality_count;
+        u8 entry[];
 
         CXX11_CONSTEXPR
         static AcpiSignature const SIGNATURE{"SLIT"};

@@ -9,7 +9,7 @@
 #define LZ4_memset(dest, value, size)    \
     ustl::algorithms::fill_n((char *)dest, size, value) 
 
-// At third_party/lz4-1.10.0
+// At third_party/lz4
 #include <lib/lz4.c>
 
 namespace lz4 {

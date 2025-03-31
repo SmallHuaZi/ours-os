@@ -20,3 +20,5 @@ target_link_libraries(libarch
 PUBLIC
     libarch_headers
 )
+
+add_subdirectory("tests")
