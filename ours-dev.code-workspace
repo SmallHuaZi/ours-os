@@ -185,7 +185,9 @@
                 "label": "Launch VM",
                 "type": "shell",
                 "isBackground": true,
-                "command": "./prelaunch.sh",
+                "linux": {
+                    "command": "./scripts/shell/prelaunch.sh",
+                },
                 "problemMatcher": {
                     "pattern": {
                         "regexp": ".",

@@ -20,10 +20,14 @@
 #define OMIT_CONTAINER      0x544E4F43   // "CONT"
 #define OMIT_KPACKAGE       0X4341504B   // "KPAC"
 #define OMIT_RAMDISK        0x444D4152   // "RAMD"
+#define OMIT_MEMORY         0x444D4152   // "RAMD"
 
 /// Flags
 #define OMIF_ZIPPED       1    // Zipped image
 #define OMIF_FIXED_ADDR   2    // Expectation to load at fixed address.
 #define OMIF_CRC32        4    // Expectation to load at fixed address.
+
+/// Kernel signature
+#define OMI_KERNEL_SIGNATURE 0x4C524E4B   // "KNRL"
 
 #endif // #ifndef OMI_MACRO_HPP

@@ -46,8 +46,9 @@
 .endm
 
 .macro .omi.kernel.header.object entry_point, reserved_size
-    .quad \entry_point
-    .quad \reserved_size
+    .int   OMI_KERNEL_SIGNATURE
+    .int   \reserved_size
+    .quad  \entry_point
 .endm
 
 #endif // #ifndef OMI_ASM_HPP

@@ -5,9 +5,11 @@
 #include <ustl/mem/object.hpp>
 
 namespace ours::phys {
+    using omitl::ObiType;
+
     auto KernelPackage::init(Obi const &obi) -> Status {
         for (auto i = obi.begin(); i != obi.end(); ++i) {
-            if (i->header->type == OMIT_KPACKAGE) {
+            if (i->header->type == ObiType::KernelPackage) {
                 package_ = i;
             }
         }
@@ -22,6 +24,7 @@ namespace ours::phys {
         if (!output) {
             return Status::OutOfMem;
         }
+        dprintln("Kernel package was loaded at 0x{:X}", PhysAddr(output));
 
         package_load_start_ = arch::Tick::get();
 
@@ -29,7 +32,6 @@ namespace ours::phys {
         // BUG(SmallHuaZi) Third argument is a placeholer now, but in near future we should
         // replace it to a real memory allocator.
         auto result = obi_.copy_item(package_loaded_, package_, {});
-        println("Kernel package was loaded at {}", static_cast<void *>(package_loaded_.data()));
         if (result.is_err()) {
             panic("Fail to unzip main module.");
         }

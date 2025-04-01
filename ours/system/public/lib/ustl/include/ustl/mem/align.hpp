@@ -27,6 +27,10 @@ namespace ustl::mem {
     auto is_aligned(usize n, usize a) USTL_NOEXCEPT -> bool 
     { return (n & (a - 1)) == 0; }
 
+    USTL_FORCEINLINE USTL_CONSTEXPR 
+    auto is_aligned(void *n, usize a) USTL_NOEXCEPT -> bool 
+    {  return is_aligned(usize(n), a);}
+
 } // namespace ustl::mem
 
 #endif // #ifndef USTL_MEM_ALIGN_HPP

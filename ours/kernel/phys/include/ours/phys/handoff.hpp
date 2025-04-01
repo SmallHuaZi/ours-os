@@ -45,10 +45,6 @@ namespace ours::phys {
     struct MemoryHandoff {
         EarlyMem bootmem;
         PhysAddr kernel_load_addr;
-        mem::NodeMask possible_nodes_;
-        ustl::views::Span<u8> node_distance;
-        ustl::views::Span<CpuMask> cpus_on_node;
-        u32 stack_size;
     };
 
     ///

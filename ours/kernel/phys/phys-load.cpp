@@ -3,9 +3,10 @@
 #include <ours/phys/aspace.hpp>
 #include <ours/phys/handoff.hpp>
 #include <ours/phys/kernel-package.hpp>
+#include <ours/phys/kernel-boot.hpp>
 
 namespace ours::phys {
-    Handoff  *gHandoff;
+    Handoff g_handoff;
 
     NO_RETURN
     auto obi_main(PhysAddr obi) -> void {
@@ -14,6 +15,9 @@ namespace ours::phys {
 
         KernelPackage kpackage;
         kpackage.init(obi);
+
+        KernelBoot kboot;
+        kboot.boot(kpackage);
 
         panic("Never reach at here");
     }

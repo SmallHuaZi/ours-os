@@ -11,7 +11,7 @@
 #ifndef OMI_OMI_HEADER_HPP
 #define OMI_OMI_HEADER_HPP 1
 
-#include <omitl/macro.hpp>
+#include <omitl/obi-type.hpp>
 #include <ours/types.hpp>
 #include <ours/config.hpp>
 
@@ -28,9 +28,9 @@ namespace omitl {
         FORCE_INLINE CXX11_CONSTEXPR
         auto get_obi_payload_unchecked() -> u8 * {
             return reinterpret_cast<u8 *>(this) + size();
-        } 
+        }
 
-        u32 type;
+        ObiType type; // u32
 
         // Size of the payload immediately following this header. This
         // does not include the header itself nor any alignment padding
@@ -67,12 +67,18 @@ namespace omitl {
     FORCE_INLINE CXX11_CONSTEXPR
     auto validate_raw_obi_container_header(void *raw_header, usize const length) -> ustl::Result<ObiHeader *> {
         auto header = reinterpret_cast<ObiHeader *>(raw_header);
-        if (header->type != OMIT_CONTAINER) {
+        if (header->type != ObiType::Container) {
             return ustl::err();
         }
 
         return validate_raw_obi_item_header(header, length);
     }
+
+    struct KernelHeader {
+        u32 signature;
+        u32 reserved_size;
+        usize entry_point;
+    };
 
 } // namespace omitl
 

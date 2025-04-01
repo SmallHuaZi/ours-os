@@ -68,11 +68,11 @@ namespace arch::paging {
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto consume(usize page_size) -> void {
-            DEBUG_ASSERT(consumed_ <= page_size, "Consume");
+            DEBUG_ASSERT(consumed_ <= page_size_, "Consume");
             DEBUG_ASSERT(count_ > 0, "Consume");
 
             consumed_ += page_size;
-            if (consumed_ == page_size) {
+            if (consumed_ == page_size_) {
                 consumed_ = 0;
                 count_ -= 1;
                 addrs_ += 1;
@@ -145,10 +145,15 @@ namespace arch::paging {
             auto const phys = phys_cursor_.phys_addr();
             auto const virt = virt_cursor_.virt_addr();
             this->consume(page_size);
-            return { phys, virt };
+            return ustl::make_pair(phys, virt);
         }
 
         auto finish() -> void;
+
+        FORCE_INLINE
+        auto has_more() const -> bool {
+            return phys_cursor_.count_ > 0;
+        }
 
     private:
         MmuFlags flags_;

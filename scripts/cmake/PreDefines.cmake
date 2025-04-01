@@ -1,12 +1,19 @@
 message("Enter PreDefines.cmake")
 
-# add_definitions("-DBOOST_FORCEINLINE=__attribute__((noinline))")
-add_definitions("-DBOOST_CONTAINER_USER_DEFINED_THROW_CALLBACKS=1")
-add_definitions("-DBOOST_DISABLE_ASSERTS=1")
-add_definitions("-DBOOST_ENABLE_ASSERT_HANDLER=1")
-add_definitions("-DBOOST_NO_EXCEPTIONS=1")
-add_definitions("-D_LIBCPP_HAS_NO_LOCALIZATION=1")
-# add_definitions("-D_LIBCPP_HAS_NO_WIDE_CHARACTERS=1")
+set(OX_PREDEFINES 
+    "-D_LIBCPP_HAS_NO_LOCALIZATION=1" 
+    "-D_LIBCPP_HAS_LOCALIZATION=0"
+    "-D_LIBCPP_HAS_NO_THREADS=1"
+    # "-D_LIBCPP_HAS_WIDE_CHARACTERS=0"
+    "-D_LIBCPP_HAS_UNICODE=0"
+    "-D_LIBCPP_HAS_RANDOM_DEVICE=0" # Random device is not supported in freestanding environment
+    "-D_LIBCPP_HAS_FILESYSTEM=0" # Filesystem is not supported in freestanding environment
+    "-D_LIBCPP_HAS_NO_WIDE_CHARACTERS=1"
+    "-DBOOST_CONTAINER_USER_DEFINED_THROW_CALLBACKS=1"
+    "-DBOOST_DISABLE_ASSERTS=1"
+    "-DBOOST_ENABLE_ASSERT_HANDLER=1"
+    "-DBOOST_NO_EXCEPTIONS=1"
+)
 
 add_definitions("-DOURS_CONFIG_TARGET_64BIT=1")
 add_definitions("-DOURS_CONFIG_MAX_PAGE_SHIFT=21")

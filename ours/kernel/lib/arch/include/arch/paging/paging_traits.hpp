@@ -57,6 +57,10 @@ namespace arch::paging {
 
         static auto const kFinalLevel = Paging::kAllLevels[0];
 
+        template <LevelType Level>
+        CXX11_CONSTEXPR 
+        static auto const kNextLevel = Paging::kAllLevels[usize(Level) - 1];
+
         /// The methods below provide the capability to dynamically dispatch 
         /// handling logic across different levels of the page table.
         FORCE_INLINE CXX11_CONSTEXPR

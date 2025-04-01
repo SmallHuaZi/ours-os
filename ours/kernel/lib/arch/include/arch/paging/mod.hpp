@@ -22,7 +22,7 @@
 
 namespace arch::paging {
     template <typename ArchPaging>
-    struct Paging  {
+    struct Paging: public PagingTraits<ArchPaging> {
         typedef PagingTraits<ArchPaging>            PagingTraits;
         typedef typename PagingTraits::LevelType    LevelType;
 
@@ -66,20 +66,21 @@ namespace arch::paging {
                 return result;
             }
 
-            return ustl::NONE;
+            return ustl::none();
         }
 
         template <typename PhysToVirt, typename Allocator>
         static auto map(PhysAddr table, PhysToVirt &&phys_to_table, Allocator &&allocator, VirtAddr va, PhysAddr pa, usize n,
-                        MmuFlags flags, usize page_size = PAGE_SIZE) -> ustl::Option<MapError> {
-            MappingVisitor<PagingTraits, Allocator> visitor(allocator, va, &pa, n, flags, page_size);
-            while (visitor.remaining_size()) {
-                if (auto error = visit_page_tables(table, phys_to_table, visitor, va)) {
-                    return error;
+                        MmuFlags flags, usize page_size = PAGE_SIZE) -> ustl::Result<void, MapError> {
+            MappingVisitor<PagingTraits, Allocator> visitor(allocator, va, &pa, 1, flags, n * page_size);
+            while (visitor.has_more()) {
+                auto error = visit_page_tables(table, phys_to_table, visitor, visitor.context_.virt_addr());
+                if (error->is_err()) {
+                    return *error;
                 }
             }
 
-            return ustl::NONE;
+            return ustl::ok();
         }
 
         // TODO(SmallHuaZi): Write the body.
@@ -103,11 +104,9 @@ namespace arch::paging {
             Pte<Level> &entry = table[index];
             if (auto result = visitor(table, entry, addr)) {
                 return *result;
-            }
-           
-            if CXX17_CONSTEXPR (Level == PagingTraits::kFinalLevel) {
-                OX_PANIC("Now is in the leaf of table, no more anther level.");
-            } else {
+            } 
+            
+            if CXX17_CONSTEXPR (Level != PagingTraits::kFinalLevel) {
                 return visit_page_tables_from<PagingTraits::next_level(Level)>(
                     entry.address(), 
                     phys_to_table, 
@@ -115,6 +114,8 @@ namespace arch::paging {
                     addr
                 );
             }
+
+            return ustl::none();
         }
     };
 } // namespace arch::paging

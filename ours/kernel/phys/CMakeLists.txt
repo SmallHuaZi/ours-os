@@ -27,6 +27,7 @@ PRIVATE
     "console.cpp"
     "panic.cpp"
     "kernel-package.cpp"
+    "kernel-boot.cpp"
     "aspace.cpp"
     "phys-load.cpp"
     "memory.cpp"
@@ -43,7 +44,7 @@ PRIVATE
 # "-v"
     "-g"
     "-O0"
-    "-stdlib=libc++"
+    "-stdlib=libc++" # Help us to use headers from libcxx
     "-ffreestanding"
     # "-fPIC"
     "-fno-PIE" 
@@ -60,6 +61,10 @@ PRIVATE
     "-fno-asynchronous-unwind-tables"
     "-fno-strict-aliasing"
 )
+target_compile_definitions(kernel_phys
+PRIVATE
+    ${OX_PREDEFINES}
+)
 target_link_libraries(kernel_phys
 PRIVATE
     kernel::phys::headers
@@ -69,14 +74,15 @@ PRIVATE
     kernel::lib::gktl::goi
     kernel::lib::omitl
     kernel::lib::acpi
+
+    # Link to libgcc for some builtin routine, like __moddiv*, e.g..
     "libgcc.a"
 )
 target_link_options(kernel_phys
 PRIVATE
 # "-v"
-    # Link to libgcc for some builtin routine.
-    "-nostdlib"
-    "-nostdlib++"
+    "-nostdlib"  # Prevent linker from linking against the c standard libraries 
+    "-nostdlib++" # Prevent linker from linking against the c++ standard libraries
     "-nodefaultlibs"
     "-Wl,--no-pie"
     "-Wl,--no-relax"
@@ -85,10 +91,11 @@ PRIVATE
     "-Wl,--defsym,PHYS_LOAD_ADDRESS=${PHYS_LOAD_ADDRESS}"
     "-fno-register-global-dtors-with-atexit"
     "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/phys.ld"
+    "-Wl,-z,max-page-size=${MAX_PAGE_SIZE}"
     "-static"
 
     # WARN This is a hosted dependency flag
-    "-L/usr/lib/gcc/x86_64-linux-gnu/13"
+    # "-L/usr/lib/gcc/x86_64-linux-gnu/13"
 )
 
 add_dependencies(kernel_phys kernel_main_image)

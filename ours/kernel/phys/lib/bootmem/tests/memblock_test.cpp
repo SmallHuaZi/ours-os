@@ -7,124 +7,7 @@
 using bootmem::PhysAddr;
 using bootmem::Region;
 using bootmem::RegionType;
-
-struct RegionVector {
-    typedef RegionVector    Self;
-    typedef bootmem::Region const *  Iter;
-    typedef bootmem::Region *        IterMut;
-    typedef bootmem::MemBlock<Self>  Holder;
-    typedef ustl::iterator::RevIter<Iter>     RevIter;
-    typedef ustl::iterator::RevIter<IterMut>  RevIterMut;
-
-    RegionVector(Holder *holder = 0)
-        : holder_(holder),
-          count_(0),
-          capacity_(0)
-    {}
-
-    auto erase(IterMut pos) -> void {
-        if (count_) {
-            ustl::algorithms::copy(pos + 1, end(), pos);
-            count_ -= 1;
-        }
-    }
-
-    auto erase(IterMut first, IterMut last) -> void {
-        if (last != end()) {
-            ustl::algorithms::copy(last, end(), first);
-        }
-        count_ -= last - first;
-    }
-
-    template <typename... Args> 
-    auto emplace(IterMut pos, Args &&...args) -> IterMut {
-        if (count_ + 1 > capacity_) {
-            grow(capacity_ << 1);
-        }
-
-        ustl::algorithms::copy(pos, end(), pos + 1);
-        ustl::mem::construct_at(pos, ustl::forward<Args>(args)...);
-        count_ += 1;
-        return pos;
-    }
-
-    template <typename... Args> 
-    auto emplace_back(Args &&...args) -> IterMut {
-        return emplace(end(), ustl::forward<Args>(args)...);
-    }
-
-    auto reset(bootmem::Region *new_region, usize new_capacity) -> void {
-        if (new_capacity < capacity_) {
-            return;
-        }
-        ustl::algorithms::copy_n(regions_, count_, new_region);
-
-        regions_ = new_region;
-        capacity_ = new_capacity;
-    }
-
-    auto begin() const -> Iter {
-        return regions_;
-    }
-
-    auto end() const -> Iter {
-        return regions_ + count_;
-    }
-
-    auto begin() -> IterMut {
-        return regions_;
-    }
-
-    auto end() -> IterMut {
-        return regions_ + count_;
-    }
-
-    auto rbegin() const -> RevIter {
-        return RevIter(end());
-    }
-
-    auto rend() const -> RevIter {
-        return RevIter(begin());
-    }
-
-    auto size() const -> usize {
-        return count_;
-    }
-
-    auto capacity() const -> usize {
-        return capacity_;
-    }
-
-    auto back() -> Region & {
-        return *(regions_ + count_ - 1);
-    }
-
-    auto reserve(usize additional) -> void {
-        if (additional > capacity_ - count_) {
-            grow(capacity_ + additional);
-        }
-    }
-
-    auto grow(usize new_capacity) -> bool {
-        auto base = reinterpret_cast<PhysAddr>(regions_);
-        auto size = capacity_;
-        if (auto new_base = holder_->get_free_region(new_capacity, alignof(usize), RegionType::Normal, 0 )) {
-            auto [start, end] = *new_base;
-            reset(reinterpret_cast<Region *>(start), new_capacity);
-            holder_->protect(start, end - start);
-            // Give back the memory loaned
-            holder_->deallocate(base, size);
-
-            return true;
-        }
-        return false;
-    }
-
-    Holder *holder_;
-    Region *regions_;
-    usize capacity_;
-    usize count_;
-};
+using bootmem::RegionVector;
 
 class MemBlockTestFixture
     : public ::testing::Test 
@@ -154,7 +37,7 @@ protected:
 
     } bootstrap_regions;
 
-    using MemBlock = bootmem::MemBlock<RegionVector>;
+    using MemBlock = bootmem::MemBlock<>;
     MemBlock memblock;
 
     struct Action {
@@ -253,7 +136,7 @@ auto MemBlockTestFixture::validate_deallocation(PhysAddr base, usize size, PhysA
 TEST_F(MemBlockTestFixture, FixedSizeBlockAllocation) {
     memblock.trim(PAGE_SIZE);
     for (auto i = 0; i < action.capacity(); ++i) {
-        auto space = memblock.allocate(PAGE_SIZE, PAGE_SIZE, 0, ustl::NumericLimits<PhysAddr>::max());
+        auto space = memblock.allocate_bounded(PAGE_SIZE, PAGE_SIZE, 0, ustl::NumericLimits<PhysAddr>::max());
         DEBUG_ASSERT(space);
 
         action.emplace_back(space, PAGE_SIZE);

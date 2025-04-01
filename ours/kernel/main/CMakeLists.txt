@@ -37,6 +37,7 @@ add_subdirectory(sched)
 
 target_compile_definitions(kernel_main
 PRIVATE
+    ${OX_PREDEFINES}
     "OURS_CURRENT_TARGET_IS_MAIN=1"
     "OURS_CURRENT_TARGET_IS_64BIT=OURS_CONFIG_TARGET_64BIT"
 )

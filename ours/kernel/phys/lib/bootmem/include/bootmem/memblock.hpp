@@ -22,7 +22,9 @@
 #include <ustl/option.hpp>
 #include <ustl/util/pair.hpp>
 
-#define DEBUG_ASSERT(...)
+#ifndef DEBUG_ASSERT
+#   define DEBUG_ASSERT(...)
+#endif
 
 namespace bootmem {
     template <typename Collection>
@@ -298,7 +300,7 @@ namespace bootmem {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize size, usize align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES)
+        auto allocate_bounded(usize size, usize align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES)
             -> PhysAddr {
             auto maybe_region = get_free_region(size, align, lower, upper, RegionType::Normal, nid);
             if (!maybe_region) {
@@ -311,18 +313,18 @@ namespace bootmem {
         template <typename T>
         FORCE_INLINE CXX11_CONSTEXPR
         auto allocate(usize size, usize align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES) {  
-            return reinterpret_cast<T *>(allocate(size, align, lower, upper, nid));  
+            return reinterpret_cast<T *>(allocate_bounded(size, align, lower, upper, nid));  
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto allocate(usize size, usize align, NodeId nid = MAX_NODES) -> PhysAddr {
-            return allocate(size, align, allocation_lower_limit_, allocation_upper_limit_, nid);
+            return allocate_bounded(size, align, allocation_lower_limit_, allocation_upper_limit_, nid);
         }
 
         template <typename T>
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize size, usize align, NodeId nid = MAX_NODES) -> T * {  
-            return reinterpret_cast<T *>(allocate(size, align, nid));  
+        auto allocate(usize n, usize align, NodeId nid = MAX_NODES) -> T * {  
+            return reinterpret_cast<T *>(allocate(n * sizeof(T), align, nid));  
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -430,6 +432,16 @@ namespace bootmem {
             };
 
             return ustl::none();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto start_address() -> PhysAddr {
+            return start_address_;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto end_address() -> PhysAddr {
+            return end_address_;
         }
 
         // The following methods was marked public just for tests

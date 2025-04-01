@@ -43,7 +43,6 @@ namespace ours::phys {
         create_identity_map_for_ram(aspace, ARCH_PHYSMAP_SIZE);
 
         aspace.install();
-        while (1);
     }
 
 } // namespace ours::phys

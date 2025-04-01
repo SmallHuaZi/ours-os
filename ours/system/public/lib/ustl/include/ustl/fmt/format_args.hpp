@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_FMT_FORMAT_ARGS_HPP
 #define USTL_FMT_FORMAT_ARGS_HPP 1
 

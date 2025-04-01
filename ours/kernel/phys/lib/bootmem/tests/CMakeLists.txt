@@ -10,7 +10,6 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
     # 创建测试可执行文件
     add_executable(${TEST_NAME} ${TEST_SOURCE})
-    target_include_directories(${TEST_NAME} PRIVATE ${GTEST_INCLUDE_DIRS})
     # 链接 Google Test 库
     target_link_libraries(${TEST_NAME} PRIVATE bootmem GTest::gtest GTest::gtest_main)
     # 添加到测试列表中

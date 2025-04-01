@@ -17,6 +17,7 @@ namespace ours::phys {
 
     auto arch_init_memory(Aspace *aspace) -> void {
         auto mem = global_bootmem();
+
         // Reserve the first 1MB
         mem->protect(0, MB(1));
 

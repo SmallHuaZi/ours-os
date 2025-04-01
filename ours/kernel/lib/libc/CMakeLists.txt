@@ -6,5 +6,7 @@ add_library(kernel::lib::libc ALIAS libc)
 target_sources(libc 
 INTERFACE
     "string.cpp"
+    "boost.cpp"
+    "libcxx.cpp"
     "cpp_dependencies.cpp"
 )

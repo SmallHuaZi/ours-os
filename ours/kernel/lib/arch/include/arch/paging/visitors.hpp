@@ -54,7 +54,6 @@ namespace arch::paging {
     };
 
     enum class MapError {
-        None,
         Existent,
         NoMem,
     };
@@ -76,16 +75,19 @@ namespace arch::paging {
         {}
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto remaining_size() const -> usize {
-            return context_.remaining_size();
+        auto has_more() const -> usize {
+            return context_.has_more();
         }
 
         template <LevelType Level>
-        auto operator()(Table<Level> &table, Pte<Level> &pte, VirtAddr addr) -> ustl::Option<MapError> {
+        auto operator()(Table<Level> &table, Pte<Level> &pte, VirtAddr addr) 
+            -> ustl::Option<ustl::Result<void, MapError>> {
             if (pte.is_present()) {
                 if (pte.is_terminal()) {
-                    return MapError::Existent;
+                    return ustl::err(MapError::Existent);
                 }
+
+                return ustl::none();
             }
             // CXX11_CONSTEXPR
             auto const page_size = PagingTraits::page_size(Level);
@@ -110,7 +112,7 @@ namespace arch::paging {
                 CXX11_CONSTEXPR auto const table_size = PagingTraits::template kSizeOfTable<Level>;
                 phys_addr = allocator_(table_size, PagingTraits::kTableAlignment);
                 if (!phys_addr) {
-                    return MapError::NoMem;
+                    return ustl::err(MapError::NoMem);
                 }
             }
 
@@ -118,9 +120,10 @@ namespace arch::paging {
             pte = Pte<Level>::make(phys_addr, flags, is_terminal);
 
             if (is_terminal) {
-                return MapError::None;
+                return ustl::ok();
             }
-            return ustl::NONE;
+
+            return ustl::none();
         }
 
         Allocator allocator_;

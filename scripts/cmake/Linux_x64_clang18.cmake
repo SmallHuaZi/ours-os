@@ -9,23 +9,6 @@ set(CMAKE_CXX_COMPILER  "clang++-21")
 # set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_ASM_COMPILER  "clang-21")
 
-set(COMMON_FLAGS 
-    "-m32;"
-    "-O0;"
-    "-fno-use-cxa-atexit;"
-    "-fno-builtin;"
-    "-fno-leading-underscore;"
-    "-fno-exceptions;"
-    "-ffreestanding;"
-    "-fno-rtti;"
-    "-fno-stack-protector;"
-    "-Wno-write-strings;"
-
-    # For clang
-    "-Xclang;"
-    "-fdefault-calling-conv=cdecl;"
-)
-
 # set(CMAKE_C_FLAGS_INIT "-m32 -fno-use-cxa-atexit -fno-builtin -O0 -fno-exceptions -ffreestanding -fno-rtti -fno-stack-protector -Wno-write-strings -Xclang -fdefault-calling-conv=cdecl")
 # set(CMAKE_CXX_FLAGS_INIT "-m32 -fno-use-cxa-atexit -fno-builtin -O0 -fno-exceptions -ffreestanding -fno-rtti -fno-stack-protector -Wno-write-strings -Xclang -fdefault-calling-conv=cdecl")
 # set(CMAKE_ASM_FLAGS_INIT ${COMMON_FLAGS})

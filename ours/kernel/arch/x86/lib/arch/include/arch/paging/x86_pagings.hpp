@@ -121,12 +121,13 @@ namespace arch::paging {
 
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto virt_to_index(LevelType level, VirtAddr virt) -> usize {
+            // FIXME(SmallHuaZi) The shifts are not all correct.
             CXX11_CONSTEXPR 
             static usize const kMap[][2] { 
-                {0, 0}, 
-                {X86_PT_SHIFT, BIT(9) - 1},
-                {X86_PDP_SHIFT, BIT(9) - 1},
+                {X86_PT_SHIFT, 0}, 
+                {X86_PD_SHIFT, BIT(9) - 1},
                 {X86_PDP_SHIFT, BIT(2) - 1},
+                {X86_PML4_SHIFT, BIT(2) - 1},
             };
 
             return (virt >> kMap[usize(level)][0]) & kMap[usize(level)][1];
@@ -221,7 +222,6 @@ namespace arch::paging {
         static auto virt_to_index(LevelType level, VirtAddr virt) -> usize {
             CXX11_CONSTEXPR 
             static usize const kShift[] {
-                0,
                 X86_PT_SHIFT,
                 X86_PD_SHIFT,
                 X86_PDP_SHIFT,

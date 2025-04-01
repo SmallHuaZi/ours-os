@@ -24,6 +24,11 @@ namespace ours::phys {
             [MultibootMmapEntry::BadRam ] = "Bad",
         };
 
+        // TODO(SmallHuaZi): This is a workaround, we should parse the video memory parameter to get the video memory range. 
+        // and add it to the BootMem.
+        mem->add(0xB0000, 0x10000, bootmem::RegionType::ReservedAndNoInit);
+        mem->protect(0xB0000, 0x10000);
+
         println("{:16} | {:18} | {}", "Type", "Base", "Size");
         while (usize(entry) <= end) {
             println("{:16} | 0x{:<16X} | 0x{:<X}", get_name[entry->type], entry->addr, entry->len);
@@ -49,6 +54,11 @@ namespace ours::phys {
         while (tag->type != MULTIBOOT_TAG_TYPE_END) {
             tag = reinterpret_cast<MultibootTag *>((u8 *) tag + ((tag->size + 7) & ~7));
             switch (tag->type) {
+                case MULTIBOOT_TAG_TYPE_VBE: {
+                    auto vbe = reinterpret_cast<MultibootTagVbe *>(tag);
+                    println("VBE mode: 0x{:X}", vbe->vbe_mode);
+                    break;
+                }
                 case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME: {
                     name_ = reinterpret_cast<MultibootTagString *>(tag)->string;
                     break;
