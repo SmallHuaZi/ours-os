@@ -1,7 +1,4 @@
 target
-mkimg.sh
-runvm.sh
-prelaunch.sh
 ours.iso
 convert.py
 
