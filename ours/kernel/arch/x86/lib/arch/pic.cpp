@@ -1,7 +1,7 @@
 #include <arch/x86/io.hpp>
 #include <arch/x86/pic.hpp>
 
-namespace arch::x86 {
+namespace arch {
     /// IO base address for master PIC 
     static constexpr auto PIC1 = 0x20;
     static constexpr auto PIC1_CMD = PIC1;
@@ -128,4 +128,4 @@ namespace arch::x86 {
         wait_io();
     }
 
-} // namespace arch::x86
+} // namespace arch

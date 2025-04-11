@@ -1,4 +1,4 @@
-#include <ours/cpu_local.hpp>
+#include <ours/cpu-local.hpp>
 
 #include "main_scheduler.hpp"
 

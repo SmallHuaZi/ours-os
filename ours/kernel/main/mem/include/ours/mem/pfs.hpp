@@ -132,7 +132,7 @@ namespace pfns {
 
         BitFields<FieldList>    inner_;
         // typedef decltype(inner_)::FieldList FieldList;
-        // typedef ustl::TypeListAtT<FieldList, kSectionId>    Field;
+        // typedef ustl::TypeAlgos::At<FieldList, kSectionId>    Field;
         // static_assert(Field::SHIFT == 9);;
     };
     static_assert(sizeof(FrameFlags) <= sizeof(usize), "Never greater than the size target platform supports");

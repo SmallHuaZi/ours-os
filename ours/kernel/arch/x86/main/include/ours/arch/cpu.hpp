@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_ARCH_CPU_HPP
 #define OURS_ARCH_CPU_HPP 1
 

@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_INIT_HPP
 #define OURS_MEM_INIT_HPP 1
 
@@ -24,7 +23,7 @@
 
 namespace ours::mem {
     INIT_CODE
-    auto init_early_pmm(phys::MemoryHandoff &) -> Status;
+    auto handoff_early_pmm(phys::MemoryHandoff &) -> Status;
 
     /// Perform the initialization of physical memory manager. Call this function after
     /// invoking the `setup_nodes`.

@@ -8,7 +8,24 @@
 #include <ustl/mem/object.hpp>
 #include <bootmem/memblock.hpp>
 
+#include <acpi/numa.hpp>
+#include <acpi/parser.hpp>
+
 namespace ours::phys {
+    static auto print_srat() -> void {
+        struct PhysToVirtForIdentityMapping: public acpi::IPhysToVirt {
+            virtual ~PhysToVirtForIdentityMapping() = default;
+
+            auto phys_to_virt(PhysAddr addr, usize size) -> ktl::Result<ai_virt void const *> override {
+                return ktl::ok(reinterpret_cast<void const *>(addr));
+            }
+        } mapper;
+        auto parser = acpi::AcpiParser::from_rsdp(&mapper, LegacyBoot::get().acpi_rsdp);
+        acpi::enumerate_numa_region(parser.unwrap(), [] (auto domain, auto region) {
+            println("We got numa region");
+        });
+    }
+
     static auto parse_memory_map(usize base, usize size) -> void
     {
         auto mem = global_bootmem();
@@ -75,17 +92,20 @@ namespace ours::phys {
                     acpi_rsdp = (usize)reinterpret_cast<MultibootTagOldAcpi *>(tag)->rsdp;
                     acpi_version = 1;
                     println("ACPI-V1, RSDP={}", acpi_rsdp);
+                    print_srat();
                     break;
                 }
                 case MULTIBOOT_TAG_TYPE_ACPI_NEW: {
                     acpi_rsdp = (usize)reinterpret_cast<MultibootTagNewAcpi *>(tag)->rsdp;
                     acpi_version = 2;
                     println("ACPI-V2, RSDP={}", acpi_rsdp);
+                    print_srat();
                     break;
                 }
                 case MULTIBOOT_TAG_TYPE_MODULE: {
                     auto mod = reinterpret_cast<MultibootTagModule *>(tag);
-                    println("`OBI` has been load at 0x{:X}", mod->mod_start);
+                    auto const size = mod->mod_end - mod->mod_start;
+                    println("[info]: `ours.obi` is at 0x{:X}, size {} bytes", mod->mod_start, size);
                     auto start = reinterpret_cast<u8 *>(mod->mod_start);
                     ustl::mem::construct_at(&ramdisk_, start, mod->mod_end - mod->mod_start);
                     break;

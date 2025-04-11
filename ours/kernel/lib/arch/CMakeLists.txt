@@ -14,10 +14,10 @@ INTERFACE
     kernel::main::headers
 )
 
-add_library(libarch)
+add_library(libarch INTERFACE)
 add_library(kernel::lib::arch ALIAS libarch)
 target_link_libraries(libarch
-PUBLIC
+INTERFACE
     libarch_headers
 )
 

@@ -51,7 +51,7 @@ namespace ours::object {
         char name_[MAX_NAME_SIZE];
     };
 
-    template <typename Derived, Rights default_rights, SigSet>
+    template <typename Derived, Rights default_rights, Signals>
     class SoloDispatcher
         : public Dispatcher
     {

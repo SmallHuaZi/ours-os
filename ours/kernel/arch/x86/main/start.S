@@ -10,6 +10,7 @@
 .extern g_kernel_virt_base
 .extern g_kernel_phys_base
 .extern g_kernel_stack_bottom
+.extern __cpu_local_start
 
 // Kernel entry point
 .extern start_kernel
@@ -25,9 +26,15 @@
     // Save handoff
     mov %rdi, %r15
 
+    // Reload kernel stack and clear %rbp
+    lea g_kernel_stack_end(%rip), %rsp
+    xor %rbp, %rbp
+
     mov %rsp, g_kernel_stack_bottom(%rip)
     mov %cr3, %rax
     mov %rax, g_pgd(%rip)
+
+    lgdt g_temp_gdtr(%rip)
 
     // Zero our kernel segment data registers
     xor %eax, %eax
@@ -46,6 +53,11 @@ idle:
     pause
     jmp idle
 .end_function
+
+.object g_kernel_stack, type=bss, scope=global, align=8
+    .skip (PAGE_SIZE << 2) // 16K
+.label g_kernel_stack_end, global
+.end_object
 
 /// Export for main.ld
 .label MAIN_ENTRY, global, value=_start

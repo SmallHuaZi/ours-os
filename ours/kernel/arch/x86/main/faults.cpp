@@ -2,7 +2,7 @@
 #include <arch/x86/interrupt.hpp>
 
 namespace ours {
-    static auto x86_dispatch_exception(arch::IrqVector vector, arch::IrpFrame *frame) -> void
+    static auto x86_dispatch_exception(arch::IrqVector vector, arch::IrqFrame *frame) -> void
     {
         if (vector == arch::IrqVector::PageFault) {
             if (Status::Ok != x86_handle_page_fault(frame)) {
@@ -35,7 +35,7 @@ namespace ours {
     }
 
     NO_MANGLE
-    auto arch_handle_exception(arch::IrqVector vector, arch::IrpFrame *frame) -> void
+    auto arch_handle_exception(arch::IrqVector vector, arch::IrqFrame *frame) -> void
     {}
 
 } // namespace ours

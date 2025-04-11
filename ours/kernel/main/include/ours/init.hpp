@@ -17,7 +17,7 @@
 #define INIT_SECTION(name) LINK_SECTION(".init." name)
 
 /// The code marked this just called once on boot time.
-#define INIT_CODE      INIT_SECTION("code")
+#define INIT_CODE      INIT_SECTION("text")
 
 /// The data marked this just used on boot time.
 #define INIT_DATA      INIT_SECTION("data")

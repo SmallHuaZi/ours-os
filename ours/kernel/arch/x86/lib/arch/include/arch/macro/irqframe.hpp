@@ -1,0 +1,41 @@
+/// Copyright(C) 2024 smallhuazi
+///
+/// This program is free software; you can redistribute it and/or modify
+/// it under the terms of the GNU General Public License as published
+/// by the Free Software Foundation; either version 2 of the License, or
+/// (at your option) any later version.
+///
+/// For additional information, please refer to the following website:
+/// https://opensource.org/license/gpl-2-0
+///
+#ifndef ARCH_MACRO_IRQFRAME_HPP
+#define ARCH_MACRO_IRQFRAME_HPP 1
+
+#define X86_IFRAME_OFFSET_SCALE 8
+
+#define X86_IRQFRAME_OFFSET_DI    (0 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_SI    (1 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_BP    (2 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_BX    (3 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_DX    (4 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_CX    (5 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_AX    (6 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R8    (7 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R9    (8 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R10   (9 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R11   (10 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R12   (11 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R13   (12 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R14   (13 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_R15   (14 * X86_IFRAME_OFFSET_SCALE)
+
+#define X86_IRQFRAME_OFFSET_VECTOR      (15 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_ERROR_CODE    (16 * X86_IFRAME_OFFSET_SCALE)
+
+#define X86_IRQFRAME_OFFSET_IP      (17 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_CS      (18 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_FLAGS   (19 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_USP (20 * X86_IFRAME_OFFSET_SCALE)
+#define X86_IRQFRAME_OFFSET_USS (21 * X86_IFRAME_OFFSET_SCALE)
+
+#endif // #ifndef ARCH_MACRO_IRQFRAME_HPP

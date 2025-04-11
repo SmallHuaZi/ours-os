@@ -20,7 +20,7 @@
 #define dprint(fmt, ...) \
 do { \
     if (OURS_DEBUG) {\
-        ours::phys::print("[debug:{}:{}] ", __FILE_NAME__, __LINE__);\
+        ours::phys::print("[debug|{}|{}] ", __FILE_NAME__, __LINE__);\
         ours::phys::print(fmt, __VA_ARGS__);\
     }\
 } while(0)
@@ -28,7 +28,7 @@ do { \
 #define dprintln(fmt, ...) \
 do { \
     if (OURS_DEBUG) {\
-        ours::phys::print("[debug:{}:{}] ", __FILE_NAME__, __LINE__);\
+        ours::phys::print("[debug|{}|{}] ", __FILE_NAME__, __LINE__);\
         ours::phys::println(fmt, __VA_ARGS__);\
     }\
 } while(0)

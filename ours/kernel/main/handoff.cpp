@@ -1,6 +1,8 @@
 #include <ours/phys/handoff.hpp>
 #include <ours/mem/physmap.hpp>
-#include <ours/mem/early_mem.hpp>
+#include <ours/mem/early-mem.hpp>
+#include <ours/mem/init.hpp>
+#include <ours/mem/vmm.hpp>
 #include <ours/init.hpp>
 #include <ours/start.hpp>
 #include <ours/panic.hpp>
@@ -11,17 +13,16 @@ namespace ours {
     using phys::MemoryHandoff;
 
     INIT_DATA
-    phys::Handoff *PHYS_HANDOFF = 0;
+    phys::Handoff *g_phys_handoff = 0;
 
     INIT_CODE
     auto setup_handoff(PhysAddr phys_addr) -> void
     {
         auto const handoff = PhysMap::phys_to_virt<Handoff>(phys_addr);
-        handoff->verify();
+        DEBUG_ASSERT(handoff->verify(), "Pass a error handoff");
 
-        mem::EarlyMem::init(handoff->mem);
-
-        PHYS_HANDOFF = handoff;
+        g_phys_handoff = handoff;
+        mem::handoff_early_pmm(g_phys_handoff->mem);
     }
 
 } // namespace ours

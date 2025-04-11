@@ -17,6 +17,9 @@
 
 namespace ustl::algorithms {
     using boost::algorithm::power;
+    using std::all_of;
+    using std::none_of;
+    using std::any_of;
 
     /// Copy and Move
     using std::copy;

@@ -28,6 +28,7 @@ namespace ours {
         NotFound,
         ShouldWait,
         MaxCount,
+        MisAlgined,
     };
 
     inline auto to_string(Status error) -> char const *

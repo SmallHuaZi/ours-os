@@ -20,6 +20,11 @@ namespace ustl {
     using std::bit_ceil;
     using std::bit_floor;
     using std::bit_width;
+    using std::popcount;
+    using std::countr_one;
+    using std::countl_one;
+    using std::countr_zero;
+    using std::countl_zero;
 
     template <typename Int, Int StartBit, Int Size>
     struct MakeBitMask {

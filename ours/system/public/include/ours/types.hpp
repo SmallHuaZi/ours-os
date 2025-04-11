@@ -35,7 +35,7 @@ namespace ours {
 
     /// For type check.
     struct CpuSet   { u32 _0; };
-    struct SigSet   { u32 _0; };
+    struct Signals   { u32 _0; };
     struct KoId     { u32 _0; };
 
 } // namespace ours

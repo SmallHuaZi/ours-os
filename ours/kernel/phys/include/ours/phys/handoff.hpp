@@ -11,10 +11,10 @@
 #ifndef OURS_PHYS_HANDOFF_HPP
 #define OURS_PHYS_HANDOFF_HPP 1
 
-#include <ours/cpu_mask.hpp>
+#include <ours/cpu-mask.hpp>
 #include <ours/assert.hpp>
 #include <ours/mem/cfg.hpp>
-#include <ours/mem/node_mask.hpp>
+#include <ours/mem/node-mask.hpp>
 #include <ours/phys/arch-handoff.hpp>
 #include <ours/phys/arch-bootmem.hpp>
 
@@ -29,6 +29,9 @@ namespace ours::phys {
         // auto protect(base, size) -> void 
         Fn<auto (PhysAddr, PhysAddr) -> void> protect;
 
+        // auto protect(base, size) -> void 
+        Fn<auto (PhysAddr, PhysAddr, mem::NodeId) -> void> set_node;
+
         // auto (size, alignment, start, end, nid) -> PhysAddr
         Fn<auto (usize, usize, PhysAddr, PhysAddr, mem::NodeId) -> PhysAddr> allocate;
 
@@ -38,8 +41,8 @@ namespace ours::phys {
         // auto deallocate(BootMem::IterationContext &) -> void
         Fn<auto (BootMem::IterationContext &) -> ustl::Option<bootmem::Region>> iterate;
 
-        PhysAddr start_address;
-        PhysAddr end_address;
+        PhysAddr min_address;
+        PhysAddr max_address;
     };
 
     struct MemoryHandoff {
@@ -50,14 +53,14 @@ namespace ours::phys {
     ///
     struct Handoff {
         CXX11_CONSTEXPR
-        static u32 const MAGIC = 0xA1B2C3D4;
+        static u32 const kMagic = 0xA1B2C3D4;
 
         FORCE_INLINE
-        auto verify() const -> void {
-            DEBUG_ASSERT(magic == MAGIC, "Invalid handoff.");
+        auto verify() const -> bool {
+            return magic == kMagic;
         }
 
-        u32 const magic = MAGIC;
+        u32 const magic = kMagic;
         u32 nr_cpus;
         PhysAddr efi_system_table;
         PhysAddr acpi_rsdp;

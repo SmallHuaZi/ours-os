@@ -7,6 +7,7 @@ namespace gktl {
 
     INIT_CODE
     auto init_static_objects() -> void {
+        auto const n = CTORS_END - CTORS_START;
         for (auto ctor = CTORS_START; ctor != CTORS_END; ++ctor) {
             (*ctor)();
         }

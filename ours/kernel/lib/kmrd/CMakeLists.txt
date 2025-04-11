@@ -14,13 +14,13 @@ INTERFACE
     kernel::main::headers
 )
 
-add_library(libkmrd)
+add_library(libkmrd INTERFACE)
 add_library(kernel::lib::kmrd ALIAS libkmrd)
 target_link_libraries(libkmrd
-PUBLIC
+INTERFACE
     kernel::lib::kmrd::headers
 )
 target_sources(libkmrd
-PRIVATE
+INTERFACE
     "damon.cpp"
 )

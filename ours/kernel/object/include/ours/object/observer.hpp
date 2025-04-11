@@ -45,8 +45,9 @@ namespace ours::object {
         // If true, this object will be removed.
         //
         // WARNING: This is called under Dispatcher's lock.
-        virtual auto match_key(void const *port, u64 key) -> bool
-        { return false; }
+        virtual auto match_key(void const *port, u64 key) -> bool { 
+            return false; 
+        }
 
     protected:
         virtual ~SignalObserver() = default;

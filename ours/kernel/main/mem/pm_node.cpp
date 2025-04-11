@@ -8,7 +8,7 @@
 
 #include <ours/panic.hpp>
 #include <ours/assert.hpp>
-#include <ours/cpu_local.hpp>
+#include <ours/cpu-local.hpp>
 
 #include <ustl/mem/object.hpp>
 #include <ustl/algorithms/minmax.hpp>
@@ -140,17 +140,14 @@ namespace ours::mem {
     CXX11_CONSTEXPR
     NodeMask const DEFAULT_ONLINE_NODE_MASK = {  };
 
-    PmNode::DisMap      PmNode::NODE_DISTANCE;
-    PmNode::NodeList    PmNode::GLOBAL_NODE_LIST;
-
     static Gaf GAF_ALLOWED = GAF_BOOT;
 
     PmNode::PmNode(NodeId nid)
         : id_(nid),
           zone_queues_(nid)
     {
-        DEBUG_ASSERT(!Self::GLOBAL_NODE_LIST[nid]);
-        Self::GLOBAL_NODE_LIST[nid] = this;
+        DEBUG_ASSERT(!s_node_list[nid]);
+        s_node_list[nid] = this;
     }
 
     auto PmNode::init(Pfn start, Pfn end) -> Status

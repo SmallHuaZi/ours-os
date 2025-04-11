@@ -19,7 +19,7 @@
 #include <ustl/util/fold.hpp>
 #include <ustl/traits/void.hpp>
 #include <ustl/util/find_if.hpp>
-#include <ustl/util/types_list.hpp>
+#include <ustl/util/type-list.hpp>
 #include <ustl/util/fixed_string.hpp>
 #include <ustl/util/index_sequence.hpp>
 #include <ustl/util/pack_options.hpp>
@@ -116,7 +116,10 @@ namespace bitfields {
     };
 
     template <int Bits>
-    struct SkipBit;
+    struct SkipBit {
+        USTL_CONSTEXPR
+        static auto const ID = ustl::NumericLimits<int>::max();
+    };
 
     struct DefaultFieldMetaData {
         typedef usize   ValueType;
@@ -196,7 +199,7 @@ namespace bitfields {
         typedef typename MakeBitField<HeadField, StorageUnit<Storage>, StartBit<START_BIT>>::Type
             HeadFieldRelocated;
         // Merge results from sub-branch and this node then to return it to parent node.
-        typedef TypeListPushFrontT<NewFieldListWithoutHeadField, HeadFieldRelocated>
+        typedef TypeAlgos::PushFront<NewFieldListWithoutHeadField, HeadFieldRelocated>
             Type;
     };
 
@@ -219,7 +222,7 @@ namespace bitfields {
     struct FilterDisabledFields<TypeList<HeadField, Fields...>> {
         typedef typename FilterDisabledFields<TypeList<Fields...>>::Type NewFieldListWithoutHeadField;
         typedef traits::ConditionalT<HeadField::ENABLE, 
-            TypeListPushFrontT<NewFieldListWithoutHeadField, HeadField>,
+            TypeAlgos::PushFront<NewFieldListWithoutHeadField, HeadField>,
             NewFieldListWithoutHeadField
         > Type;
     };
@@ -227,7 +230,7 @@ namespace bitfields {
     template <int BitsSkipped, typename... Fields>
     struct FilterDisabledFields<TypeList<SkipBit<BitsSkipped>, Fields...>> {
         typedef typename FilterDisabledFields<TypeList<Fields...>>::Type NewFieldListWithoutHeadField;
-        typedef TypeListPushFrontT<NewFieldListWithoutHeadField, SkipBit<BitsSkipped>> Type;
+        typedef TypeAlgos::PushFront<NewFieldListWithoutHeadField, SkipBit<BitsSkipped>> Type;
     };
 
     /// HasDuplicates
@@ -249,12 +252,12 @@ namespace bitfields {
         : traits::IntegralConstantInterface<HasDuplicates<TypeList<HeadField, RemainingFields...>>, bool>
     {
         template <typename Field>
-        struct IsDuplicatedWith
+        struct HasSameId
             : public traits::BoolConstant<HeadField::ID == Field::ID>
         {  typedef bool    RetType;  };
 
         template <int BitsSkipped>
-        struct IsDuplicatedWith<SkipBit<BitsSkipped>>
+        struct HasSameId<SkipBit<BitsSkipped>>
             : public traits::FalseType
         {  typedef bool    RetType;  };
 
@@ -262,7 +265,7 @@ namespace bitfields {
 
         USTL_CONSTEXPR
         static bool const VALUE = {
-            util::Fold<IsDuplicatedWith, util::Accumulator::BoolOr, RemainingFields...>::VALUE ||
+            util::Fold<HasSameId, util::Accumulator::BoolOr, RemainingFields...>::VALUE ||
             NextIteration::VALUE
         };
     };
@@ -418,7 +421,7 @@ namespace bitfields {
 
         template<usize Id>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto set(ValueTypeOf<Id> const &value) USTL_NOEXCEPT -> Self {
+        auto set(ValueTypeOf<Id> const &value) USTL_NOEXCEPT -> Self & {
             priv_set<Id>(value, traits::BoolConstant<IsFieldEnabledV<Id>>());
             return *this;
         }

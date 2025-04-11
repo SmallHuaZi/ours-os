@@ -13,6 +13,8 @@
 #define ARCH_INTERRUPT_HPP 1
 
 #include <arch/types.hpp>
+#include <arch/macro/irqframe.hpp>
+#include <arch/processor/cpu-states.hpp>
 
 namespace arch {
     enum class IrqVector: u32 {
@@ -46,37 +48,56 @@ namespace arch {
         LastUserDefined = 255,
     };
 
-    enum class Regs: u8 {
-        Ax,
-        Bx,
-        Cx,
-        Dx,
-        Di,
-        Si,
-        Bp,
-        Ds,
-        Es,
-        Fs,
-        Gs,
-        Ip,
-        Cs,
-        Flags,
-        Sp,
-        Ss,
+    /// The sequence of fileds are corresponding to <arch/x86/asm.hpp>
+    struct IrqFrame {
+        usize di;           // 
+        usize si;           // 
+        usize bp;           // 
+        usize bx;           // 
+        usize dx;           // 
+        usize cx;           // 
+        usize ax;           // 
+        usize r8;           // 
+        usize r9;           // 
+        usize r10;          // 
+        usize r11;          // 
+        usize r12;          // 
+        usize r13;          // 
+        usize r14;          // 
+        usize r15;          // 
+                            // 
+        usize vector;       //
+        usize error_code;   //  |
+                            //  |
+        usize ip;           //  |
+        usize cs;           //  |
+        ArchCpuState flags; //  |
+
+        usize usp;
+        usize uss;
     };
-
-    struct IrpFrame {
-        template <typename Int>
-        auto get(Regs reg) -> Int
-        {}
-
-        template <typename Int>
-        auto set(Regs reg) -> Int
-        {}
-
-        usize common_regs[15];
-        usize error_code;
-    };
+    static_assert(offsetof(IrqFrame, di) == X86_IRQFRAME_OFFSET_DI);
+    static_assert(offsetof(IrqFrame, si) == X86_IRQFRAME_OFFSET_SI);
+    static_assert(offsetof(IrqFrame, bp) == X86_IRQFRAME_OFFSET_BP);
+    static_assert(offsetof(IrqFrame, bx) == X86_IRQFRAME_OFFSET_BX);
+    static_assert(offsetof(IrqFrame, dx) == X86_IRQFRAME_OFFSET_DX);
+    static_assert(offsetof(IrqFrame, cx) == X86_IRQFRAME_OFFSET_CX);
+    static_assert(offsetof(IrqFrame, ax) == X86_IRQFRAME_OFFSET_AX);
+    static_assert(offsetof(IrqFrame, r8) == X86_IRQFRAME_OFFSET_R8);
+    static_assert(offsetof(IrqFrame, r9) == X86_IRQFRAME_OFFSET_R9);
+    static_assert(offsetof(IrqFrame, r10) == X86_IRQFRAME_OFFSET_R10);
+    static_assert(offsetof(IrqFrame, r11) == X86_IRQFRAME_OFFSET_R11);
+    static_assert(offsetof(IrqFrame, r12) == X86_IRQFRAME_OFFSET_R12);
+    static_assert(offsetof(IrqFrame, r13) == X86_IRQFRAME_OFFSET_R13);
+    static_assert(offsetof(IrqFrame, r14) == X86_IRQFRAME_OFFSET_R14);
+    static_assert(offsetof(IrqFrame, r15) == X86_IRQFRAME_OFFSET_R15);
+    static_assert(offsetof(IrqFrame, vector) == X86_IRQFRAME_OFFSET_VECTOR);
+    static_assert(offsetof(IrqFrame, error_code) == X86_IRQFRAME_OFFSET_ERROR_CODE);
+    static_assert(offsetof(IrqFrame, ip) == X86_IRQFRAME_OFFSET_IP);
+    static_assert(offsetof(IrqFrame, cs) == X86_IRQFRAME_OFFSET_CS);
+    static_assert(offsetof(IrqFrame, flags) == X86_IRQFRAME_OFFSET_FLAGS);
+    static_assert(offsetof(IrqFrame, usp) == X86_IRQFRAME_OFFSET_USP);
+    static_assert(offsetof(IrqFrame, uss) == X86_IRQFRAME_OFFSET_USS);
 
     struct InterruptFrame {
         u64 rip;

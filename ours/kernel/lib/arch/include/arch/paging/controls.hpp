@@ -20,7 +20,7 @@ namespace arch::paging {
         ErrorIfExisting,
         TryLargePage = BIT(2),
     };
-    USTL_ENABLE_ENUM_BITS(MapControl);
+    USTL_ENABLE_ENUM_BITMASK(MapControl);
 
     enum class UnMapControl {
         // Allow us to unmap the path to the pte of termnal node but
@@ -28,7 +28,7 @@ namespace arch::paging {
         WithoutTerminal,
         OnlyTerminal,
     };
-    USTL_ENABLE_ENUM_BITS(UnMapControl);
+    USTL_ENABLE_ENUM_BITMASK(UnMapControl);
 
     enum class HarvestControl {
         /// Only updates the frame's age if it is accessed.
@@ -40,7 +40,7 @@ namespace arch::paging {
         /// If the frame is accessed we remove the accessed flag.
         ResetUnaccessed = BIT(2),
     };
-    USTL_ENABLE_ENUM_BITS(HarvestControl);
+    USTL_ENABLE_ENUM_BITMASK(HarvestControl);
 
 } // namespace arch::paging
 

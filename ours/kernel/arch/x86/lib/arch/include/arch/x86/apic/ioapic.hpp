@@ -16,7 +16,7 @@
 #include <arch/interrupt.hpp>
 #include <arch/x86/apic/common.hpp>
 
-namespace arch::x86 {
+namespace arch {
     struct IoApic {
         enum RegsAddr : u32 {
             Id,
@@ -158,6 +158,6 @@ namespace arch::x86 {
         u32 global_irqnum_base_;
     };
 
-} // namespace arch::x86
+} // namespace arch
 
 #endif // #ifndef ARCH_X86_APIC_IOAPIC_HPP

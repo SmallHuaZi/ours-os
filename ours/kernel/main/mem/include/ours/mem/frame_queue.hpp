@@ -14,7 +14,7 @@
 
 #include <ours/mem/pm_frame.hpp>
 
-#include <ustl/collections/array.hpp>
+#include <ustl/collections/static-vec.hpp>
 
 namespace ours::mem {
     class FrameQueue
@@ -40,7 +40,7 @@ namespace ours::mem {
         };
 
         using QueueImpl = FrameList<>;
-        ustl::collections::Array<QueueImpl, MaxNumQueues> queues;
+        ustl::collections::StaticVec<QueueImpl, MaxNumQueues> queues;
 
         ustl::sync::AtomicU32   lrugen;
         ustl::sync::AtomicU32   mrugen;

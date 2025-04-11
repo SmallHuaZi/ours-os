@@ -17,6 +17,7 @@
 
 #include <ustl/result.hpp>
 #include <ustl/mem/align.hpp>
+#include <ustl/traits/underlying.hpp>
 
 namespace omitl {
     struct ObiHeader {
@@ -29,6 +30,8 @@ namespace omitl {
         auto get_obi_payload_unchecked() -> u8 * {
             return reinterpret_cast<u8 *>(this) + size();
         }
+
+        auto validate() const -> bool;
 
         ObiType type; // u32
 
@@ -74,9 +77,14 @@ namespace omitl {
         return validate_raw_obi_item_header(header, length);
     }
 
-    struct KernelHeader {
-        u32 signature;
-        u32 reserved_size;
+    struct ObiRawExeHeader {
+        usize reserved_size;
+        usize entry_point;
+    };
+
+    struct ObiExeHeader {
+        ObiExeSign signature;
+        usize reserved_size;
         usize entry_point;
     };
 

@@ -16,8 +16,7 @@
 
 namespace ustl {
     template <typename T, int Alignment = alignof(T)>
-    union LazyInit
-    {
+    union LazyInit {
         template <typename... Args> 
         USTL_FORCEINLINE USTL_CONSTEXPR
         auto init(Args&&... args) -> T *

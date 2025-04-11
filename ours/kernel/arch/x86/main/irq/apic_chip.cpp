@@ -20,7 +20,7 @@ namespace ours {
         auto send_ack(IrqData &data) -> void override;
         auto send_ipi(IrqData &data, CpuNum cpu) -> void override;
 
-        arch::x86::XApic impl_;
+        arch::XApic impl_;
     };
 
     XApic::XApic()

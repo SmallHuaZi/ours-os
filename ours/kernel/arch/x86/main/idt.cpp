@@ -1,44 +1,69 @@
 #include <ours/init.hpp>
+#include <ours/arch/x86/faults.hpp>
+
 #include <logz4/log.hpp>
 #include <arch/x86/descriptor.hpp>
 
 namespace ours {
     struct PACKED IdtEntry {
-        u16 offset_low;   // 低 16 位偏移
-        u16 selector;     // 代码段选择子
-        u8  ist;          // IST 索引
-        u8  type_attr;    // 类型和 DPL
-        u16 offset_mid;   // 中间 16 位偏移
-        u32 offset_high;  // 高 32 位偏移
-        u32 zero;         // 保留
+        auto set(usize handler) -> void {
+            offset_low  = handler & 0xFFFF;
+            selector    = 0x08;
+            ist         = 0;
+            type_attr   = 0x8E;
+            offset_mid  = (handler >> 16) & 0xFFFF;
+            offset_high = (handler >> 32) & 0xFFFFFFFF;
+            zero        = 0;
+        }
+
+        u16 offset_low;
+        u16 selector;
+        u8  ist;
+        u8  type_attr;
+        u16 offset_mid;
+        u32 offset_high;
+        u32 zero;
     };
 
-    struct IdtEntry IDT[256];
+    struct Idt {
+        auto load() const -> void {
+            struct PACKED {
+                u16 len;
+                usize addr;
+            } desc { sizeof(*this), reinterpret_cast<usize>(this) };
+            asm volatile("lidt %0" :: "m"(desc));
+        }
 
-    static auto set_idt_entry(u32 vec, void *handler) -> void {
-        usize const addr = (usize)handler;
-        IDT[vec].offset_low  = addr & 0xFFFF;
-        IDT[vec].selector    = 0x08;
-        IDT[vec].ist         = 0;
-        IDT[vec].type_attr   = 0x8E;
-        IDT[vec].offset_mid  = (addr >> 16) & 0xFFFF;
-        IDT[vec].offset_high = (addr >> 32) & 0xFFFFFFFF;
-        IDT[vec].zero        = 0;
+        auto begin() {
+            return std::begin(entries_);
+        }
+
+        auto end() {
+            return std::end(entries_);
+        }
+
+        IdtEntry entries_[256];
+    };
+
+    FORCE_INLINE
+    static auto rectify_idt(IdtEntry &entry) -> void {
+        entry.set(*reinterpret_cast<usize *>(&entry));
     }
 
-    INIT_CODE
-    static auto handle_early_irq(u32 vec) -> void {
-        log::trace("Trigger interrupt {}\n", vec);
-    }
+    /// Defined in arch/x86/main/idt.S, default value per entry is 
+    /// the hanler.
+    NO_MANGLE Idt g_idt;
 
     auto x86_setup_idt_early() -> void {
-        for (auto i = 0; i < std::size(IDT); ++i) {
-            set_idt_entry(i, reinterpret_cast<void *>(handle_early_irq));
+        for (auto &entry: g_idt) {
+            rectify_idt(entry);
         }
+
+        g_idt.load();
     }
 
     auto x86_setup_idt() -> void {
-
+        
     }
 
 } // namespace ours

@@ -62,7 +62,7 @@ namespace ours::mem {
             // We should create an alias of kernel address space to avoid unnecessary switches.
             // And it could help us to call the routine passed by the driver of the user space correctly.
             auto &kpt = VmAspace::kernel_aspace()->arch_aspace().page_table_;
-            page_table_.alias_to(kpt, PhysMap::VIRT_BASE, PhysMap::SIZE / PAGE_SIZE);
+            page_table_.alias_to(kpt, PhysMap::kVirtBase, PhysMap::kSize / PAGE_SIZE);
         }
 
         return Status::Ok;

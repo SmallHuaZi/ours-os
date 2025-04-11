@@ -11,13 +11,14 @@
 #ifndef ARCH_RANDOM_HPP
 #define ARCH_RANDOM_HPP 1
 
+#include <immintrin.h>
 #include <arch/types.hpp>
 
 namespace arch {
     CXX11_CONSTEXPR
     static auto const kRdrandRetryLoops = 1000;
 
-    FORCE_INLINE
+    // FORCE_INLINE
     static auto rdrand(usize *v) -> bool {
         bool ok;
         auto retry = kRdrandRetryLoops;

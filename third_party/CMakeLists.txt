@@ -1,2 +1,5 @@
 include("lz4.cmake")
 add_subdirectory("googletest")
+add_subdirectory("cxxopts")
+add_subdirectory("spdlog")
+add_subdirectory("LIEF-0.16.4-Linux-x86_64")

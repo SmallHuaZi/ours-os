@@ -12,7 +12,7 @@
 #ifndef OURS_SCHED_SCHED_OBJECT_HPP
 #define OURS_SCHED_SCHED_OBJECT_HPP
 
-#include <ours/cpu_mask.hpp>
+#include <ours/cpu-mask.hpp>
 #include <ours/sched/sched_states.hpp>
 
 #include <ustl/collections/intrusive/any_hook.hpp>

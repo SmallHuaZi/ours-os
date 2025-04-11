@@ -4,6 +4,7 @@
 #include <ranges>
 
 namespace ustl::views {
+    using std::ranges::views::filter;
     template <typename T, typename Iterator>
     using FilterView = std::ranges::filter_view<T, Iterator>;
 }

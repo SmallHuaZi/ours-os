@@ -156,7 +156,7 @@
             "--background-index-priority=normal",               //后台索引优先级
             "--parse-forwarding-functions"	,
             "--query-driver=$env{c++}",
-            "--limit-results=20",
+            "--limit-results=100",
             "--header-insertion=never"
         ],
         "cmake.buildDirectory": "${workspaceFolder}/target",
@@ -172,9 +172,12 @@
         "vim.smartRelativeLine": false,
         "vim.cursorStylePerMode.insert": "line",
         "lldb.displayFormat": "auto",
-        "lldb.showDisassembly": "auto",
         "lldb.dereferencePointers": true,
         "lldb.consoleMode": "commands",
+        "lldb.showDisassembly": "auto",
+        "editor.fontFamily": "'Fira Code'",
+        "editor.codeLensFontFamily": "'Fira Code'",
+        "editor.fontLigatures": true,
     },
 
     // Tasks run with the "Tasks: Run Task" command (bind a shortcut!).
@@ -186,31 +189,37 @@
                 "type": "shell",
                 "isBackground": true,
                 "linux": {
-                    "command": "./scripts/shell/prelaunch.sh",
+                    "command": "${workspaceFolder}/scripts/shell/prelaunch.sh",
                 },
                 "problemMatcher": {
-                    "pattern": {
+                    "pattern" : {
                         "regexp": ".",
+                        "file": 1,      // 第1组匹配文件名
+                        "line": 2,      // 第2组匹配行号
+                        "column": 3,    // 第3组匹配列号
+                        "severity": 4,  // 第4组匹配错误级别（error/warning）
+                        "message": 5    // 第5组匹配错误信息
                     },
                     "background": {
                         "activeOnStart": true,
-                        "beginsPattern": ".",
-                        "endsPattern": "."
+                        "beginsPattern": "(Start debug)",
+                        "endsPattern": ".",
                     }
                 }
             },
             {
                 "label": "SetUp",
+                "type": "shell",
                 "dependsOn": [
-                    "CMake: build",
                     "Launch VM",
                 ]
             },
             {
-                "label": "Build",
-                "dependsOn":[
-                    "CMake: build"
-                ]
+                "label": "TearDown",
+                "type": "shell",
+                "linux":{
+                    "command": "killall qemu-system-x86_64"
+                }
             }
         ]
     },
@@ -218,25 +227,25 @@
         "version": "0.2.0",
         "configurations": [
             {
-                "name": "Debug in QEMU",
-                "type": "lldb",
-                "request": "launch",
-                "stopOnEntry": true,
-                "program": "${command:cmake.launchTargetPath}",
-                "targetCreateCommands": ["target create ${command:cmake.launchTargetPath}"],
-                "processCreateCommands": ["gdb-remote 1234"],
-                "initCommands": [
-                    "platform select remote-linux",
-                ],
-                "preLaunchTask": "SetUp",
-            },
-            {
                 "name": "Debug Test",
                 "type": "lldb",
                 "request": "launch",
                 // ${command:cmake.getLaunchTargetDirectory}
                 "program": "${command:cmake.getLaunchTargetDirectory}/${input:SelectTestProgram}",
-                "preLaunchTask": "Build"
+                "preLaunchTask": "Build",
+                "args": [
+                    // "create",
+                    // "-t", "kpkg",
+                    // "-o", "target/build/Clang-18-x86_64-pc-linux-gnu/ours.kpkg",
+                    // "kpkg",
+                    // "-p", "target/build/Clang-18-x86_64-pc-linux-gnu/ours.kpkg",
+                    // "--add", "target/build/Clang-18-x86_64-pc-linux-gnu/kernel_main",
+                    // "-e", "-t", "elf", "-o", "mmod.elf"
+                    "create",
+                    "-f", "target/build/Clang-18-x86_64-pc-linux-gnu/ours.kpkg",
+                    "-t", "cont",
+                    "-o", "target/build/Clang-18-x86_64-pc-linux-gnu/ours.obi",
+                ]
             },
             {
                 "name": "Remote launch",
@@ -247,7 +256,13 @@
                 "initCommands": [
                     "lldb-dap repl-mode command"
                 ],
+                "preRunCommands": [
+                    "target modules add ${workspaceFolder}/target/build/Clang-18-x86_64-pc-linux-gnu/kernel_main",
+                    "target modules load --file kernel_main --slide 0xffffff8840000000",
+                    "command script import ${workspaceFolder}/scripts/lldb/parse_pt.py"
+                ],
                 "preLaunchTask": "SetUp",
+                "postDebugTask": "TearDown"
             },
         ],
         "inputs": [

@@ -18,7 +18,7 @@
 #include <ustl/traits/is_same.hpp>
 #include <ustl/util/index_sequence.hpp>
 
-namespace arch::x86 {
+namespace arch {
     // These raw fields are normally accessed via the accessors defined below.
     enum class SegType: u8 {
         DataRO = 0b000,
@@ -286,6 +286,6 @@ namespace details {
         static constexpr u32 kIoMaxBitmapBits = 65536;
         u16 io_port_bitmap_base;
     };
-} // namespace arch::x86
+} // namespace arch
 
 #endif // #ifndef ARCH_X86_DESCRIPTOR_HPP

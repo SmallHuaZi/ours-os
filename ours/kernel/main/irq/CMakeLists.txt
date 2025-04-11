@@ -12,6 +12,6 @@ INTERFACE
 
 target_sources(kernel_main_irq 
 INTERFACE
-    "cpu_local.cpp"
+    "cpu-local.cpp"
     "init.cpp"
 )

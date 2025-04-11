@@ -14,8 +14,8 @@
 
 #include <ours/mem/pm_frame.hpp>
 
-#include <ours/cpu_cfg.hpp>
-#include <ours/cpu_local.hpp>
+#include <ours/cpu-cfg.hpp>
+#include <ours/cpu-local.hpp>
 
 #include <ustl/option.hpp>
 #include <ustl/sync/mutex.hpp>

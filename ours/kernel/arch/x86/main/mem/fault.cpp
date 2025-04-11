@@ -11,7 +11,7 @@ namespace ours {
     using arch::Cr2;
     using mem::VmfCause;
 
-    auto x86_handle_page_fault(arch::IrpFrame *frame) -> Status
+    auto x86_handle_page_fault(arch::IrqFrame *frame) -> Status
     {
         usize const error_code = frame->error_code;
         if (!(PFEX_MASK & error_code)) {

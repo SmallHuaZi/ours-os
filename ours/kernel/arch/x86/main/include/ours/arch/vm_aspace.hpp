@@ -13,7 +13,7 @@
 
 #include <ours/mem/arch_vm_aspace.hpp>
 #include <ours/arch/x86/page_table.hpp>
-#include <ours/cpu_mask.hpp>
+#include <ours/cpu-mask.hpp>
 
 #include <gktl/range.hpp>
 

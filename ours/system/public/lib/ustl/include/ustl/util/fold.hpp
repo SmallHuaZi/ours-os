@@ -28,8 +28,7 @@ namespace ustl::util {
               template <typename V1, typename V2> typename Accumulator,
               typename HeadObject, 
               typename... RemainingObjects> 
-    struct Fold<Handler, Accumulator, HeadObject, RemainingObjects...>
-    {
+    struct Fold<Handler, Accumulator, HeadObject, RemainingObjects...> {
         typedef Fold<Handler, Accumulator, RemainingObjects...>  NextIteration;
 
         typedef typename Handler<HeadObject>::RetType   V1;

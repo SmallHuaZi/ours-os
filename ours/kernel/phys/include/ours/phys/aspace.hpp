@@ -20,8 +20,9 @@
 
 namespace ours::phys {
     struct Aspace {
-        typedef arch::Paging<ArchLowerPaging>  LowerPaging;
-        typedef arch::Paging<ArchUpperPaging>  UpperPaging;
+        typedef arch::Paging<ArchLowerPaging>   LowerPaging;
+        typedef arch::Paging<ArchUpperPaging>   UpperPaging;
+        typedef arch::paging::MapError          MapError;
         
         CXX11_CONSTEXPR
         static auto const kDualAspace = !ustl::traits::IsSameV<LowerPaging, UpperPaging>;
@@ -42,10 +43,10 @@ namespace ours::phys {
             DEBUG_ASSERT(lower_pgd_, "");
         }
 
-        auto map(VirtAddr va, usize n, PhysAddr pa, mem::MmuFlags flags) -> ktl::Result<usize>;
+        auto map(VirtAddr va, usize n, PhysAddr pa, mem::MmuFlags flags) -> ustl::Result<void, MapError>;
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto map_identically(VirtAddr va, usize n, mem::MmuFlags flags) -> ktl::Result<usize> {
+        auto map_identically(VirtAddr va, usize n, mem::MmuFlags flags) -> ustl::Result<void, MapError> {
             return map(va, n, va, flags);
         }
 

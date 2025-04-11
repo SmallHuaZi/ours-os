@@ -16,26 +16,30 @@
 
 namespace ours::mem {
     /// Do not use the following symbols directly.
-    extern char const KERNEL_IMAGE_START[] LINK_NAME("__executable_start");
-    extern char const KERNEL_IMAGE_END[] LINK_NAME("__executable_end");
+    extern char const kImageStart[] LINK_NAME("__executable_start");
+    extern char const kImageEnd[] LINK_NAME("__executable_end");
 
-    extern char const KERNEL_CODE_START[] LINK_NAME("__code_start");
-    extern char const KERNEL_CODE_END[] LINK_NAME("__code_end");
+    extern char const kKernelCodeStart[] LINK_NAME("__code_start");
+    extern char const kKernelCodeEnd[] LINK_NAME("__code_end");
 
-    extern char const KERNEL_DATA_START[] LINK_NAME("__data_start");
-    extern char const KERNEL_DATA_END[] LINK_NAME("__data_end");
+    extern char const kKernelDataStart[] LINK_NAME("__data_start");
+    extern char const kKernelDataEnd[] LINK_NAME("__data_end");
 
-    extern char const KERNEL_RODATA_START[] LINK_NAME("__rodata_start");
-    extern char const KERNEL_RODATA_END[] LINK_NAME("__rodata_end");
+    extern char const kKernelRodataStart[] LINK_NAME("__rodata_start");
+    extern char const kKernelRodataEnd[] LINK_NAME("__rodata_end");
 
-    extern char const KERNEL_INIT_START[] LINK_NAME("__init_start");
-    extern char const KERNEL_INIT_END[] LINK_NAME("__init_end");
+    extern char const kKernelInitStart[] LINK_NAME("__init_start");
+    extern char const kKernelInitEnd[] LINK_NAME("__init_end");
 
-    extern char const KERNEL_BSS_START[] LINK_NAME("__bss_start");
-    extern char const KERNEL_BSS_END[] LINK_NAME("__bss_end");
+    extern char const kKernelBssStart[] LINK_NAME("__bss_start");
+    extern char const kKernelBssEnd[] LINK_NAME("__bss_end");
 
     NO_MANGLE PhysAddr g_kernel_phys_base;
     NO_MANGLE VirtAddr g_kernel_virt_base;
+
+    /// Defined by arch-specific code.
+    NO_MANGLE u8 g_arch_phys_addr_bits;
+    NO_MANGLE u8 g_arch_virt_addr_bits;
 
     FORCE_INLINE
     auto get_kernel_phys_base() -> PhysAddr { 
@@ -49,7 +53,7 @@ namespace ours::mem {
 
     FORCE_INLINE
     auto get_kernel_size() -> usize
-    { return  KERNEL_IMAGE_END - KERNEL_IMAGE_START; }
+    { return  kImageEnd - kImageStart; }
 
     auto is_kernel_address() -> bool;
 

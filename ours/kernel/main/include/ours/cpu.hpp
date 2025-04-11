@@ -16,7 +16,7 @@
 #   error "The header <ours/arch/cpu.hpp> is required by the protocol [kernel.cpu]"
 #endif
 
-#include <ours/cpu_cfg.hpp>
+#include <ours/cpu-cfg.hpp>
 #include <ours/arch/cpu.hpp>
 
 namespace ours {

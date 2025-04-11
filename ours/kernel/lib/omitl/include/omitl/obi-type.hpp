@@ -15,12 +15,32 @@
 #include <ours/types.hpp>
 
 namespace omitl {
+    template <typename T>
+    auto from_string(char const *) -> T;
+
     enum class ObiType: u32 {
         Container     =  OMIT_CONTAINER,
         KernelPackage =  OMIT_KPACKAGE,
         Ramdisk       =  OMIT_RAMDISK,
         Memory        =  OMIT_MEMORY,
+        Unknown       =  u32(-1),
     };
+
+    auto to_string(ObiType) -> char const *;
+
+    template <>
+    auto from_string(char const *) -> ObiType;
+
+    enum class ObiExeSign: usize {
+        Unknown,
+        Raw     =  OMI_RAW_EXE_SIGNATURE,
+        Elf     =  OMI_ELF_EXE_SIGNATURE,
+    };
+
+    auto to_string(ObiExeSign) -> char const *;
+
+    template <>
+    auto from_string(char const *) -> ObiExeSign;
 
 } // namespace omitl
 

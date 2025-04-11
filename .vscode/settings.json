@@ -7,5 +7,8 @@
         "MIMode": "lldb"
     },
     "cmake.allowCommentsInPresetsFile": true,
-    "editor.defaultFormatter": "xaver.clang-format"
+    "editor.defaultFormatter": "xaver.clang-format",
+    "editor.codeLensFontFamily": "'Fira Code'",
+    "editor.fontFamily": "'Fira Code'",
+    "editor.fontLigatures": true,
 }

@@ -41,16 +41,15 @@ namespace acpi {
         auto get_table_phys_addr(usize index) const -> PhysAddr;
 
       private:
-        FORCE_INLINE CXX11_CONSTEXPR AcpiParser(IPhysToVirt *p2v, PhysAddr rsdp_addr, AcpiXsdt const *xsdt, AcpiRsdt const *rsdt,
-                                                PhysAddr root_table_paddr, usize num_tables)
+        FORCE_INLINE CXX11_CONSTEXPR
+        AcpiParser(IPhysToVirt *p2v, PhysAddr rsdp_addr, AcpiXsdt const *xsdt, AcpiRsdt const *rsdt,
+                   PhysAddr root_table_paddr, usize num_tables)
             : p2v_(p2v),
               rsdp_paddr_(rsdp_addr),
               rsdt_(rsdt),
               xsdt_(xsdt),
               root_table_paddr_(root_table_paddr),
               num_tables_(num_tables) {}
-
-        auto get_table_by_signature(AcpiSignature signature) const -> AcpiTableHeader *;
 
         IPhysToVirt *p2v_;
         AcpiRsdt const *rsdt_;

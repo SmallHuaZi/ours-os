@@ -3,12 +3,15 @@
 #include <ours/phys/print.hpp>
 #include <ours/phys/console.hpp>
 #include <ours/phys/aspace.hpp>
+#include <ours/phys/handoff.hpp>
 
 #include "../legacy-boot.hpp"
 
 #include <gktl/static_objects.hpp>
 #include <ustl/lazy_init.hpp>
 #include <arch/system.hpp>
+
+#include <ours/phys/acpi.hpp>
 
 namespace ours::phys {
     LegacyBoot LegacyBoot::g_legacy_boot;
@@ -23,6 +26,8 @@ namespace ours::phys {
         LegacyBoot::get().parse_params(loader_param);
 
         // Temporary entry
+        auto handoff = global_handoff();
+        handoff->acpi_rsdp = LegacyBoot::get().acpi_rsdp;
         obi_main(PhysAddr(LegacyBoot::get().ramdisk_.data()));
 
         panic("Never reach at here");

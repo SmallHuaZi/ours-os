@@ -4,7 +4,7 @@
 #include <ours/mem/memory_model.hpp>
 #include <ours/assert.hpp>
 
-#include <ours/cpu_local.hpp>
+#include <ours/cpu-local.hpp>
 
 namespace ours::mem {
     auto alloc_frame(Gaf flags, usize order) -> PmFrame *

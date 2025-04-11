@@ -1,0 +1,166 @@
+#ifndef FEATURE
+#   error "Macro `FEATURE` miss"
+#endif
+
+/// Intel-defined CPU features, CPUID level 0x00000001 (EDX), word 0
+FEATURE(Fpu,        (0 * 32 + 0))   //< "fpu" Onboard FPU 
+FEATURE(Vme,        (0 * 32 + 1))   //< "vme" Virtual Mode Extensions 
+FEATURE(De,         (0 * 32 + 2))   //< "de" Debugging Extensions 
+FEATURE(Pse,        (0 * 32 + 3))   //< "pse" Page Size Extensions 
+FEATURE(Tsc,        (0 * 32 + 4))   //< "tsc" Time Stamp Counter 
+FEATURE(Msr,        (0 * 32 + 5))   //< "msr" Model-Specific Registers 
+FEATURE(Pae,        (0 * 32 + 6))   //< "pae" Physical Address Extensions 
+FEATURE(Mce,        (0 * 32 + 7))   //< "mce" Machine Check Exception 
+FEATURE(Cx8,        (0 * 32 + 8))   //< "cx8" CMPXCHG8 instruction 
+FEATURE(Apic,       (0 * 32 + 9))   //< "apic" Onboard APIC 
+FEATURE(Sep,        (0 * 32 + 11))   //< "sep" SYSENTER/SYSEXIT 
+FEATURE(Mtrr,       (0 * 32 + 12))   //< "mtrr" Memory Type Range Registers 
+FEATURE(Pge,        (0 * 32 + 13))   //< "pge" Page Global Enable 
+FEATURE(Mca,        (0 * 32 + 14))   //< "mca" Machine Check Architecture 
+FEATURE(Cmov,       (0 * 32 + 15))   //< "cmov" CMOV instructions (plus FCMOVcc, FCOMI with FPU) 
+FEATURE(Pat,        (0 * 32 + 16))   //< "pat" Page Attribute Table 
+FEATURE(Pse36,      (0 * 32 + 17))   //< "pse36" 36-bit PSEs 
+FEATURE(Pn,         (0 * 32 + 18))   //< "pn" Processor serial number 
+FEATURE(Clflush,    (0 * 32 + 19))   //< "clflush" CLFLUSH instruction 
+FEATURE(Dts,        (0 * 32 + 21))   //< "dts" Debug Store 
+FEATURE(Acpi,       (0 * 32 + 22))   //< "acpi" ACPI via MSR 
+FEATURE(Mmx,        (0 * 32 + 23))   //< "mmx" Multimedia Extensions 
+FEATURE(Fxsr,       (0 * 32 + 24))   //< "fxsr" FXSAVE/FXRSTOR, CR4.OSFXSR 
+FEATURE(Xmm,        (0 * 32 + 25))   //< "sse" 
+FEATURE(Xmm2,       (0 * 32 + 26))   //< "sse2" 
+FEATURE(SelfSnoop,  (0 * 32 + 27))   //< "ss" CPU self snoop 
+FEATURE(HypThread,  (0 * 32 + 28))   //< "ht" Hyper-Threading 
+FEATURE(Acc,        (0 * 32 + 29))   //< "tm" Automatic clock control 
+FEATURE(Ia64,       (0 * 32 + 30))   //< "ia64" IA-64 processor 
+FEATURE(Pbe,        (0 * 32 + 31))   //< "pbe" Pending Break Enable
+
+///< Intel-defined CPU features, CPUID level 0x00000001 (ECX), word 1 
+FEATURE(Xmm3,               ( 1 * 32+ 0 )) //< "pni" SSE-3 
+FEATURE(Pclmulqdq,          ( 1 * 32+ 1 )) //< "pclmulqdq" PCLMULQDQ instruction 
+FEATURE(Dtes64,             ( 1 * 32+ 2 )) //< "dtes64" 64-bit Debug Store 
+FEATURE(Mwait,              ( 1 * 32+ 3 )) //< "monitor" MONITOR/MWAIT support 
+FEATURE(Dscpl,              ( 1 * 32+ 4 )) //< "ds_cpl" CPL-qualified (filtered) Debug Store 
+FEATURE(Vmx,                ( 1 * 32+ 5 )) //< "vmx" Hardware virtualization 
+FEATURE(Smx,                ( 1 * 32+ 6 )) //< "smx" Safer Mode eXtensions 
+FEATURE(Est,                ( 1 * 32+ 7 )) //< "est" Enhanced SpeedStep 
+FEATURE(Tm2,                ( 1 * 32+ 8 )) //< "tm2" Thermal Monitor 2 
+FEATURE(Ssse3,              ( 1 * 32+ 9 )) //< "ssse3" Supplemental SSE-3 
+FEATURE(Cid,                ( 1 * 32+10 )) //< "cid" Context ID 
+FEATURE(Sdbg,               ( 1 * 32+11 )) //< "sdbg" Silicon Debug 
+FEATURE(Fma,                ( 1 * 32+12 )) //< "fma" Fused multiply-add 
+FEATURE(Cx16,               ( 1 * 32+13 )) //< "cx16" CMPXCHG16B instruction 
+FEATURE(Xtpr,               ( 1 * 32+14 )) //< "xtpr" Send Task Priority Messages 
+FEATURE(Pdcm,               ( 1 * 32+15 )) //< "pdcm" Perf/Debug Capabilities MSR 
+FEATURE(Pcid,               ( 1 * 32+17 )) //< "pcid" Process Context Identifiers 
+FEATURE(Dca,                ( 1 * 32+18 )) //< "dca" Direct Cache Access 
+FEATURE(Xmm4_1,             ( 1 * 32+19 )) //< "sse4_1" SSE-4.1 
+FEATURE(Xmm4_2,             ( 1 * 32+20 )) //< "sse4_2" SSE-4.2 
+FEATURE(X2Apic,             ( 1 * 32+21 )) //< "x2apic" X2APIC 
+FEATURE(Movbe,              ( 1 * 32+22 )) //< "movbe" MOVBE instruction 
+FEATURE(Popcnt,             ( 1 * 32+23 )) //< "popcnt" POPCNT instruction 
+FEATURE(TscDeadlineTimer,   ( 1 * 32+24 )) //< "tsc_deadline_timer" TSC deadline timer 
+FEATURE(Aes,                ( 1 * 32+25 )) //< "aes" AES instructions 
+FEATURE(Xsave,              ( 1 * 32+26 )) //< "xsave" XSAVE/XRSTOR/XSETBV/XGETBV instructions 
+FEATURE(OsXsave,            ( 1 * 32+27 )) //< XSAVE instruction enabled in the OS 
+FEATURE(Avx,                ( 1 * 32+28 )) //< "avx" Advanced Vector Extensions 
+FEATURE(F16C,               ( 1 * 32+29 )) //< "f16c" 16-bit FP conversions 
+FEATURE(Rdrand,             ( 1 * 32+30 )) //< "rdrand" RDRAND instruction 
+FEATURE(Hypervisor,         ( 1 * 32+31 )) //< "hypervisor" Running on a hypervisor 
+
+/// Intel-defined CPU features, CPUID level 0x00000007:0 (EBX), word 2 
+FEATURE(FsGsBase,       ( 2 * 32 + 0))      //< "fsgsbase" RDFSBASE, WRFSBASE, RDGSBASE, WRGSBASE instructions
+FEATURE(TscAdjust,      ( 2 * 32 + 1))      //< "tsc_adjust" TSC adjustment MSR 0x3B 
+FEATURE(Sgx,            ( 2 * 32 + 2))      //< "sgx" Software Guard Extensions 
+FEATURE(Bmi1,           ( 2 * 32 + 3))      //< "bmi1" 1st group bit manipulation extensions 
+FEATURE(Hle,            ( 2 * 32 + 4))      //< "hle" Hardware Lock Elision 
+FEATURE(Avx2,           ( 2 * 32 + 5))      //< "avx2" AVX2 instructions 
+FEATURE(FdpExcptnOnly,  ( 2 * 32 + 6))      //< FPU data pointer updated only on x87 exceptions
+FEATURE(Smep,           ( 2 * 32 + 7))      //< "smep" Supervisor Mode Execution Protection 
+FEATURE(Bmi2,           ( 2 * 32 + 8))      //< "bmi2" 2nd group bit manipulation extensions 
+FEATURE(Erms,           ( 2 * 32 + 9))      //< "erms" Enhanced REP MOVSB/STOSB instructions 
+FEATURE(InvPcid,        ( 2 * 32 + 10))     //< "invpcid" Invalidate Processor Context ID 
+FEATURE(Rtm,            ( 2 * 32 + 11))     //< "rtm" Restricted Transactional Memory 
+FEATURE(Cqm,            ( 2 * 32 + 12))     //< "cqm" Cache QoS Monitoring 
+FEATURE(ZeroFcsFds,	    ( 2 * 32 + 13))     //< Zero out FPU CS and FPU DS 
+FEATURE(Mpx,            ( 2 * 32 + 14))     //< "mpx" Memory Protection Extension 
+FEATURE(RdtA,           ( 2 * 32 + 15))     //< "rdt_a" Resource Director Technology Allocation 
+FEATURE(Avx512F,        ( 2 * 32 + 16))     //< "avx512f" AVX-512 Foundation 
+FEATURE(Avx512Dq,       ( 2 * 32 + 17))     //< "avx512dq" AVX-512 DQ (Double/Quad granular) Instructions 
+FEATURE(Rdseed,	        ( 2 * 32 + 18))     //< "rdseed" RDSEED instruction 
+FEATURE(Adx,            ( 2 * 32 + 19))     //< "adx" ADCX and ADOX instructions 
+FEATURE(Smap,           ( 2 * 32 + 20))     //< "smap" Supervisor Mode Access Prevention 
+FEATURE(Avx512iFma,     ( 2 * 32 + 21))     //< "avx512ifma" AVX-512 Integer Fused Multiply-Add instructions 
+FEATURE(ClFlushOpt,     ( 2 * 32 + 23))     //< "clflushopt" CLFLUSHOPT instruction 
+FEATURE(Clwb,           ( 2 * 32 + 24))     //< "clwb" CLWB instruction 
+FEATURE(IntelPt,        ( 2 * 32 + 25))     //< "intel_pt" Intel Processor Trace 
+FEATURE(Avx512Pf,       ( 2 * 32 + 26))     //< "avx512pf" AVX-512 Prefetch 
+FEATURE(Avx512Er,       ( 2 * 32 + 27))     //< "avx512er" AVX-512 Exponential and Reciprocal 
+FEATURE(Avx512Cd,       ( 2 * 32 + 28))     //< "avx512cd" AVX-512 Conflict Detection 
+FEATURE(ShaNi,          ( 2 * 32 + 29))     //< "sha_ni" SHA1/SHA256 Instruction Extensions 
+FEATURE(Avx512Bw,       ( 2 * 32 + 30))     //< "avx512bw" AVX-512 BW (Byte/Word granular) Instructions 
+FEATURE(Avx512Vl,       ( 2 * 32 + 31))     //< "avx512vl" AVX-512 VL (128/256 Vector Length) Extensions 
+
+///< Intel-defined CPU features, CPUID level 0x00000007:0 (ECX), word 3 
+FEATURE(Avx512Vbmi,	        ( 3 * 32 + 1))      //< "avx512vbmi" AVX512 Vector Bit Manipulation instructions
+FEATURE(Umip,               ( 3 * 32 + 2))      //< "umip" User Mode Instruction Protection 
+FEATURE(Pku,                ( 3 * 32 + 3))      //< "pku" Protection Keys for Userspace 
+FEATURE(OsPke,              ( 3 * 32 + 4))      //< "ospke" OS Protection Keys Enable 
+FEATURE(WaitPkg,            ( 3 * 32 + 5))      //< "waitpkg" UMONITOR/UMWAIT/TPAUSE Instructions 
+FEATURE(Avx512Vbmi2,        ( 3 * 32 + 6))      //< "avx512_vbmi2" Additional AVX512 Vector Bit Manipulation Instructions 
+FEATURE(ShStk,              ( 3 * 32 + 7))      //< Shadow stack 
+FEATURE(Gfni,               ( 3 * 32 + 8))      //< "gfni" Galois Field New Instructions 
+FEATURE(Vaes,               ( 3 * 32 + 9))      //< "vaes" Vector AES 
+FEATURE(Vpclmulqdq,         ( 3 * 32 + 10))     //< "vpclmulqdq" Carry-Less Multiplication Double Quadword 
+FEATURE(Avx512Vnni,         ( 3 * 32 + 11))     //< "avx512_vnni" Vector Neural Network Instructions 
+FEATURE(Avx512BitAlg,       ( 3 * 32 + 12))     //< "avx512_bitalg" Support for VPOPCNT[B,W] and VPSHUF-BITQMB instructions 
+FEATURE(Tme,                ( 3 * 32 + 13))     //< "tme" Intel Total Memory Encryption 
+FEATURE(Avx512Vpopcntdq,    ( 3 * 32 + 14))     //< "avx512_vpopcntdq" POPCNT for vectors of DW/QW 
+FEATURE(La57,               ( 3 * 32 + 16))     //< "la57" 5-level page tables 
+FEATURE(Rdpid,              ( 3 * 32 + 22))     //< "rdpid" RDPID instruction 
+FEATURE(BusLockDetect,      ( 3 * 32 + 24))     //< "bus_lock_detect" Bus Lock detect 
+FEATURE(Cldemote,           ( 3 * 32 + 25))     //< "cldemote" CLDEMOTE instruction 
+FEATURE(Movdiri,            ( 3 * 32 + 27))     //< "movdiri" MOVDIRI instruction 
+FEATURE(Movdir64b,          ( 3 * 32 + 28))     //< "movdir64b" MOVDIR64B instruction 
+FEATURE(Enqcmd,             ( 3 * 32 + 29))     //< "enqcmd" ENQCMD and ENQCMDS instructions 
+FEATURE(SgxLc,              ( 3 * 32 + 30))     //< "sgx_lc" Software Guard Extensions Launch Control 
+
+///< Intel-defined CPU features, CPUID level 0x00000007:0 (EDX), word 4
+FEATURE(Avx5124Vnniw,       ( 4 * 32 + 2))  //< "avx512_4vnniw" AVX-512 Neural Network Instructions 
+FEATURE(Avx5124Fmaps,       ( 4 * 32 + 3))  //< "avx512_4fmaps" AVX-512 Multiply Accumulation Single precision 
+FEATURE(Fsrm,               ( 4 * 32 + 4))  //< "fsrm" Fast Short Rep Mov 
+FEATURE(Avx512Vp2Intersect, ( 4 * 32 + 8))  //< "avx512_vp2intersect" AVX-512 Intersect for D/Q 
+FEATURE(SrbdsCtrl,          ( 4 * 32 + 9))  //< SRBDS mitigation MSR available 
+FEATURE(MdClear,            ( 4 * 32 + 10)) //< "md_clear" VERW clears CPU buffers 
+FEATURE(RtmAlwaysAbort,     ( 4 * 32 + 11)) //< RTM transaction always aborts 
+FEATURE(TsxForceAbort,      ( 4 * 32 + 13)) //< TSX_FORCE_ABORT 
+FEATURE(Serialize,          ( 4 * 32 + 14)) //< "serialize" SERIALIZE instruction 
+FEATURE(HybridCpu,          ( 4 * 32 + 15)) //< This part has CPUs of more than one type 
+FEATURE(TsxLdTrk,           ( 4 * 32 + 16)) //< "tsxldtrk" TSX Suspend Load Address Tracking 
+FEATURE(Pconfig,            ( 4 * 32 + 18)) //< "pconfig" Intel PCONFIG 
+FEATURE(ArchLbr,            ( 4 * 32 + 19)) //< "arch_lbr" Intel ARCH LBR 
+FEATURE(Ibt,                ( 4 * 32 + 20)) //< "ibt" Indirect Branch Tracking 
+FEATURE(AmxBf16,            ( 4 * 32 + 22)) //< "amx_bf16" AMX bf16 Support 
+FEATURE(Avx512Fp16,         ( 4 * 32 + 23)) //< "avx512_fp16" AVX512 FP16 
+FEATURE(AmxTile,            ( 4 * 32 + 24)) //< "amx_tile" AMX tile Support 
+FEATURE(AmxInt8,            ( 4 * 32 + 25)) //< "amx_int8" AMX int8 Support 
+FEATURE(SpecCtrl,           ( 4 * 32 + 26)) //< Speculation Control (IBRS + IBPB) 
+FEATURE(IntelStibp,         ( 4 * 32 + 27)) //< Single Thread Indirect Branch Predictors 
+FEATURE(FlushL1d,           ( 4 * 32 + 28)) //< "flush_l1d" Flush L1D cache 
+FEATURE(ArchCapabilities,   ( 4 * 32 + 29)) //< "arch_capabilities" IA32_ARCH_CAPABILITIES MSR (Intel) 
+FEATURE(CoreCapabilities,   ( 4 * 32 + 30)) //< IA32_CORE_CAPABILITIES MSR 
+FEATURE(SpecCtrlSsbd,       ( 4 * 32 + 31)) //< Speculative Store Bypass Disable 
+
+/// Intel-defined CPU features, CPUID level 0x00000007:1 (EAX), word 5 
+FEATURE(AvxVnni,        ( 5 * 32 + 4))  //< "avx_vnni" AVX VNNI instructions 
+FEATURE(Avx512Bf16,     ( 5 * 32 + 5))  //< "avx512_bf16" AVX512 BFLOAT16 instructions 
+FEATURE(CMPccXadd,      ( 5 * 32 + 7))  //< CMPccXADD instructions 
+FEATURE(ArchPerfmonExt, ( 5 * 32 + 8))  //< Intel Architectural PerfMon Extension 
+FEATURE(Fzrm,           ( 5 * 32 + 10)) //< Fast zero-length REP MOVSB 
+FEATURE(Fsrs,           ( 5 * 32 + 11)) //< Fast short REP STOSB 
+FEATURE(Fsrc,           ( 5 * 32 + 12)) //< Fast short REP {CMPSB,SCASB} 
+FEATURE(Fred,           ( 5 * 32 + 17)) //< "fred" Flexible Return and Event Delivery 
+FEATURE(Lkgs,           ( 5 * 32 + 18)) //< Load "kernel" (userspace) GS 
+FEATURE(Wrmsrns,        ( 5 * 32 + 19)) //< Non-serializing WRMSR 
+FEATURE(AmxFp16,        ( 5 * 32 + 21)) //< AMX fp16 Support 
+FEATURE(AvxIfma,        ( 5 * 32 + 23)) //< Support for VPMADD52[H,L]UQ 
+FEATURE(Lam,            ( 5 * 32 + 26)) //< "lam" Linear Address Masking

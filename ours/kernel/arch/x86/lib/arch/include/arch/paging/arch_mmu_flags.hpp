@@ -28,7 +28,7 @@ namespace arch::paging {
         Global       = X86_MMUF_GLOBAL,
         NoExecutable  = X86_MMUF_NOEXECUTABLE,
     };
-    USTL_ENABLE_ENUM_BITS(X86MmuFlags);
+    USTL_ENABLE_ENUM_BITMASK(X86MmuFlags);
 
     template <>
     FORCE_INLINE CXX11_CONSTEXPR

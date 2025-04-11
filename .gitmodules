@@ -4,3 +4,9 @@
 [submodule "third_party/lz4"]
 	path = third_party/lz4
 	url = git@github.com:lz4/lz4.git
+[submodule "third_party/cxxopts"]
+	path = third_party/cxxopts
+	url = git@github.com:jarro2783/cxxopts.git
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = git@github.com:gabime/spdlog.git

@@ -28,10 +28,10 @@ namespace ustl::traits {
     using RemoveCvRefT = std::remove_cvref_t<T>;
 
     template <typename T>
-    using AddLValueRefT = std::add_lvalue_reference_t<T>;
+    using AddLvalRefT = std::add_lvalue_reference_t<T>;
 
     template <typename T>
-    using AddRValueRefT = std::add_rvalue_reference_t<T>;
+    using AddRvalRefT = std::add_rvalue_reference_t<T>;
 
 } // namespace ustl::traits
 

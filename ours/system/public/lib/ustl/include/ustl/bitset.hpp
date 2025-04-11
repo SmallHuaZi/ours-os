@@ -13,10 +13,21 @@
 #define USTL_BITSET_HPP 1
 
 #include <bitset>
+#include <ustl/config.hpp>
+#include <ustl/limits.hpp>
 
 namespace ustl {
     template <int NBits>
     using BitSet = std::bitset<NBits>;
+
+    template <usize Delta = 0, typename BitSet, typename Integer>
+    auto copy_bits(BitSet &bitset, Integer value) -> void {
+        for (auto i = 0; i < ustl::NumericLimits<Integer>::DIGITS; ++i) {
+            if (((1 << i) & value) != 0) {
+                bitset.set(Delta + i);
+            }
+        }
+    }
 
 } // namespace ustl
 

@@ -27,13 +27,19 @@
 #endif
 
 namespace bootmem {
-    template <typename Collection>
+    template <template <typename> typename Collection>
+    class MemBlock;
+
+    template <template <typename> typename Collection>
     struct RegionList
-        : protected Collection
+        : protected Collection<Region>
     {
-        typedef Collection  Base;
+        typedef Collection<Region>  Base;
         typedef typename Base::Iter     Iter;
         typedef typename Base::IterMut  IterMut;
+
+        template <template <typename> typename>
+        friend class MemBlock;
 
         using Base::begin;
         using Base::end;
@@ -47,7 +53,7 @@ namespace bootmem {
 
         RegionList() = default;
 
-        RegionList(Collection &&collection)
+        RegionList(Collection<Region> &&collection)
             : Base(ustl::move(collection))
         {}
 
@@ -238,9 +244,10 @@ namespace bootmem {
         usize total_bytes_;
     };
 
+    template <typename>
     struct RegionVector;
 
-    template <typename Collection = RegionVector>
+    template <template <typename> typename Collection = RegionVector>
     class MemBlock {
         typedef MemBlock   Self;
 
@@ -257,7 +264,7 @@ namespace bootmem {
         {}
 
         FORCE_INLINE CXX11_CONSTEXPR
-        MemBlock(Collection &&memories, Collection &&reserved)
+        MemBlock(Collection<Region> &&memories, Collection<Region> &&reserved)
             : memories_(ustl::move(memories)),
               reserved_(ustl::move(reserved)),
               start_address_(~PhysAddr(0)),
@@ -455,7 +462,7 @@ namespace bootmem {
             return reserved_;
         }
     private:
-        friend Collection;
+        friend Collection<Region>;
 
         FORCE_INLINE
         auto get_free_region(usize size, usize align, RegionType type, NodeId nid) {
@@ -538,11 +545,12 @@ namespace bootmem {
         AllocationControl allocation_control_;
     }; // class MemBlock
 
+    template <typename Region>
     struct RegionVector {
         typedef RegionVector    Self;
         typedef bootmem::Region const *  Iter;
         typedef bootmem::Region *        IterMut;
-        typedef bootmem::MemBlock<Self>  Holder;
+        typedef bootmem::MemBlock<RegionVector>   Holder;
         typedef ustl::iterator::RevIter<Iter>     RevIter;
         typedef ustl::iterator::RevIter<IterMut>  RevIterMut;
 

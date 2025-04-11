@@ -20,7 +20,7 @@ namespace ours::phys {
 
     /// We do not require any architecture to provide an implementation
     /// for this.
-    WEAK
+    WEAK_LINK
     auto arch_detect_memory() -> void
     {}
 

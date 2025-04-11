@@ -14,7 +14,7 @@
 
 #include <ours/arch/thread.hpp>
 #include <ours/cpu.hpp>
-#include <ours/cpu_mask.hpp>
+#include <ours/cpu-mask.hpp>
 #include <ours/task/types.hpp>
 
 #include <ours/mem/types.hpp>
@@ -96,6 +96,9 @@ namespace ours::task {
       public:
         static auto aspace() -> mem::VmAspace * {
             return 0;
+        }
+
+        static auto idle() -> void {
         }
 
         static auto exit(isize retcode) -> void;

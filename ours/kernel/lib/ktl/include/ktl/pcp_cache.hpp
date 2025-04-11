@@ -15,10 +15,11 @@
 #include <cstdint>
 #include <cstddef>
 
-#include <ours/cpu_local.hpp>
+#include <ours/cpu-local.hpp>
+#include <ours/arch/cpu.hpp>
 
 #include <ustl/option.hpp>
-#include <ustl/collections/array.hpp>
+#include <ustl/collections/static-vec.hpp>
 #include <ustl/sync/mutex.hpp>
 
 namespace ktl {
@@ -110,7 +111,7 @@ namespace ktl {
         {
         }
 
-        ustl::collections::Array<ustl::Option<ScpCache>, ConfigTraits::MaxCpuNum>  caches_;
+        ustl::collections::StaticVec<ustl::Option<ScpCache>, ConfigTraits::MaxCpuNum>  caches_;
     };
 
     struct DefaultCacheConfig
@@ -123,7 +124,7 @@ namespace ktl {
         struct CurrentCpu
         {
             static auto current_cpu() -> size_t
-            {  return ours::CpuLocal::cpu_num();  }
+            {  return ours::arch_current_cpu();  }
         };
     };
 } // namespace ktl

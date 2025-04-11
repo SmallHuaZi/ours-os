@@ -17,7 +17,7 @@
 #include <arch/x86/apic/common.hpp>
 #include <arch/x86/msr.hpp>
 
-namespace arch::x86 {
+namespace arch {
     enum class XApicRegType : u32 {
         Id = 0x020,
         Version = 0x030,
@@ -199,6 +199,6 @@ namespace arch::x86 {
         u8 version_;
     };
 
-} // namespace arch::x86
+} // namespace arch
 
 #endif // #ifndef ARCH_X86_APIC_XAPIC_HPP

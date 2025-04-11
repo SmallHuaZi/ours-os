@@ -19,7 +19,7 @@
 #include <ustl/sync/atomic.hpp>
 #include <ustl/sync/mutex.hpp>
 #include <ustl/sync/lockguard.hpp>
-#include <ustl/collections/array.hpp>
+#include <ustl/collections/static-vec.hpp>
 #include <ustl/collections/intrusive/slist.hpp>
 
 #include <gktl/range.hpp>
@@ -115,7 +115,7 @@ namespace ours::mem {
 
         ustl::sync::Mutex mutex_;
 
-        ustl::collections::Array<FrameList<>, MAX_FRAME_ORDER> free_list_;
+        ustl::collections::StaticVec<FrameList<>, MAX_FRAME_ORDER> free_list_;
     };
 
 } // namespace ours::mem

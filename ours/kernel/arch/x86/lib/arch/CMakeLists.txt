@@ -4,6 +4,13 @@ INTERFACE
 )
 
 target_sources(libarch 
-PRIVATE 
+INTERFACE 
+    "processor.cpp"
     "page_table.cpp"
+    "pic.cpp"
+)
+
+target_compile_options(libarch
+INTERFACE
+    "-mrdrnd"
 )

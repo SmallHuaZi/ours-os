@@ -22,7 +22,7 @@ namespace ours::mem {
         NotPresent = BIT(0),
         User = BIT(0),
     };
-    USTL_ENABLE_ENUM_BITS(VmfCause);
+    USTL_ENABLE_ENUM_BITMASK(VmfCause);
 
     struct VmFault 
     {};

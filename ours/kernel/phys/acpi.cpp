@@ -1,4 +1,6 @@
 #include <ours/phys/acpi.hpp>
+#include <acpi/numa.hpp>
+#include <ours/phys/print.hpp>
 
 namespace ours::phys {
     struct PhysToVirtForIdentityMapping: public acpi::IPhysToVirt {

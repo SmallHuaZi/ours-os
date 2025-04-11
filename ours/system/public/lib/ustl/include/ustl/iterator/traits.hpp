@@ -36,8 +36,8 @@ namespace details {
                          typename T::iterator_category>>
         : traits::TrueType
     {
-        typedef typename T::pointer             SafePtr;
-        typedef typename T::reference           SafeRef;
+        typedef typename T::pointer             Pointer;
+        typedef typename T::reference           Reference;
         typedef typename T::value_type          Element;
         typedef typename T::difference_type     Distance;
         typedef typename T::iterator_category   Category;

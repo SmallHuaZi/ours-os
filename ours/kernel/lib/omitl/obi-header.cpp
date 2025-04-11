@@ -1,6 +1,18 @@
 #include <omitl/obi-header.hpp>
 
 namespace omitl {
+    auto ObiHeader::validate() const -> bool {
+        if (this->magic != OMI_HEADER_MAGIC) {
+            return false; 
+        }
+        if (this->flags & OMIF_CRC32) {
+            // Check CRC32 code
+            return false; 
+        }
+
+        return true;
+    }
+
     auto validate_raw_obi_item_header(void *raw_header, usize const capacity) -> ustl::Result<ObiHeader *> {
         if (capacity < sizeof(ObiHeader)) {
             return ustl::err();

@@ -93,7 +93,7 @@ namespace details {
         BottomUp,
         TopDown = BIT(0),
     };
-    USTL_ENABLE_ENUM_BITS(AllocationControl);
+    USTL_ENABLE_ENUM_BITMASK(AllocationControl);
 
 } // namespace bootmem
 

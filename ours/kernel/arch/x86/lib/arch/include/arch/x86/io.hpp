@@ -14,7 +14,7 @@
 
 #include <arch/types.hpp>
 
-namespace arch::x86 {
+namespace arch {
     FORCE_INLINE 
     auto outb(u16 port, u8 val) -> void 
     { asm volatile ("outb %0, %1" : : "a"(val), "Nd"(port)); }
@@ -51,6 +51,6 @@ namespace arch::x86 {
         return ret;
     }
 
-} // namespace arch::x86
+} // namespace arch
 
 #endif // #ifndef ARCH_X86_IO_HPP

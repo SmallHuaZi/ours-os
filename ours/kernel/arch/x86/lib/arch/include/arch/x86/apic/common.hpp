@@ -13,7 +13,7 @@
 
 #include <arch/types.hpp>
 
-namespace arch::x86 {
+namespace arch {
     enum class ApicInterruptPolarity {
         ActiveLow,
         ActiveHigh,
@@ -153,6 +153,6 @@ namespace arch::x86 {
         u64 wrapper_;
     };
 
-} // namespace arch::x86
+} // namespace arch
 
 #endif // #ifndef ARCH_X86_APIC_COMMON_HPP

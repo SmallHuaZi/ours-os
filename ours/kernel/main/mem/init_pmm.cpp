@@ -2,15 +2,16 @@
 
 #include <ours/mem/pm_zone.hpp>
 #include <ours/mem/pm_node.hpp>
-#include <ours/mem/early_mem.hpp>
+#include <ours/mem/early-mem.hpp>
 #include <ours/mem/memory_model.hpp>
 #include <ours/mem/physmap.hpp>
+#include <ours/mem/vmm.hpp>
 
 #include <ours/assert.hpp>
 #include <ours/init.hpp>
 #include <ours/panic.hpp>
 #include <ours/status.hpp>
-#include <ours/cpu_local.hpp>
+#include <ours/cpu-local.hpp>
 
 #include <ustl/limits.hpp>
 #include <ustl/views/span.hpp>
@@ -35,7 +36,7 @@ namespace ours::mem {
     INIT_CODE
     static auto set_zone_pfn_range(ustl::views::Span<Pfn> max_zone_pfn) -> void
     {
-        auto start_pfn = phys_to_pfn(EarlyMem::start_address());
+        auto start_pfn = phys_to_pfn(EarlyMem::min_address());
 	    for (auto i = 0; i < MAX_ZONES; i++) {
 	    	auto end_pfn = ustl::algorithms::max(max_zone_pfn[i], start_pfn);
 	    	ZONE_LOWEST_PFN[i] = start_pfn;
@@ -183,9 +184,11 @@ namespace ours::mem {
     }
 
     INIT_CODE
-    auto init_early_pmm(phys::MemoryHandoff &mh) -> Status
+    auto handoff_early_pmm(phys::MemoryHandoff &mh) -> Status
     {  
-        EarlyMem::g_bootmem = &mh.bootmem;
+        EarlyMem::s_bootmem = &mh.bootmem;
+        mem::g_kernel_phys_base = mh.kernel_load_addr;
+
         // Verifies the signature of bootmem
         return Status::Ok; 
     }

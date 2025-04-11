@@ -44,7 +44,7 @@ namespace ustl {
     /// @tparam Integer
     /// @tparam ...N
     template <typename Integer, Integer... N>
-    struct IntegerSequence
+    struct IntegerSequence 
     {
         typedef Integer          Element;
         typedef IntegerSequence  Type;

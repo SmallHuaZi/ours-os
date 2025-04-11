@@ -17,16 +17,14 @@
 #define X86_IMPL_SYSREG(DERIVED, NAME)\
     template <>\
     USTL_FORCEINLINE USTL_CONSTEXPR \
-    auto SysReg<DERIVED>::write(DERIVED value) -> void\
-    { \
+    auto SysReg<DERIVED>::write(DERIVED value) -> void { \
         static_assert(sizeof(DERIVED) <= sizeof(usize), \
                       "A system register is impossibly greater than the size a platform supports");\
         asm volatile("mov %0, %%" NAME : : "r"(value)); \
     } \
     template <>\
     USTL_FORCEINLINE USTL_CONSTEXPR \
-    auto SysReg<DERIVED>::read() -> Self \
-    {\
+    auto SysReg<DERIVED>::read() -> Self { \
         usize value;\
         asm volatile("mov %%" NAME ", %0" : "=r"(value));\
         return {{value}};\
@@ -42,6 +40,7 @@ namespace arch {
     using ustl::bitfields::Type;
     using ustl::bitfields::Enable;
     using ustl::bitfields::StartBit;
+    using ustl::bitfields::SkipBit;
 
     struct Cr0;
     struct Cr2;
@@ -124,9 +123,16 @@ namespace arch {
             La57,
             Vmxe,
             Smxe,
+            Bit15Reserved,
             FsGsBase,
             Pcide,
             OsxSave,
+            Bit19Reserved,
+            Smep,
+            Smap,
+            Pke,
+            Cet,
+            Pks,
         };
         typedef ustl::TypeList<
             Field<Id<Vme>, Name<"vme">>,
@@ -144,9 +150,16 @@ namespace arch {
             Field<Id<La57>, Name<"la57">>,
             Field<Id<Vmxe>, Name<"vmxe">>,
             Field<Id<Smxe>, Name<"smxe">>,
+            SkipBit<1>, // This bit is reserved.
             Field<Id<FsGsBase>, Name<"FsGsBase">>,
             Field<Id<Pcide>, Name<"Pcide">>,
-            Field<Id<OsxSave>, Name<"osxsave">>
+            Field<Id<OsxSave>, Name<"osxsave">>,
+            SkipBit<1>, // This bit is reserved.
+            Field<Id<Smep>, Name<"smep">>,
+            Field<Id<Smap>, Name<"smap">>,
+            Field<Id<Pke>, Name<"pke">>,
+            Field<Id<Cet>, Name<"cet">>,
+            Field<Id<Pks>, Name<"pks">>
         > FieldList;
     };
     struct Cr4: public SysReg<Cr4> {};
@@ -183,7 +196,9 @@ namespace arch {
     //     > FieldList;
     // };
 
-} // namespace arch::x86
+    
+
+} // namespace arch
 
 #undef X86_SYSREG
 #endif // #ifndef ARCH_X86_SYSTEM_HPP

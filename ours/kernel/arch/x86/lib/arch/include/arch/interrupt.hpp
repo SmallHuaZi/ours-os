@@ -17,7 +17,7 @@ namespace arch {
     typedef usize   IntrSavedState;
 
     CXX11_CONSTEXPR
-    static auto const NULL_INTR_SAVED_STATE = IntrSavedState();
+    static auto const kNullIntrSavedState = IntrSavedState();
 
     FORCE_INLINE
     auto save_interrupt_state() -> IntrSavedState {

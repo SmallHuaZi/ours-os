@@ -34,7 +34,7 @@ namespace ours::mem {
         Shared = BIT(4),
         Active = BIT(5),
     };
-    USTL_ENABLE_ENUM_BITS(VmasFlags);
+    USTL_ENABLE_ENUM_BITMASK(VmasFlags);
 
     /// `ArchVmAspaceConstraints` is a trait class that asserts the required interfaces has been implemneted
     /// by `ArchVmAspace`. It serves as a compile-time checker, ensuring that all architectures implement the 

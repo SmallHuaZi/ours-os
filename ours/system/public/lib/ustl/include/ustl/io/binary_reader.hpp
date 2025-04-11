@@ -15,17 +15,18 @@
 #include <ustl/views/span.hpp>
 
 namespace ustl::io {
-    class BinaryReader {
-      public:
+    struct BinaryReader {
         BinaryReader() = default;
 
         // Construct a BinaryReader from the given span.
         explicit BinaryReader(ustl::views::Span<u8 const> data)
-            : buffer_(data) {}
+            : buffer_(data), pos_(0)
+        {}
 
         /// Construct a BinaryReader from the given pointer / size pair.
         explicit BinaryReader(void const *data, usize size_bytes)
-            : buffer_(reinterpret_cast<u8 const *>(data), size_bytes) {}
+            : buffer_(reinterpret_cast<u8 const *>(data), size_bytes), pos_(0)
+        {}
 
         /// Construct a BinaryReader from a valid structure with a size() method.
         template <typename T>
@@ -37,54 +38,97 @@ namespace ustl::io {
         template <typename T>
         static BinaryReader from_payload_of_struct(T const* header) {
             BinaryReader result(reinterpret_cast<const u8*>(header), header->size());
-            result.buffer_ = result.buffer_.subspan(sizeof(T));
-            return result;
-        }
-
-        /// Read a fixed-length structure.
-        template <typename T>
-        auto read_fixed_length() -> T const * {
-            static_assert(alignof(T) == 1, "Can only safely read types with alignof(T) == 1.");
-
-            // Ensure we have space.
-            if (buffer_.size_bytes() < sizeof(T)) {
-                return nullptr;
-            }
-
-            // Consume the bytes, and return the struct.
-            auto* result = reinterpret_cast<const T*>(buffer_.data());
-            buffer_ = buffer_.subspan(sizeof(T));
+            result.pos_ = sizeof(T);
             return result;
         }
 
         /// Read a variable length structure, where the size is determined by T::size().
         template <typename T>
-        auto read() -> T const * {
-            static_assert(alignof(T) == 1, "Can only safely read types with alignof(T) == 1.");
-
+        auto read() -> T * {
             USTL_CONSTEXPR 
             auto const desired_size = sizeof(T);
 
             // Read the header.
-            if (buffer_.size_bytes() < desired_size) {
+            if (buffer_.size_bytes() < desired_size + pos_) {
                 return nullptr;
             }
-            auto *ptr = reinterpret_cast<T const *>(buffer_.data());
+            auto *ptr = reinterpret_cast<T *>(const_cast<u8 *>(buffer_.data() + pos_));
 
             // Consume the bytes, and return the header.
-            buffer_ = buffer_.subspan(desired_size);
+            pos_ += desired_size;
             return ptr;
+        }
+
+        /// Read a variable length structure, where the size is determined by T::size().
+        template <typename T>
+        auto read_n(usize n) -> ustl::views::Span<T> {
+            auto const desired_size = sizeof(T) * n;
+
+            // Read the header.
+            if (buffer_.size_bytes() < desired_size + pos_) {
+                return {};
+            }
+            auto *ptr = reinterpret_cast<T *>(const_cast<u8 *>(buffer_.data()) + pos_);
+
+            // Consume the bytes, and return the header.
+            pos_ += desired_size;
+            return { ptr, n };
+        }
+
+        /// Read a variable length structure, where the size is determined by T::size().
+        template <typename T>
+        auto read_at(usize pos) -> T * {
+            auto const desired_size = sizeof(T);
+
+            // Read the header.
+            if (buffer_.size_bytes() < desired_size + pos) {
+                return {};
+            }
+            auto *ptr = reinterpret_cast<T *>(const_cast<u8 *>(buffer_.data()) + pos);
+            return ptr;
+        }
+
+        /// Read a variable length structure, where the size is determined by T::size().
+        template <typename T>
+        auto read_at_n(usize pos, usize n) -> ustl::views::Span<T> {
+            auto const desired_size = sizeof(T) * n;
+
+            // Read the header.
+            if (buffer_.size_bytes() < desired_size + pos) {
+                return {};
+            }
+            auto *ptr = reinterpret_cast<T *>(const_cast<u8 *>(buffer_.data()) + pos);
+            return { ptr, n };
+        }
+
+        template <typename T>
+        auto peek(usize const n = 1) -> void {
+            static_assert(alignof(T) == 1, "Can only safely read types with alignof(T) == 1.");
+
+            USTL_CONSTEXPR 
+            auto const desired_size = sizeof(T) * n;
+            if (buffer_.size_bytes() < desired_size + pos_) {
+                pos_ += desired_size;
+            }
         }
 
         /// Discard the given number of bytes.
         ///
         /// Return true if the bytes could be discarded, or false if there are insufficient bytes.
         auto skip_bytes(usize bytes) -> bool {
-            if (buffer_.size() < bytes) {
+            if (buffer_.size() < bytes + pos_) {
                 return false;
             }
-            buffer_ = buffer_.subspan(bytes);
+            pos_ += bytes;
             return true;
+        }
+
+        auto set_pos(usize pos) -> void {
+            if (pos > buffer_.size_bytes()) {
+                pos_ = buffer_.size_bytes();
+            } else {
+                pos_ = pos;
+            }
         }
 
         auto reset(void const *data, usize size_bytes) -> void {
@@ -101,7 +145,8 @@ namespace ustl::io {
             return !empty();
         }
 
-      private:
+    private:
+        usize pos_;
         ustl::views::Span<u8 const> buffer_;
     };
 } // namespace ustl::io

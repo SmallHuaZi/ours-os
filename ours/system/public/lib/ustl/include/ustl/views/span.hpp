@@ -15,19 +15,29 @@
 #include <boost/core/span.hpp>
 
 namespace ustl::views {
-    template <typename T>
+    template <typename T, std::size_t E = boost::dynamic_extent>
     struct Span
-        : public ::boost::span<T>
+        : public ::boost::span<T, E>
     {
         typedef ::boost::span<T>    Base;
         using Base::Base;
         using Base::operator=;
+
+        template <typename U, std::size_t UE = boost::dynamic_extent>
+        Span(::boost::span<U, UE> other_span)
+            : Base(other_span)
+        {}
 
         typedef typename Base::iterator         IterMut;
         typedef typename Base::const_iterator   Iter;
         typedef typename Base::reverse_iterator         RevIterMut;
         typedef typename Base::const_reverse_iterator   RevIter;
     };
+
+    template <typename T, std::size_t E = boost::dynamic_extent>
+    constexpr auto make_span(T *t, std::size_t n) -> Span<T, E> {
+        return {t, n};
+    }
 
 } // namespace ustl::views
 

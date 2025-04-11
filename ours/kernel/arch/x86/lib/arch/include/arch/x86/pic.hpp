@@ -14,7 +14,7 @@
 
 #include <arch/types.hpp>
 
-namespace arch::x86 {
+namespace arch {
     struct Pic {
         static auto send_eoi(u8 irq) -> void;
         static auto remap(u8 pic1, u8 pic2) -> void;
@@ -25,6 +25,6 @@ namespace arch::x86 {
         static auto unmask_all() -> void;
     };
 
-} // namespace arch::x86
+} // namespace arch
 
 #endif // #ifndef ARCH_X86_PIC_HPP

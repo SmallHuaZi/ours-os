@@ -1,5 +1,5 @@
 set(source_set
-    "cpu_local.cpp"
+    "cpu-local.cpp"
     "fault.cpp"
     "init_pmm.cpp"
     "init_vmm.cpp"
@@ -8,7 +8,7 @@ set(source_set
     "vmm.cpp"
     "new.cpp"
     "stack.cpp"
-    "early_mem.cpp"
+    "early-mem.cpp"
     "pm_frame.cpp"
     "pm_zone.cpp"
     "pm_node.cpp"

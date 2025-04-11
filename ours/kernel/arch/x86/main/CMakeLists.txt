@@ -13,16 +13,18 @@ INTERFACE
 target_sources(kernel_main_arch
 INTERFACE
     # Sources
-    "gdt.S"
     "start.S"
+    "gdt.S"
     "context.S"
     "exception.S"
+    "idt.S"
     "idt.cpp"
-    "smp.cpp"
+    "faults.cpp"
+    "feature.cpp"
+    "mp.cpp"
     "init.cpp"
     "thread.cpp"
 )
 
 add_subdirectory("mem")
 add_subdirectory("irq")
-add_subdirectory("platform")

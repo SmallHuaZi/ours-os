@@ -51,7 +51,7 @@ namespace gafns {
         /// wait through sleeping.
         DirectlyReclaim = BIT(DirectlyReclaimBit),
     };
-    USTL_ENABLE_ENUM_BITS(Gaf);
+    USTL_ENABLE_ENUM_BITMASK(Gaf);
 
     FORCE_INLINE CXX11_CONSTEXPR
     static auto zone_type(Gaf gaf) -> ZoneType

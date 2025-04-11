@@ -17,8 +17,8 @@
 #define OMI_ALIGNMENT 8
 
 // Types
-#define OMIT_CONTAINER      0x544E4F43   // "CONT"
-#define OMIT_KPACKAGE       0X4341504B   // "KPAC"
+#define OMIT_CONTAINER      0x746E6F63   // "cont"
+#define OMIT_KPACKAGE       0x676b706b   // "kpkg"
 #define OMIT_RAMDISK        0x444D4152   // "RAMD"
 #define OMIT_MEMORY         0x444D4152   // "RAMD"
 
@@ -28,6 +28,7 @@
 #define OMIF_CRC32        4    // Expectation to load at fixed address.
 
 /// Kernel signature
-#define OMI_KERNEL_SIGNATURE 0x4C524E4B   // "KNRL"
+#define OMI_RAW_EXE_SIGNATURE 0x00444D57   // "RAW"
+#define OMI_ELF_EXE_SIGNATURE 0x00666c65   // "elf"
 
 #endif // #ifndef OMI_MACRO_HPP

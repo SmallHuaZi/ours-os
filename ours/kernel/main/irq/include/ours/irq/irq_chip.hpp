@@ -11,7 +11,7 @@
 #ifndef OURS_IRQ_IRQ_CHIP_HPP
 #define OURS_IRQ_IRQ_CHIP_HPP 1
 
-#include <ours/cpu_mask.hpp>
+#include <ours/cpu-mask.hpp>
 #include <ours/status.hpp>
 #include <ours/irq/types.hpp>
 

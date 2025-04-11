@@ -1,14 +1,14 @@
 #include <ours/arch/asm.hpp>
-#include <ours/cpu_cfg.hpp>
+#include <ours/cpu-cfg.hpp>
 
 .object _temp_gdtr_words, scope=local, type=relro, align=8
 .skip 6
-.label TEMP_GDTR, global
-    .short GDT_END - GDT - 1
-    .quad  GDT 
+.label g_temp_gdtr, global
+    .short g_gdt_end - g_gdt - 1
+    .quad  g_gdt 
 .end_object
 
-.object GDT, scope=global, type=data, align=8
+.object g_gdt, scope=global, type=data, align=8
     /* null entry */
     .quad 0
 
@@ -67,5 +67,5 @@
     .int   0x00000000       /* base 63:32 */
     .int   0x00000000       /* reserved/sbz */
 .endr
-.label GDT_END, global
+.label g_gdt_end, global
 .end_object

@@ -24,10 +24,13 @@ add_executable(kernel_phys)
 add_executable(kernel::phys ALIAS kernel_phys)
 target_sources(kernel_phys
 PRIVATE
+    "acpi.cpp"
     "console.cpp"
     "panic.cpp"
     "kernel-package.cpp"
     "kernel-boot.cpp"
+    "elf-image.cpp"
+    "raw-image.cpp"
     "aspace.cpp"
     "phys-load.cpp"
     "memory.cpp"
@@ -58,6 +61,7 @@ PRIVATE
     "-mno-red-zone"
     "-mno-mmx" 
     "-mno-sse"
+    "-mrdrnd"
     "-fno-asynchronous-unwind-tables"
     "-fno-strict-aliasing"
 )
@@ -65,6 +69,7 @@ target_compile_definitions(kernel_phys
 PRIVATE
     ${OX_PREDEFINES}
 )
+message(STATUS ${OX_PREDEFINES})
 target_link_libraries(kernel_phys
 PRIVATE
     kernel::phys::headers
@@ -74,6 +79,7 @@ PRIVATE
     kernel::lib::gktl::goi
     kernel::lib::omitl
     kernel::lib::acpi
+    kernel::lib::eftl
 
     # Link to libgcc for some builtin routine, like __moddiv*, e.g..
     "libgcc.a"
@@ -98,7 +104,7 @@ PRIVATE
     # "-L/usr/lib/gcc/x86_64-linux-gnu/13"
 )
 
-add_dependencies(kernel_phys kernel_main_image)
+add_dependencies(kernel_phys kernel_main)
 
 add_subdirectory("lib")
 add_subdirectory("tests")

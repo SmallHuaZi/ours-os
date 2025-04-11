@@ -17,6 +17,7 @@
 #include <ours/mem/cfg.hpp>
 
 #include <ustl/views/span.hpp>
+#include <ustl/util/type-map.hpp>
 #include <arch/paging/mmu_flags.hpp>
 
 namespace ours::mem {
@@ -30,9 +31,14 @@ namespace ours::mem {
     };
     static_assert(MaxNumZoneType < NR_ZONES_PER_NODE, "");
 
+    template <ZoneType>
+    struct ZoneTypeMatcher;
+
+    template <ZoneType Type, usize Pfn>
+    using MaxZonePfn = ustl::TypeMapEntry<mem::ZoneTypeMatcher<Type>, ustl::traits::IntegralConstant<usize, Pfn>>;
+
     FORCE_INLINE CXX11_CONSTEXPR 
-    static auto to_string(ZoneType type) -> char const *
-    {
+    static auto to_string(ZoneType type) -> char const * {
         switch (type) {
             case ZoneType::Dma:     return "Dma";
             case ZoneType::Dma32:   return "Dma32";
@@ -50,28 +56,34 @@ namespace ours::mem {
     typedef isize   NodeId;
 
     FORCE_INLINE CXX11_CONSTEXPR 
-    static auto pfn_to_phys(Pfn pfn) -> PhysAddr
-    {  return PhysAddr(pfn << PAGE_SHIFT);  }
+    static auto pfn_to_phys(Pfn pfn) -> PhysAddr {  
+        return PhysAddr(pfn << PAGE_SHIFT);  
+    }
 
     FORCE_INLINE CXX11_CONSTEXPR 
-    static auto phys_to_pfn(PhysAddr phys_addr) -> Pfn
-    {  return Pfn(phys_addr >> PAGE_SHIFT);  }
+    static auto phys_to_pfn(PhysAddr phys_addr) -> Pfn {  
+        return Pfn(phys_addr >> PAGE_SHIFT);  
+    }
 
     FORCE_INLINE CXX11_CONSTEXPR
-    static auto phys_to_secnum(PhysAddr phys_addr) -> SecNum
-    {  return phys_addr >> SECTION_SHIFT;  }
+    static auto phys_to_secnum(PhysAddr phys_addr) -> SecNum {  
+        return phys_addr >> SECTION_SHIFT;  
+    }
 
     FORCE_INLINE CXX11_CONSTEXPR
-    static auto secnum_to_phys(SecNum secnum) -> PhysAddr
-    {  return secnum << SECTION_SHIFT;  }
+    static auto secnum_to_phys(SecNum secnum) -> PhysAddr {  
+        return secnum << SECTION_SHIFT;  
+    }
 
     FORCE_INLINE CXX11_CONSTEXPR
-    static auto pfn_to_secnum(Pfn pfn) -> SecNum
-    {  return pfn >> (SECTION_SHIFT - PAGE_SHIFT);  }
+    static auto pfn_to_secnum(Pfn pfn) -> SecNum {  
+        return pfn >> (SECTION_SHIFT - PAGE_SHIFT);  
+    }
 
     FORCE_INLINE CXX11_CONSTEXPR
-    static auto secnum_to_pfn(SecNum secnum) -> Pfn
-    {  return secnum << (SECTION_SHIFT - PAGE_SHIFT);  }
+    static auto secnum_to_pfn(SecNum secnum) -> Pfn {  
+        return secnum << (SECTION_SHIFT - PAGE_SHIFT);  
+    }
 
     /// A pre-allocated storage reserve designed for scenarios requiring specialized physical page management. 
     /// It serves two core purposes:

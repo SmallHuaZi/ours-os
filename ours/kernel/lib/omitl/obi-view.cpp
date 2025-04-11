@@ -52,3 +52,8 @@ namespace omitl {
         value_.update(maybe_header.unwrap());
     }
 }
+
+namespace ours {
+    WEAK_LINK NO_RETURN
+    auto do_panic(ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void {}
+}

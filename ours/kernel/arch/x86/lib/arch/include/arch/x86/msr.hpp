@@ -13,7 +13,7 @@
 
 #include <arch/types.hpp>
 
-namespace arch::x86 {
+namespace arch {
     // MSR identifiers.  These use the ALL_CAPS name style to be consistent with
     // the Intel manuals.  The generated header <lib/arch/x86/msr-asm.h> contains
     // macros for `MSR_<name>` so these constants can be used in assembly code.
@@ -55,9 +55,9 @@ namespace arch::x86 {
 
     struct MsrIo {
         template <typename Int>
-        auto write(MsrRegAddr addr, Int value) const -> void {
+        static auto write(MsrRegAddr addr, Int value) -> void {
             // static_assert(internal::IsSupportedInt<Int>::value, "unsupported register access width");
-            u64 v = static_cast<u64>(value);
+            u64 v = reinterpret_cast<u64>(value);
             // The high-order 32 bits of each register are ignored so they need not be
             // cleared. u32 is 32 bits on x86-32 so that values will match the
             // register size, but 64 bits on x86-64 so that the compiler doesn't think
@@ -68,7 +68,7 @@ namespace arch::x86 {
         }
 
         template <typename Int>
-        auto read(MsrRegAddr addr) const -> Int {
+        static auto read(MsrRegAddr addr) -> Int {
             // static_assert(internal::IsSupportedInt<Int>::value, "unsupported register access width");
             u32 lo, hi;
             asm volatile("rdmsr" : "=a"(lo), "=d"(hi) : "c"(addr));
@@ -76,6 +76,6 @@ namespace arch::x86 {
         }
     };
 
-} // namespace arch::x86
+} // namespace arch
 
 #endif // #ifndef ARCH_X86_MSR_HPP

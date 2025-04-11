@@ -39,7 +39,7 @@ namespace ours::mem {
         Normal   = 0x10000,
         Mapped   = 0x20000,
     };
-    USTL_ENABLE_ENUM_BITS(VmaFlags);
+    USTL_ENABLE_ENUM_BITMASK(VmaFlags);
 
     /// Specific handler for various regions, to avoid the use of virtual function, 
     /// which would lead many meaningless derived classes.

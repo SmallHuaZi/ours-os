@@ -12,7 +12,7 @@ namespace ours::phys {
         }
     };
 
-    auto Aspace::map(VirtAddr va, usize n, PhysAddr pa, mem::MmuFlags flags) -> ktl::Result<usize> {
+    auto Aspace::map(VirtAddr va, usize n, PhysAddr pa, mem::MmuFlags flags) -> ustl::Result<void, MapError> {
         DEBUG_ASSERT(allocation_lower_bound_ <= allocation_upper_bound_, "");
         auto allocator = ustl::function::bind_front(&Aspace::alloc_page_table, this);
 
@@ -21,9 +21,12 @@ namespace ours::phys {
         }
         
         auto result = LowerPaging::map(lower_pgd_, PhysToTable(), allocator, va, pa, n, flags);
+        if (!result) {
+            return ustl::err(result.unwrap_err());
+        }
         DEBUG_ASSERT(result, "Failed to map");
 
-        return ustl::ok(n);
+        return ustl::ok();
     }
 
     auto Aspace::unmap(VirtAddr va, usize n) -> Status {
@@ -55,7 +58,7 @@ namespace ours::phys {
             auto const mmuf = mem::MmuFlags::PermMask | mem::MmuFlags::Present;
             auto result = aspace.map_identically(base, size / PAGE_SIZE, mmuf);
             if (result.is_err()) {
-                panic("Identically map {} pages", result.unwrap());
+                panic("Identically map {} pages", to_string(result.unwrap_err()));
             }
         };
 

@@ -38,9 +38,16 @@ namespace arch {
             return {val};
         }
 
+        template <usize I>
         FORCE_INLINE USTL_CONSTEXPR
-        auto write() const -> void {
-            return Self::write(*static_cast<Derived const *>(this));
+        auto set(auto val) -> Self & {
+            return static_cast<Self &>(this->Base::template set<I>(val));
+        }
+
+        FORCE_INLINE USTL_CONSTEXPR
+        auto write() -> Self & {
+            Self::write(*static_cast<Derived const *>(this));
+            return static_cast<Self &>(*this);
         }
     };
 

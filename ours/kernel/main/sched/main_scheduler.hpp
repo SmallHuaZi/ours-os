@@ -6,7 +6,7 @@
 #include <ours/sched/sched_states.hpp>
 
 #include <ustl/sync/atomic.hpp>
-#include <ustl/collections/array.hpp>
+#include <ustl/collections/static-vec.hpp>
 
 #ifndef NR_SCHEDULER
 #   define NR_SCHEDULER 4
@@ -38,7 +38,7 @@ namespace ours::sched {
     private:
         CpuNum this_cpu_;
 
-        typedef ustl::collections::Array<Scheduler *, NR_SCHEDULER> SchedulerSet;
+        typedef ustl::collections::StaticVec<Scheduler *, NR_SCHEDULER> SchedulerSet;
         SchedulerSet schedulers_;
 
         SchedCommonData common_data_;

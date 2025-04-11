@@ -20,9 +20,11 @@
 #define NO_RETURN	                [[noreturn]]
 #define FORCE_INLINE	            [[gnu::always_inline]] inline
 
-#define WEAK                        [[gnu::weak]]
+#define WEAK_LINK                   [[gnu::weak]]
 #define LINK_NAME(name)             asm(name)
 #define LINK_SECTION(name)          [[gnu::section(name)]]
+
+#define FORCE_USED                  [[gnu::used]]
 
 /// TSA: Thread safety analysis
 #define TSA_GUARD(REQUIRE)          __attribute__((guarded_by(REQUIRE)))

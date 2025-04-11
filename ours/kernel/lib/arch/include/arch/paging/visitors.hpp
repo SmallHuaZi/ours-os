@@ -58,6 +58,16 @@ namespace arch::paging {
         NoMem,
     };
 
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto to_string(MapError error) -> char const * {
+        switch (error) {
+            case MapError::Existent:return "Existent";
+            case MapError::NoMem: return "No memory";
+        }
+
+        return "Unknown map error";
+    }
+
     /// Handler for doing a times of the mapping action.
     template <typename PagingTraits, typename Allocator>
     struct MappingVisitor {

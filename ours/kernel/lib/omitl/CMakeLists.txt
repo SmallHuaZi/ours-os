@@ -6,7 +6,6 @@ INTERFACE
 )
 target_sources(omitl_headers
 INTERFACE
-    "include/omitl/asm.hpp"
     "include/omitl/macro.hpp"
     "include/omitl/obi-header.hpp"
     "include/omitl/obi-view.hpp"
@@ -23,6 +22,7 @@ add_library(kernel::lib::omitl ALIAS omitl)
 target_sources(omitl
 INTERFACE
     "obi-header.cpp"
+    "obi-type.cpp"
     "obi-view.cpp"
 )
 target_link_libraries(omitl

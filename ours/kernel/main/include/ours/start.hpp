@@ -22,9 +22,9 @@ namespace ours {
     FORCE_INLINE CXX11_CONSTEXPR
     auto global_handoff() -> phys::Handoff & {
         INIT_DATA
-        extern phys::Handoff *PHYS_HANDOFF;
+        extern phys::Handoff *g_phys_handoff;
 
-        return *PHYS_HANDOFF;
+        return *g_phys_handoff;
     }
 
     /// Set up `|handoff|` 
@@ -35,21 +35,15 @@ namespace ours {
     NO_MANGLE INIT_CODE
     auto init_arch_early() -> void;
 
-    NO_MANGLE INIT_CODE
-    auto init_platform_early() -> void;
-
     // Perform every set up routine required after heap/MMU is available.
     NO_MANGLE INIT_CODE
     auto init_arch() -> void;
 
     NO_MANGLE INIT_CODE
-    auto init_platform() -> void;
+    auto start_kernel(PhysAddr handoff) -> void;
 
     NO_MANGLE INIT_CODE
-    auto start_kernel(PhysAddr handoff) -> Status;
-
-    NO_MANGLE INIT_CODE
-    auto start_nonboot_cpu(CpuNum CpuNum) -> Status;
+    auto start_nonboot_cpu() -> Status;
 
 } // namespace ours
 

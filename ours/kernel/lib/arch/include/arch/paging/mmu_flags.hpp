@@ -29,7 +29,7 @@ namespace arch::paging {
         Discache    = BIT(4),
         User        = BIT(5),
     }; // enum class MmuFlags: usize
-    USTL_ENABLE_ENUM_BITS(MmuFlags);
+    USTL_ENABLE_ENUM_BITMASK(MmuFlags);
 
     template <typename ArchMmuFlags>
     CXX11_CONSTEXPR

@@ -47,7 +47,9 @@ PRIVATE
     "panic.cpp"
     "start.cpp"
     "handoff.cpp"
-    "cpu_local.cpp"
+    "cpu-local.cpp"
+
+    "main.ld"
 )
 target_link_libraries(kernel_main
 PRIVATE
@@ -56,7 +58,7 @@ PRIVATE
     kernel::main::mem
     kernel::main::task
     kernel::main::sched
-    kernel::phys::headers
+    kernel::platform
     kernel::lib::gktl
     kernel::lib::ktl
     kernel::lib::ustl
@@ -65,10 +67,11 @@ PRIVATE
     kernel::lib::libc
     kernel::lib::logz4
 
+    kernel::phys::headers
+
     "libgcc.a"
 
     cft::asmflags 
-    # cft::nopie
 )
 
 target_compile_options(kernel_main
@@ -86,6 +89,8 @@ PRIVATE
     "-fno-stack-protector"
     "-fno-use-cxa-atexit"
     "-Wno-write-strings"
+    "-mno-sse" 
+    "-mno-mmx"
 
     # For clang
     "-Xclang" 
@@ -95,18 +100,21 @@ PRIVATE
 target_link_options(kernel_main
 PRIVATE
     "-v"
-    "-pie"
     "-Wl,--build-id=none"
     "-Wl,--no-warn-rwx-segments"
     "-Wl,-z,noexecstack"
     "-Wl,--emit-relocs"
-    "-static"
+    "-Wl,--gc-sections"
+    "-Wl,-pie"
+    "-Wl,-static"
+    "-Wl,--no-dynamic-linker"
     # Clang needs -mcmodel=kernel to tell it to use the right safe-stack
     # ABI for the kernel.
     "-mcmodel=kernel"
     "-nodefaultlibs;"
     "-nostartfiles"
     "-nostdlib++"
+    "-nostdlib"
     "-mno-red-zone"
     "-fno-register-global-dtors-with-atexit"
 
@@ -114,10 +122,14 @@ PRIVATE
     # and it should provides by cofiguration files.
     "-Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/main.ld"
     "-Wl,-z,max-page-size=${MAX_PAGE_SIZE}"
-    "-Wl,--gc-sections"
-    "-Wl,--emit-relocs"
 )
 
-make_obi(kernel_main_image
-    TARGET kernel_main
+add_custom_command(TARGET kernel_main POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "Creating ours.obi"
+    # Create the kernel_main.obi file without container header.
+    COMMAND obit create -t kpkg -o "$<TARGET_FILE_DIR:kernel_main>/ours.kpkg"
+    COMMAND obit kpkg -p "$<TARGET_FILE_DIR:kernel_main>/ours.kpkg" --add "$<TARGET_FILE:kernel_main>" -t elf -e -o "mmod.elf"
+    # Create the container obi. 
+    COMMAND obit create -f "$<TARGET_FILE_DIR:kernel_main>/ours.kpkg" -t cont -o "$<TARGET_FILE_DIR:kernel_main>/ours.obi"
+    COMMAND ${CMAKE_COMMAND} -E echo "ours.obi has been created"
 )

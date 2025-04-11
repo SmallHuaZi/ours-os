@@ -12,6 +12,10 @@
 #define OMITL_OBI_IMAGE_HPP 1
 
 namespace omitl {
+    template <typename >
+    struct ObiImage {
+
+    };
 
 } // namespace omitl
 

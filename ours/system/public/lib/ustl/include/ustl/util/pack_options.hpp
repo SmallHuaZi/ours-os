@@ -12,7 +12,7 @@
 #ifndef USTL_UTIL_PACK_OPTIONS_HPP
 #define USTL_UTIL_PACK_OPTIONS_HPP 1
 
-#include <ustl/util/types_list.hpp>
+#include <ustl/util/type-list.hpp>
 
 #define USTL_TYPE_OPTION(OPTION_NAME, TYPEDEF_NAME)                  \
 template<typename T>                                                            \
@@ -91,10 +91,9 @@ namespace ustl {
     /// static_assert(PackedOption == 32); // static assert error.
     ///
     template <typename DefaultOptions, typename... CustomOptions>
-    struct PackOptions
-    { 
+    struct PackOptions { 
         typedef TypeList<DefaultOptions, CustomOptions...>   OptionsList;
-        typedef TypeListInvertT<OptionsList>  OptionsListInverted; 
+        typedef TypeAlgos::Invert<OptionsList>  OptionsListInverted; 
         typedef typename DoPackOptions<OptionsListInverted>::Type  Type;
     };
 

@@ -13,7 +13,7 @@
 #define OURS_MEM_PM_NODE_HPP 1
 
 #include <ours/mem/gaf.hpp>
-#include <ours/mem/node_mask.hpp>
+#include <ours/mem/node-mask.hpp>
 #include <ours/mem/frame_queue.hpp>
 
 #include <ours/assert.hpp>
@@ -40,8 +40,7 @@
 #include <kmrd/damon.hpp>
 
 namespace ours::mem {
-    struct NodeStates
-    {
+    struct NodeStates {
         enum NodeStateType {
             DmaMemory = ZoneType::Dma,
 
@@ -61,12 +60,14 @@ namespace ours::mem {
         };
 
         FORCE_INLINE
-        static auto is_state(NodeId nid, NodeStateType state) -> bool
-        {  return NODE_STATES[state].test(nid);  }
+        static auto is_state(NodeId nid, NodeStateType state) -> bool {
+            return NODE_STATES[state].test(nid);
+        }
 
         FORCE_INLINE
-        static auto is_online(NodeId nid) -> bool
-        {  return is_state(nid, Online);  }
+        static auto is_online(NodeId nid) -> bool {
+            return is_state(nid, Online);
+        }
 
         FORCE_INLINE
         static auto is_offline(NodeId nid) -> bool
@@ -104,25 +105,24 @@ namespace ours::mem {
         static auto for_each_possible(F &&functor)
         {  NODE_STATES[Possible].for_each(functor);  }
 
-        using Inner = ustl::collections::Array<NodeMask, MaxNumStateType>;
+        using Inner = ustl::collections::StaticVec<NodeMask, MaxNumStateType>;
         static Inner NODE_STATES;
     };
 
-    /// `ZoneQueues` is a helper class separated from `PmNode`, specifically 
-    /// designed to manage zones of different priorities within a node and provide 
+    /// `ZoneQueues` is a helper class separated from `PmNode`, specifically
+    /// designed to manage zones of different priorities within a node and provide
     /// cross-node zone access and communication capabilities.
-    struct ZoneQueues
-    {
+    struct ZoneQueues {
         struct ZoneRef {
             PmZone *zone;
             ZoneType type;
         };
-        typedef ustl::collections::Array<ZoneRef, MAX_ZONES>           GlobalQueue;
-        typedef ustl::collections::Array<ZoneRef, NR_ZONES_PER_NODE>   LocalQueue;
+        typedef ustl::collections::StaticVec<ZoneRef, MAX_ZONES>           GlobalQueue;
+        typedef ustl::collections::StaticVec<ZoneRef, NR_ZONES_PER_NODE>   LocalQueue;
 
         static_assert(ustl::traits::IsSameV<GlobalQueue::IterMut, LocalQueue::IterMut>);
 
-        /// `Iterator` 
+        /// `Iterator`
         template <typename Inner>
         struct Iterator;
         typedef Iterator<GlobalQueue::IterMut>      IterMut;
@@ -158,34 +158,42 @@ namespace ours::mem {
         auto priv_remove(PmZone *zone) -> void;
 
         NodeId nid_;
-        ustl::collections::Array<PmZone *, NR_ZONES_PER_NODE>   local_zones_;
-        ustl::collections::Array<ZoneRef, NR_ZONES_PER_NODE>    local_queue_;
-        ustl::collections::Array<ZoneRef, MAX_ZONES>            node_affinity_queue_;
-        ustl::collections::Array<PmZone *, NR_ZONES_PER_NODE, MAX_NODES> zone_priority_queue_;
+        ustl::collections::StaticVec<PmZone *, NR_ZONES_PER_NODE>   local_zones_;
+        ustl::collections::StaticVec<ZoneRef, NR_ZONES_PER_NODE>    local_queue_;
+        ustl::collections::StaticVec<ZoneRef, MAX_ZONES>            node_affinity_queue_;
+        ustl::collections::StaticVec<PmZone *, NR_ZONES_PER_NODE, MAX_NODES> zone_priority_queue_;
     };
 
     /// `PmNode` is a class that describes a NUMA domain.
     ///
-    /// The memory regions between nodes should be mutually exclusive, 
-    /// meaning that the memory region of one node should not overlap 
+    /// The memory regions between nodes should be mutually exclusive,
+    /// meaning that the memory region of one node should not overlap
     /// with the memory region of another node.
-    class PmNode
-    {
+    class PmNode {
         typedef PmNode     Self;
     public:
         FORCE_INLINE
         static auto node(NodeId nid) -> PmNode *
-        {  return Self::GLOBAL_NODE_LIST[nid];  }
+        {  return s_node_list[nid];  }
 
         FORCE_INLINE
-        static auto distance(NodeId x, NodeId y) -> isize
-        {  return Self::NODE_DISTANCE[x][y];  }
+        static auto distance(NodeId x, NodeId y) -> usize {
+            DEBUG_ASSERT(x < MAX_NODES && y < MAX_NODES, "");
+            return s_node_distance[x][y];
+        }
 
         FORCE_INLINE
-        static auto distance(Self const &x, Self const &y) -> isize
-        {  return Self::distance(x.nid(), y.nid());  }
+        static auto distance(Self const &x, Self const &y) -> usize {
+            return Self::distance(x.nid(), y.nid());
+        }
 
-        /// Initialize this node. The primary task involves verifying the existence of the 
+        FORCE_INLINE
+        static auto set_distance(NodeId x, NodeId y, usize dis) -> void {
+            DEBUG_ASSERT(x < MAX_NODES && y < MAX_NODES, "");
+            s_node_distance[x][y] = dis;
+        }
+
+        /// Initialize this node. The primary task involves verifying the existence of the
         /// specified PFN range.
         ///
         /// Requires:
@@ -217,14 +225,12 @@ namespace ours::mem {
         auto recalculate_present_frames();
 
         PmNode(NodeId nid);
-
     private:
         /// This method is marked `template` to avoid giving the concrete type in the header.
         /// We put the implementation on source files
         template <typename Inner>
         auto alloc_frame_core(ZoneQueues::Iterator<Inner>, Gaf, usize) -> ustl::Result<PmFrame *, Status>;
 
-    private:
         GKTL_CANARY(PmNode, canary_);
 
         NodeId id_;
@@ -246,12 +252,12 @@ namespace ours::mem {
 
         FrameQueue lru_queue_;
 
-        using NodeList = ustl::collections::Array<PmNode *, MAX_NODES>;
-        static NodeList GLOBAL_NODE_LIST;
+        using NodeList = ustl::Array<PmNode *, MAX_NODES>;
+        static inline NodeList s_node_list;
 
         // Th fields bottom is readonly after initializing logically.
-        using DisMap = ustl::collections::Array<usize, MAX_NODES, MAX_NODES>;
-        static DisMap NODE_DISTANCE;
+        using DisMap = ustl::Array<usize, MAX_NODES, MAX_NODES>;
+        static inline DisMap s_node_distance;
     };
 
 } // namespace ours::mem

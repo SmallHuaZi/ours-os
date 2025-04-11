@@ -23,60 +23,64 @@ namespace ours::mem {
     /// address space.
     struct PhysMap {
         CXX11_CONSTEXPR
-        static PhysAddr const PHYS_BASE = ARCH_PHYSMAP_PHYS_BASE;
+        static PhysAddr const kPhysBase = ARCH_PHYSMAP_PHYS_BASE;
 
         CXX11_CONSTEXPR
-        static VirtAddr const VIRT_BASE = ARCH_PHYSMAP_VIRT_BASE;
-        static_assert(!(VIRT_BASE & ((MAX_PAGE_SIZE) - 1)), "");
+        static VirtAddr const kVirtBase = ARCH_PHYSMAP_VIRT_BASE;
+        static_assert(!(kVirtBase & ((MAX_PAGE_SIZE) - 1)), "");
 
         CXX11_CONSTEXPR
-        static usize const SIZE = ARCH_PHYSMAP_SIZE;
+        static usize const kSize = ARCH_PHYSMAP_SIZE;
 
-        CXX11_CONSTEXPR
-        static auto is_valid_phys_addr(PhysAddr phys_addr) -> bool
-        {  return PHYS_BASE <= phys_addr && phys_addr - PHYS_BASE < SIZE; }
+        template <typename T>
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto is_valid_phys_addr(T phys_addr) -> bool {
+            static_assert(sizeof(usize) == sizeof(T));
+            return kPhysBase <= reinterpret_cast<PhysAddr>(phys_addr) && 
+                   reinterpret_cast<PhysAddr>(phys_addr) - kPhysBase < kSize;
+        }
 
-        CXX11_CONSTEXPR
-        static auto is_valid_virt_addr(VirtAddr virt_addr) -> bool
-        {  return VIRT_BASE <= virt_addr && virt_addr - VIRT_BASE < SIZE; }
+        template <typename T>
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto is_valid_virt_addr(T virt_addr) -> bool {  
+            static_assert(sizeof(usize) == sizeof(T));
+            return kVirtBase <= reinterpret_cast<VirtAddr>(virt_addr) && 
+                   reinterpret_cast<VirtAddr>(virt_addr) - kVirtBase < kSize; 
+        }
 
-        CXX11_CONSTEXPR
-        static auto phys_to_virt(PhysAddr phys_addr) -> VirtAddr
-        {  
+        template <typename T>
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto phys_to_virt(T phys_addr) -> VirtAddr {
+            static_assert(sizeof(usize) == sizeof(T));
             if (PhysMap::is_valid_phys_addr(phys_addr)) {
-                return VirtAddr(VIRT_BASE + (phys_addr - PHYS_BASE));
+                return VirtAddr(kVirtBase + (phys_addr - kPhysBase));
             }
             return VirtAddr();
         }
 
-        template <typename T>
-        CXX11_CONSTEXPR
-        static auto phys_to_virt(PhysAddr phys_addr) -> T * 
-        {  return reinterpret_cast<T *>(PhysMap::phys_to_virt(phys_addr)); }
+        template <typename U, typename T>
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto phys_to_virt(T phys_addr) -> U * {
+            static_assert(sizeof(usize) == sizeof(T));
+            return reinterpret_cast<U *>(PhysMap::phys_to_virt(phys_addr));
+        }
 
         template <typename T>
-        CXX11_CONSTEXPR
-        static auto phys_to_virt(T *phys_addr) -> VirtAddr 
-        {  return PhysMap::phys_to_virt(reinterpret_cast<PhysAddr>(phys_addr)); }
-
-        CXX11_CONSTEXPR
-        static auto virt_to_phys(VirtAddr virt_addr) -> PhysAddr
-        {  
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto virt_to_phys(T virt_addr) -> PhysAddr {
+            static_assert(sizeof(usize) == sizeof(T));
             if (PhysMap::is_valid_virt_addr(virt_addr)) {
-                return PhysAddr(PHYS_BASE + (virt_addr - VIRT_BASE));
+                return PhysAddr(kPhysBase + (virt_addr - kVirtBase));
             }
             return PhysAddr();
         }
 
-        template <typename T>
-        CXX11_CONSTEXPR
-        static auto virt_to_phys(VirtAddr virt_addr) -> T * 
-        {  return reinterpret_cast<T *>(PhysMap::virt_to_phys(virt_addr)); }
-
-        template <typename T>
-        CXX11_CONSTEXPR
-        static auto virt_to_phys(T *virt_addr) -> VirtAddr 
-        {  return PhysMap::virt_to_phys(reinterpret_cast<PhysAddr>(virt_addr)); }
+        template <typename U, typename T>
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto virt_to_phys(T virt_addr) -> U * {  
+            static_assert(sizeof(usize) == sizeof(T));
+            return reinterpret_cast<U *>(PhysMap::virt_to_phys(virt_addr)); 
+        }
     };
 
 } // namespace ours::mem
