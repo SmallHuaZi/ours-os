@@ -39,6 +39,13 @@ namespace ours::mem {
     static Pfn s_zone_upper_pfn[NR_ZONES_PER_NODE];
 
     INIT_CODE
+    static auto dump_zone_range() -> void {
+	    for (auto i = 0; i < std::size(s_zone_lower_pfn); i++) {
+            log::info("Zone-{}: [0x{:X}, 0x{:X})", to_string(ZoneType(i)), s_zone_lower_pfn[i], s_zone_upper_pfn[i]);
+        }
+    }
+
+    INIT_CODE
     static auto set_zone_pfn_range(ustl::views::Span<Pfn> max_zone_pfn) -> void {
         auto start_pfn = phys_to_pfn(EarlyMem::min_address());
 	    for (auto i = 0; i < std::size(s_zone_lower_pfn); i++) {
@@ -47,10 +54,6 @@ namespace ours::mem {
 	    	s_zone_upper_pfn[i] = end_pfn;
 	    	start_pfn = end_pfn;
 	    }
-
-	    for (auto i = 0; i < std::size(s_zone_lower_pfn); i++) {
-            log::info("Zone-{}: [0x{:X}, 0x{:X})", to_string(ZoneType(i)), s_zone_lower_pfn[i], s_zone_upper_pfn[i]);
-        }
     }
 
     FORCE_INLINE
@@ -159,6 +162,7 @@ namespace ours::mem {
     INIT_CODE
     auto init_pmm(ustl::views::Span<Pfn> max_zone_pfn) -> void {
         set_zone_pfn_range(max_zone_pfn);
+        dump_zone_range();
 
         setup_possible_nodes();
 

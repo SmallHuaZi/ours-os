@@ -18,6 +18,7 @@
 
 #include <ustl/views/span.hpp>
 #include <ustl/util/type-map.hpp>
+#include <ustl/util/type-list.hpp>
 #include <arch/paging/mmu_flags.hpp>
 
 namespace ours::mem {
@@ -34,9 +35,11 @@ namespace ours::mem {
     template <ZoneType>
     struct ZoneTypeMatcher;
 
-    template <ZoneType Type, usize Pfn>
-    using MaxZonePfn = ustl::TypeMapEntry<mem::ZoneTypeMatcher<Type>, ustl::traits::IntegralConstant<usize, Pfn>>;
-
+    template <ZoneType Type, usize Pfn, bool Enable = true>
+    using MaxZonePfn = ustl::TypeList<mem::ZoneTypeMatcher<Type>,
+                                     ustl::traits::IntegralConstant<usize, Pfn>,
+                                     ustl::traits::BoolConstant<Enable>>;
+    
     FORCE_INLINE CXX11_CONSTEXPR 
     static auto to_string(ZoneType type) -> char const * {
         switch (type) {

@@ -217,6 +217,25 @@ namespace ustl {
         typedef typename Impl<Types...>::Type   Type;
     };
 
+    template <template <typename> typename F, typename... Types>
+    struct TypeAlgos::DoFilter<TypeList<Types...>, F> {
+        template <typename... Ts>
+        struct Impl;
+
+        template <>
+        struct Impl<> {
+            typedef ustl::TypeList<>    Type;
+        };
+
+        template <typename T, typename... Ts>
+        struct Impl<T, Ts...> {
+            typedef typename Impl<Ts...>::Type  NextIteration;
+            typedef traits::ConditionalT<F<T>{}, NextIteration, PushFront<NextIteration, T>> Type;
+        };
+
+        typedef typename Impl<Types...>::Type   Type;       
+    };
+
 } // namespace ustl
 
 #endif // #ifndef USTL_UTIL_TYPES_LIST_HPP

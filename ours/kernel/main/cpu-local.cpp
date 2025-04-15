@@ -54,7 +54,6 @@ namespace ours {
     static CpuLocalAreaInfo s_cpu_local_area_info;
 
     auto CpuLocal::init_per_unit(CpuNum cpunum) -> Status {
-
         auto const nid = mem::cpu_to_node(cpunum);
         auto virt = mem::get_frame(nid, mem::kGafKernel, nr_frames);
         if (!virt) {

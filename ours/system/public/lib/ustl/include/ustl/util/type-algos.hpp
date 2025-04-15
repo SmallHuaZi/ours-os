@@ -106,6 +106,12 @@ namespace ustl {
 
         template <typename This, template <typename> typename F>
         using Transform = typename DoTransform<This, F>::Type;
+
+        template <typename This, template <typename> typename Predicate>
+        struct DoFilter;
+
+        template <typename This, template <typename> typename Predicate>
+        using Filter = typename DoFilter<This, Predicate>::Type;
     };
 
 } // namespace ustl

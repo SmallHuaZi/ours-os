@@ -15,7 +15,15 @@
 #include <ustl/util/type-list.hpp>
 
 #define ARCH_MAX_DMA_PFN        (MB(16) >> PAGE_SHIFT)
-#define ARCH_MAX_DMA32_PFN      (GB(32) >> PAGE_SHIFT)
-#define ARHC_MAX_POSIIBLE_PFN   (GB(64) >> PAGE_SHIFT)
+#define ARCH_MAX_DMA32_PFN      (MB(512) >> PAGE_SHIFT)
+#define ARHC_MAX_PFN_LIMIT      (GB(64) >> PAGE_SHIFT)
+
+namespace ours {
+    using ArchPmmZoneConfig = ustl::TypeList<
+         mem::MaxZonePfn<mem::Dma, ARCH_MAX_DMA_PFN, OURS_CONFIG_ZONE_DMA>,
+         mem::MaxZonePfn<mem::Dma32, ARCH_MAX_DMA32_PFN, OURS_CONFIG_ZONE_DMA32>,
+         mem::MaxZonePfn<mem::Normal, ARHC_MAX_PFN_LIMIT>
+     >;
+} // namespace ours
 
 #endif // #ifndef OURS_ARCH_MEM_CFG_HPP
