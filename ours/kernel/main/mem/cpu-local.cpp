@@ -6,7 +6,6 @@
 #include <gktl/init_hook.hpp>
 
 namespace ours {
-    using mem::NodeId;
     using mem::PmNode;
 
     CPU_LOCAL

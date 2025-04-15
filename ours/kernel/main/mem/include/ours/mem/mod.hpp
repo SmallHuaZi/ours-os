@@ -15,8 +15,4 @@
 #include <ours/mem/pmm.hpp>
 #include <ours/mem/vmm.hpp>
 
-namespace ours::mem {
-
-} // namespace ours::mem
-
 #endif // #ifndef OURS_MEM_MOD_HPP

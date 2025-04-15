@@ -22,6 +22,7 @@
 #include <ours/init.hpp>
 #include <ours/assert.hpp>
 #include <ours/mem/cfg.hpp>
+#include <ours/mem/types.hpp>
 
 #include <ustl/array.hpp>
 #include <ustl/mem/align.hpp>
@@ -91,6 +92,8 @@ namespace ours {
             write(s_current_cpu_offset, s_cpu_offset[thiscpu]);
         }
 
+        auto dump() const -> void;
+
         template <typename Integral>
         FORCE_INLINE
         static auto read(Integral &integer) -> Integral {
@@ -106,15 +109,14 @@ namespace ours {
             arch_cpu_local_write(reinterpret_cast<usize>(&integer), value);
         }
 
-        // Reserved interface for hiding global symbols in certain cases.
+        /// Reserved interface for hiding global symbols in certain cases.
         template <typename T>
         static auto access() -> T *;
 
-        // Reserved interface for hiding global symbols in certain cases.
+        /// Reserved interface for hiding global symbols in certain cases.
         template <typename T>
         static auto access(CpuNum cpunum) -> T *;
 
-        // The `arch-custom` object should be accessed by this interface.
         template <typename T>
         FORCE_INLINE
         static auto access(T *object) -> T * {
@@ -126,7 +128,6 @@ namespace ours {
             return ptr;
         }
 
-        // The `arch-custom` object should be accessed by this interface.
         template <typename T>
         FORCE_INLINE
         static auto access(T *object, CpuNum cpunum) -> T * {
@@ -166,6 +167,9 @@ namespace ours {
         static auto arch_install(usize offset) -> void {
             arch_cpu_local_install(offset);
         }
+
+        static auto init_per_domain(NodeId nid) -> Status;
+        static auto init_per_unit(CpuNum cpunum) -> Status;
 
         /// This can save a time of indirect addressing.
         CPU_LOCAL

@@ -11,6 +11,7 @@
 #ifndef OURS_MEM_NODE_MASK_HPP
 #define OURS_MEM_NODE_MASK_HPP 1
 
+#include <ours/status.hpp>
 #include <ours/mem/types.hpp>
 
 #include <ustl/bitset.hpp>
@@ -33,6 +34,22 @@ namespace ours::mem {
                     ustl::function::invoke(functor, nid);
                 }
             }
+        }
+
+        template <typename F>
+            requires ustl::traits::Invocable<F, NodeId>
+        auto for_each_if_noerr(F &&functor) const -> Status {
+            auto const n = this->size();
+            for (NodeId nid = 0; nid < n; ++nid) {
+                if (this->test(nid)) {
+                    auto status = ustl::function::invoke(functor, nid);
+                    if (Status::Ok != status) {
+                        return status;
+                    }
+                }
+            }
+
+            return Status::Ok;
         }
 
         template <typename F>

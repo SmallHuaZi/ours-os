@@ -53,7 +53,6 @@ namespace ours::mem {
     ///     | Top section index | ... | leaf section index | Control flags |
     typedef usize   Pfn;
     typedef usize   SecNum;
-    typedef isize   NodeId;
 
     FORCE_INLINE CXX11_CONSTEXPR 
     static auto pfn_to_phys(Pfn pfn) -> PhysAddr {  

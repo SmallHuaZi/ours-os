@@ -19,6 +19,7 @@
 #include <ours/mem/physmap.hpp>
 
 #include <ours/status.hpp>
+#include <ours/cpu-mask.hpp>
 
 #include <ustl/bit.hpp>
 
@@ -32,6 +33,10 @@ namespace ours::mem {
     auto bind_cpu_to_node(CpuNum cpunum, NodeId nid) -> void;
 
     auto cpu_to_node(CpuNum cpunum) -> NodeId;
+
+    auto num_nodes() -> usize;
+
+    auto node_cpumask(NodeId nid) -> CpuMask const &;
 
     extern PhysAddr g_max_phys_addr;
     extern PhysAddr g_min_phys_addr;
@@ -91,20 +96,20 @@ namespace ours::mem {
         return alloc_frame(nid, gaf, size_to_order(nr_frames), nodes);
     }
 
-    template <typename T>
-    [[nodiscard("get_frame(): Ignoring the return value will lead to memory leaks.")]] 
-    auto get_frame(Gaf gaf, usize order = 0) -> T * {
-        if (auto frame = alloc_frame(gaf, order)) {
+    template <typename T = u8>
+    OM_API
+    auto get_frame(Gaf gaf, usize order = 0, NodeMask const &nodes = node_online_mask()) -> T * {
+        if (auto frame = alloc_frame(gaf, order, nodes)) {
             return PhysMap::phys_to_virt<T>(frame_to_phys(frame));
         }
 
         return nullptr;
     }
 
-    template <typename T>
-    [[nodiscard("get_frame(): Ignoring the return value will lead to memory leaks.")]] 
-    auto get_frame(NodeId nid, Gaf gaf, usize order = 0) -> T * {
-        if (auto frame = alloc_frame(nid, gaf, order)) {
+    template <typename T = u8>
+    OM_API
+    auto get_frame(NodeId nid, Gaf gaf, usize order = 0, NodeMask const &nodes = node_online_mask()) -> T * {
+        if (auto frame = alloc_frame(nid, gaf, order, nodes)) {
             return PhysMap::phys_to_virt<T>(frame_to_phys(frame));
         }
 

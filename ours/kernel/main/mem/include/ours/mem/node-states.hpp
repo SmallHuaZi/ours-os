@@ -15,8 +15,6 @@
 #include <ustl/array.hpp>
 
 namespace ours::mem {
-
-
     struct NodeStates {
         enum Type {
             Dma = ZoneType::Dma,
@@ -91,6 +89,13 @@ namespace ours::mem {
         template <typename F>
             CXX20_REQUIRES(ustl::traits::Invocable<F, NodeId>)
         FORCE_INLINE
+        auto for_each_possible_if_noerr(F &&functor) -> Status {
+            return states_[Possible].for_each(functor);
+        }
+
+        template <typename F>
+            CXX20_REQUIRES(ustl::traits::Invocable<F, NodeId>)
+        FORCE_INLINE
         auto for_each_state(Type type, F &&functor) -> void {
             states_[type].for_each(functor);
         }
@@ -145,7 +150,6 @@ namespace ours::mem {
     auto set_node_normal(NodeId nid, bool online) -> void {
         set_node_state(nid, NodeStates::Normal, online);
     }
-
 
 } // namespace ours::mem
 

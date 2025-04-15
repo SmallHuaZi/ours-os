@@ -207,33 +207,48 @@ namespace ours::mem {
 
         auto dump() const -> void;
 
-        FORCE_INLINE
+        FORCE_INLINE CXX11_CONSTEXPR
         auto nid() const -> NodeId {
             return this->id_;
         }
 
-        FORCE_INLINE
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto native_cpus() -> CpuMask & {
+            return native_cpus_;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto native_cpus() const -> CpuMask const & {
+            return native_cpus_;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
         auto zone_queues() -> ZoneQueues * {
             return &zone_queues_;
         }
 
-        FORCE_INLINE
+        FORCE_INLINE CXX11_CONSTEXPR
         static auto node(NodeId nid) -> PmNode * {
             return s_node_list[nid];
         }
 
-        FORCE_INLINE
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto num_nodes() -> usize {
+            return s_num_nodes;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
         static auto distance(NodeId x, NodeId y) -> usize {
             DEBUG_ASSERT(x < MAX_NODES && y < MAX_NODES, "");
             return s_node_distance[x][y];
         }
 
-        FORCE_INLINE
+        FORCE_INLINE CXX11_CONSTEXPR
         static auto distance(Self const &x, Self const &y) -> usize {
             return Self::distance(x.nid(), y.nid());
         }
 
-        FORCE_INLINE
+        FORCE_INLINE CXX11_CONSTEXPR
         static auto set_distance(NodeId x, NodeId y, usize dis) -> void {
             DEBUG_ASSERT(x < MAX_NODES && y < MAX_NODES, "");
             s_node_distance[x][y] = dis;
@@ -250,6 +265,8 @@ namespace ours::mem {
         GKTL_CANARY(PmNode, canary_);
 
         NodeId id_;
+
+        CpuMask native_cpus_;
 
         Pfn start_pfn_;
 
@@ -272,6 +289,9 @@ namespace ours::mem {
         // Th fields bottom is readonly after initializing logically.
         using DisMap = ustl::Array<usize, MAX_NODES, MAX_NODES>;
         static inline DisMap s_node_distance;
+
+        // Th fields bottom is readonly after initializing logically.
+        static inline usize s_num_nodes;
     };
 
 } // namespace ours::mem

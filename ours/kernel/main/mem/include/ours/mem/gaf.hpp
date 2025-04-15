@@ -84,7 +84,7 @@ namespace gafns {
     static auto const kGafUser= Gaf::OnlyThisNode;
 
     CXX11_CONSTEXPR
-    static auto const kGafKernel = Gaf::OnlyThisNode | Gaf::Reclaim;
+    static auto const kGafKernel = Gaf::OnlyThisNode | Gaf::Reclaim | Gaf::Dma | Gaf::Dma32;
 
 } // namespace ours::mem
 

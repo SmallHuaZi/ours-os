@@ -1,15 +1,16 @@
 #include <ours/cpu-local.hpp>
 #include <ours/mem/mod.hpp>
 #include <ours/mem/node-mask.hpp>
+#include <ours/mem/node-states.hpp>
 
 #include <arch/cache.hpp>
 #include <ustl/mem/align.hpp>
+#include <ustl/views/span.hpp>
 #include <ustl/algorithms/generation.hpp>
 
 namespace ours {
-    /// Range [kStaticCpuLocalStart, kStaticCpuLocalEnd + kMaxCpuDynamicAreaSizePerCpu) is
-    /// the heart of CpuLocal allocator. 
-
+    /// Range [kCpuLocalAreaStart, kStaticCpuLocalEnd + kMaxCpuDynamicAreaSizePerCpu) is
+    /// the dummy region for CpuLocal allocator to calculate offset per cpu local object. 
     extern char const kStaticCpuLocalStart[] LINK_NAME("__cpu_local_start");
     extern char const kStaticCpuLocalEnd[] LINK_NAME("__cpu_local_end");
 
@@ -29,32 +30,57 @@ namespace ours {
         return MAX_CPU_NUM * (static_cpu_local_area_size() + kMaxCpuDynamicAreaSizePerCpu + kGapBetweenAreas);
     }
 
-    struct CpuLocalChunk {
+    FORCE_INLINE
+    static auto calc_offset(void const *cl_base) -> isize {
+        extern char const kCpuLocalAreaStart[] LINK_NAME("__cpu_local_start");
+
+        return reinterpret_cast<i8 const *>(cl_base) - 
+               reinterpret_cast<i8 const *>(kCpuLocalAreaStart);
+    }
+
+    struct DynamicChunk {
 
     };
 
-    static auto init_cpu_local_area_for(CpuNum cpunum) -> Status {
-        auto const total_size = static_cpu_local_area_size() + kMaxCpuDynamicAreaSizePerCpu;
-        auto const nr_frames = ustl::mem::align_up(total_size, PAGE_SIZE) / PAGE_SIZE;
+    struct DomainInfo {
+    };
+
+    struct CpuLocalAreaInfo {
+        usize static_size;
+        usize dynamic_size;
+        ustl::views::Span<DomainInfo> domains;
+    };
+
+    static CpuLocalAreaInfo s_cpu_local_area_info;
+
+    auto CpuLocal::init_per_unit(CpuNum cpunum) -> Status {
 
         auto const nid = mem::cpu_to_node(cpunum);
-        auto frame = mem::alloc_frame_n(nid, mem::kGafKernel, nr_frames);
-        if (!frame) {
+        auto virt = mem::get_frame(nid, mem::kGafKernel, nr_frames);
+        if (!virt) {
             return Status::OutOfMem;
         }
+        s_cpu_offset[cpunum] = calc_offset(virt);
 
         return Status::Ok;
     }
 
+    auto CpuLocal::init_per_domain(NodeId nid) -> Status {
+        auto &cpu_unit = mem::node_cpumask(nid);
+    }
+
     auto CpuLocal::init(CpuMask const &cpus) -> Status {
-        mem::NodeMask groups;
-        for_each_cpu(cpus, [] (CpuNum cpunum) {
-            auto const status = init_cpu_local_area_for(cpunum);
-            DEBUG_ASSERT(Status::Ok == status, "");
+        auto total_size = static_cpu_local_area_size() + kMaxCpuDynamicAreaSizePerCpu;
+        total_size = ustl::mem::align_up(total_size, PAGE_SIZE);
+
+        Status status = mem::global_node_states().for_each_possible_if_noerr([&] (NodeId nid) {
+            return init_per_domain(nid);
         });
 
+        ustl::algorithms::copy(kStaticCpuLocalStart, kStaticCpuLocalEnd, 0);
+
         init_percpu();
-        return Status::Ok;
+        return status;
     }
 
 } // namespace gktl

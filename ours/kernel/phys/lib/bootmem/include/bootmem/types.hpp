@@ -28,7 +28,7 @@ namespace bootmem {
     using ours::u16;
     using ours::u32;
     using ours::usize;
-    using ours::mem::NodeId;
+    using ours::NodeId;
     using ours::mem::Pfn;
     using ours::AlignVal;
 

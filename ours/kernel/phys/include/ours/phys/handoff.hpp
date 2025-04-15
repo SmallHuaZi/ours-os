@@ -31,10 +31,10 @@ namespace ours::phys {
         Fn<auto (PhysAddr, PhysAddr) -> void> protect;
 
         // auto protect(base, size) -> void 
-        Fn<auto (PhysAddr, PhysAddr, mem::NodeId) -> void> set_node;
+        Fn<auto (PhysAddr, PhysAddr, NodeId) -> void> set_node;
 
         // auto (size, alignment, start, end, nid) -> PhysAddr
-        Fn<auto (usize, AlignVal, PhysAddr, PhysAddr, mem::NodeId) -> PhysAddr> allocate;
+        Fn<auto (usize, AlignVal, PhysAddr, PhysAddr, NodeId) -> PhysAddr> allocate;
 
         // auto deallocate(base, size) -> void
         Fn<auto (PhysAddr, PhysAddr) -> void> deallocate;

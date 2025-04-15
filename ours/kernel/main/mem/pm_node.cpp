@@ -173,6 +173,7 @@ namespace ours::mem {
     {
         DEBUG_ASSERT(!s_node_list[nid]);
         s_node_list[nid] = this;
+        s_num_nodes += 1;
     }
 
     auto PmNode::init(Pfn start, Pfn end) -> Status {
