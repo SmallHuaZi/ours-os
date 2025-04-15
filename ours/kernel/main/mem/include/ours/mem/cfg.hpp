@@ -24,7 +24,7 @@
 
 /// [Node.MaxZoneNum]
 #ifndef OURS_CONFIG_NR_ZONES_PER_NODE
-#   define NR_ZONES_PER_NODE 4
+#   define NR_ZONES_PER_NODE 3 
 #elif OURS_CONFIG_NR_ZONES_PER_NODE > 4
 #   error ""
 #else
@@ -56,6 +56,9 @@
 #   define SECTION_SIZE_BITS OURS_CONFIG_SECTION_SIZE_BITS
 #endif
 #define SECTION_SHIFT SECTION_SIZE_BITS
+#define SECTION_MASK  (BIT(SECTION_SHIFT) - 1)
+#define PFN_SECTION_SHIFT   (SECTION_SHIFT - PAGE_SHIFT)
+#define PFN_SECTION_MASK    (BIT(SECTION_SHIFT - PAGE_SHIFT) - 1)
 
 /// [Frame.NrOrders]
 #ifndef OURS_CONFIG_NR_FRAME_ORDERS
@@ -68,5 +71,7 @@
 #ifndef OURS_CONFIG_KASLR
 #   define OURS_CONFIG_KASLR  0 
 #endif
+
+#define OM_API  [[nodiscard("OM-API: Ignoring the return value will lead to memory leaks.")]]
 
 #endif // #ifndef OURS_MEM_CFG_HPP

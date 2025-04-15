@@ -27,8 +27,9 @@ namespace ours {
 
     template <typename... Args>
     NO_RETURN
-    auto panic(ustl::views::StringView fmt, Args&&... args) -> void
-    {  do_panic(fmt, ustl::fmt::make_format_args(args...));  }
+    auto panic(ustl::views::StringView fmt, Args&&... args) -> void {
+        do_panic(fmt, ustl::fmt::make_format_args(args...));
+    }
 
 } // namespace ours
 

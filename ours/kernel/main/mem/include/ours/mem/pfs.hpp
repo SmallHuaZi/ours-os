@@ -34,6 +34,7 @@ namespace pfns {
         kFrameRoleId,
         kZoneId,
         kNodeId,
+        kOrderId,
         kSectionId,
     };
 
@@ -47,6 +48,7 @@ namespace pfns {
         BeingWaitingBit,
         FolioBit,
         ReclaimableBit,
+        ReservedBit,
         MaxNumStateBits,
     };
     enum class PfStates {
@@ -55,9 +57,14 @@ namespace pfns {
         Dirty    = BIT(DirtyBit),
         UpToDate = BIT(UpToDateBit),
         Foreign  = BIT(ForeignBit),
+        BeginWaiting = BIT(BeingWaitingBit),
+        Reclaimable = BIT(ReclaimableBit),
+        Reserved = BIT(ReservedBit),
     };
+    USTL_ENABLE_ENUM_BITMASK(PfStates);
 
     enum PfRole {
+        None,
         Io,
         Lru,
         Mmu,
@@ -71,6 +78,7 @@ namespace pfns {
         Field<Id<kFrameRoleId>, Name<"Role">, Type<PfRole>, Bits<BIT_WIDTH(MaxNumRoles)>>,
         Field<Id<kZoneId>, Name<"Zone">, Type<ZoneType>, Bits<BIT_WIDTH(MaxNumZoneType)>>,
         Field<Id<kNodeId>, Name<"Nid">, Type<NodeId>, Bits<MAX_NODES_BITS>, Enable<OURS_CONFIG_NUMA>>,
+        Field<Id<kOrderId>, Name<"Order">, Type<usize>, Bits<BIT_WIDTH(MAX_FRAME_ORDER)>>,
         Field<Id<kSectionId>, Name<"Sec">, Type<SecNum>, Bits<MAX_PHYSADDR_BITS - SECTION_SIZE_BITS>, Enable<1>>
     > FieldList;
 
@@ -96,7 +104,7 @@ namespace pfns {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto secnum() -> SecNum {
+        auto secnum() const -> SecNum {
             return inner_.get<kSectionId>();
         }
 
@@ -121,6 +129,16 @@ namespace pfns {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
+        auto order() const -> usize {
+            return inner_.get<kOrderId>();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_order(usize order) -> void {
+            inner_.set<kOrderId>(order);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
         auto state() const -> PfStates {
             return inner_.get<kFrameStateId>();
         }
@@ -131,9 +149,6 @@ namespace pfns {
         }
 
         BitFields<FieldList>    inner_;
-        // typedef decltype(inner_)::FieldList FieldList;
-        // typedef ustl::TypeAlgos::At<FieldList, kSectionId>    Field;
-        // static_assert(Field::SHIFT == 9);;
     };
     static_assert(sizeof(FrameFlags) <= sizeof(usize), "Never greater than the size target platform supports");
 

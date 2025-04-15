@@ -18,7 +18,7 @@ namespace acpi {
     struct PACKED AcpiRsdp {
         FORCE_INLINE CXX11_CONSTEXPR
         auto validate_signature() const -> bool {
-            return sig1 == SIGNATURE1 || sig2 == SIGNATURE2;
+            return sig1 == kSignature1 || sig2 == kSignature2;
         }
 
         auto validate() const -> bool;
@@ -31,10 +31,10 @@ namespace acpi {
         u32 rsdt_addr; // Deprected after the version 2.0
 
         CXX11_CONSTEXPR
-        static AcpiSignature const SIGNATURE1{"RSD "};
+        static AcpiSignature const kSignature1{"RSD "};
 
         CXX11_CONSTEXPR
-        static AcpiSignature const SIGNATURE2{"PTR "};
+        static AcpiSignature const kSignature2{"PTR "};
     };
 
     /// Extend system description table pointer.
@@ -60,7 +60,7 @@ namespace acpi {
         }
 
         CXX11_CONSTEXPR 
-        static AcpiSignature const SIGNATURE{"RSDT"};
+        static AcpiSignature const kSignature{"RSDT"};
 
         AcpiTableHeader header;
         u32 addr32[0];
@@ -74,7 +74,7 @@ namespace acpi {
         }
 
         CXX11_CONSTEXPR 
-        static AcpiSignature const SIGNATURE{"XSDT"};
+        static AcpiSignature const kSignature{"XSDT"};
 
         AcpiTableHeader header;
         u64 addr64[0];

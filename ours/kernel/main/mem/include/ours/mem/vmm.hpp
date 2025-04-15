@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_VMM_HPP
 #define OURS_MEM_VMM_HPP 1
 
@@ -34,26 +33,37 @@ namespace ours::mem {
     extern char const kKernelBssStart[] LINK_NAME("__bss_start");
     extern char const kKernelBssEnd[] LINK_NAME("__bss_end");
 
+    FORCE_INLINE CXX11_CONSTEXPR 
+    auto get_kernel_size() -> usize { 
+        return  kImageEnd - kImageStart; 
+    }
+
     NO_MANGLE PhysAddr g_kernel_phys_base;
     NO_MANGLE VirtAddr g_kernel_virt_base;
 
-    /// Defined by arch-specific code.
-    NO_MANGLE u8 g_arch_phys_addr_bits;
-    NO_MANGLE u8 g_arch_virt_addr_bits;
-
-    FORCE_INLINE
+    FORCE_INLINE CXX11_CONSTEXPR 
     auto get_kernel_phys_base() -> PhysAddr { 
         return g_kernel_phys_base;  
     }
 
-    FORCE_INLINE
+    FORCE_INLINE CXX11_CONSTEXPR 
     auto get_kernel_virt_base() -> VirtAddr { 
         return g_kernel_virt_base;  
     }
 
-    FORCE_INLINE
-    auto get_kernel_size() -> usize
-    { return  kImageEnd - kImageStart; }
+    /// Defined by arch-specific code. Must be initialized in `init_arch_early`.
+    NO_MANGLE u8 g_arch_phys_addr_bits;
+    NO_MANGLE u8 g_arch_virt_addr_bits;
+
+    FORCE_INLINE CXX11_CONSTEXPR 
+    auto get_phys_addr_bits() -> PhysAddr { 
+        return g_arch_phys_addr_bits;  
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR 
+    auto get_virt_addr_bits() -> VirtAddr { 
+        return g_arch_virt_addr_bits;  
+    }
 
     auto is_kernel_address() -> bool;
 

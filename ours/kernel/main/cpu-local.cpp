@@ -29,25 +29,18 @@ namespace ours {
         return MAX_CPU_NUM * (static_cpu_local_area_size() + kMaxCpuDynamicAreaSizePerCpu + kGapBetweenAreas);
     }
 
-    struct CpuLocalChunk
-    {
+    struct CpuLocalChunk {
 
     };
 
-    auto CpuLocal::init_early() -> void {
-        arch_install(0);
-        ustl::algorithms::fill(s_cpu_offset.begin(), s_cpu_offset.end(), 0);
-        ustl::algorithms::fill(s_group_offset.begin(), s_group_offset.end(), 0);
-    }
-
     static auto init_cpu_local_area_for(CpuNum cpunum) -> Status {
         auto const total_size = static_cpu_local_area_size() + kMaxCpuDynamicAreaSizePerCpu;
-        auto const nr_frames = ustl::mem::align_up(total_size, PAGE_SIZE);
+        auto const nr_frames = ustl::mem::align_up(total_size, PAGE_SIZE) / PAGE_SIZE;
 
-        mem::FrameList<> frame_list;
-        auto status = mem::alloc_frames(mem::GAF_KERNEL, &frame_list, nr_frames);
-        if (Status::Ok != status) {
-            return status;
+        auto const nid = mem::cpu_to_node(cpunum);
+        auto frame = mem::alloc_frame_n(nid, mem::kGafKernel, nr_frames);
+        if (!frame) {
+            return Status::OutOfMem;
         }
 
         return Status::Ok;

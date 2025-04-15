@@ -38,6 +38,9 @@ namespace ours {
     struct Signals   { u32 _0; };
     struct KoId     { u32 _0; };
 
+    // enum class AlignVal: usize {};
+    typedef usize   AlignVal;
+
 } // namespace ours
 
     // Th following is for conveniency of development now.

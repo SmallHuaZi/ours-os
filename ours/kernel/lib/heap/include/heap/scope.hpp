@@ -21,7 +21,7 @@ auto operator new(ours::usize size, ours::usize align, ours::mem::Gaf gaf) CXX11
 
 FORCE_INLINE
 auto operator new(ours::usize size, ours::usize align) CXX11_NOEXCEPT -> void *
-{  return operator new(size, align, ours::mem::GAF_KERNEL);  }
+{  return operator new(size, align, ours::mem::kGafKernel);  }
 
 auto operator delete(void *ptr) CXX11_NOEXCEPT -> void;
 

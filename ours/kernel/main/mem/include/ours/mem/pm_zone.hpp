@@ -8,13 +8,13 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_PM_ZONE_HPP
 #define OURS_MEM_PM_ZONE_HPP 1
 
 #include <ours/mem/gaf.hpp>
 #include <ours/mem/pm_frame.hpp>
 #include <ours/mem/frame_cache.hpp>
+#include <ours/cpu-local.hpp>
 
 #include <ustl/sync/atomic.hpp>
 #include <ustl/sync/mutex.hpp>
@@ -26,12 +26,56 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
+    class FrameSet {
+        typedef FrameSet   Self;
+    public:
+        CXX11_CONSTEXPR
+        static usize const kNumOrders = NR_FRAME_ORDERS;
+
+        CXX11_CONSTEXPR
+        static usize const kMaxFrameOrder = MAX_FRAME_ORDER;
+
+        auto acquire_frame(usize order) -> PmFrame * {
+            ustl::sync::LockGuard<decltype(mutex_)> guard(mutex_);
+            return acquire_frame_locked(order);
+        }
+
+        auto release_frame(PmFrame *frame, usize order) -> void {
+            ustl::sync::LockGuard<decltype(mutex_)> guard(mutex_);
+            return release_frame_locked(frame, order);
+        }
+    private:
+        auto acquire_frame_locked(usize order) -> PmFrame *;
+
+        auto acquire_frame_inner(PmFrame *frame, Pfn pfn, usize order) -> PmFrame *;
+
+        auto release_frame_locked(PmFrame *frame, usize order) -> void;
+
+        auto release_frame_inner(PmFrame *frame, Pfn pfn, usize order) -> void;
+
+        auto remove_frame(PmFrame *frame, usize order) -> void;
+
+        auto insert_frame(PmFrame *frame, usize order) -> void;
+
+        auto has_frame(usize order) const -> bool;
+
+        auto get_frame(usize order) -> PmFrame *;
+
+        ustl::sync::Mutex mutex_;
+        ustl::sync::AtomicU8 nr_lists_;
+        ustl::Array<FrameList<>, NR_FRAME_ORDERS> lists_;
+    };
+
+    // TODO(SmallHuaZi) Seprate the free list from `PmZone` and refactor it to `FrameLists`
     /// `PmZone` describes a memory zone with a specific responsibility and 
     /// serves as the core component of the page frame allocator.
-    class PmZone
-    {
+    class PmZone {
         typedef PmZone     Self;
     public:
+        /// FIXME(SmallHuaZi) The cache per cpu has not been finished
+        CXX11_CONSTEXPR
+        static usize const kMaxPcpuCacheOrder = 0;
+
         auto init(NodeId nid, ZoneType ztype, Pfn start_pfn, Pfn end_pfn, usize present_frames = 0) -> void;
 
         auto contains(usize order) -> bool;
@@ -46,54 +90,60 @@ namespace ours::mem {
 
         auto find_frame(usize order) -> PmFrame *;
 
-        auto which_node() const -> NodeId
-        {  return nid_;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto which_node() const -> NodeId {  
+            return nid_;  
+        }
 
-        auto present_frames() const volatile -> usize
-        {  return this->present_frames_;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto zone_type() const -> ZoneType {  
+            return type_;  
+        }
 
-        auto managed_frames() const volatile -> usize
-        {  return this->managed_frames_;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto present_frames() const volatile -> usize {  
+            return this->present_frames_; 
+        }
 
-        auto spanned_frames() const volatile -> usize
-        {  return this->spanned_frames_;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto managed_frames() const volatile -> usize {  
+            return this->managed_frames_;  
+        }
 
-        auto reserved_frames() const volatile -> usize
-        {  return this->reserved_frames_;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto spanned_frames() const volatile -> usize {  
+            return this->spanned_frames_;  
+        }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto reserved_frames() const volatile -> usize {  
+            return this->reserved_frames_;  
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto start_pfn() const volatile -> usize {
+            return start_pfn_;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto end_pfn() const volatile -> usize {
+            return start_pfn_ + spanned_frames_;
+        }
     private:
-        CXX11_CONSTEXPR
-        static usize const MAX_PCPU_FRAME_ORDER = 3;
-
         FORCE_INLINE
-        static auto is_order_within_pcpu_cache_limit(usize order) -> bool
-        {  return order < MAX_PCPU_FRAME_ORDER;  }
+        static auto is_order_within_pcpu_cache_limit(usize order) -> bool {  
+            return order < kMaxPcpuCacheOrder;
+        }
 
         auto init_frame_cache() -> void;
-
-        auto remove_frame_from_free_list(PmFrame *frame, usize order) -> void;
-
-        auto remove_and_split_frame(PmFrame *frame, usize src_order, usize dst_order) -> void;
-
-        auto merge_frame(PmFrame *frame, usize order) -> usize;
-
-        auto expand_frame(PmFrame *frame, usize low_order, usize high_order) -> void;
-
-        auto take_frame_from_free_list_locked(usize order) -> PmFrame *;
-        auto take_frame_from_free_list(usize order) -> PmFrame *;
-
-        auto place_frame_to_free_list_locked(PmFrame *frame, usize order) -> void;
-        auto place_frame_to_free_list(PmFrame *frame, usize order) -> void;
-
-        auto free_single_frame(PmFrame *frame, Pfn pfn, usize order) -> void;
-        auto free_large_frame_block(PmFrame *frame, Pfn pfn, usize order) -> void;
-        auto free_frame_inner(PmFrame *frame, Pfn pfn, usize order) -> void;
+        auto finish_allocation(PmFrame *frame, Gaf gaf, usize order) -> void;
     protected:
         friend class PmNode;
         GKTL_CANARY(PmZone, canary_);
 
         char const *name_;
         NodeId  nid_;
+        ZoneType type_;
         Pfn start_pfn_;
 
         //! `present_pages` is physical pages existing within the zone, 
@@ -111,11 +161,9 @@ namespace ours::mem {
 
         ustl::sync::AtomicUsize reserved_frames_;
 
-        ai_percpu FrameCache *frame_cache_;
+        PerCpu<FrameCache> frame_cache_;
 
-        ustl::sync::Mutex mutex_;
-
-        ustl::collections::StaticVec<FrameList<>, MAX_FRAME_ORDER> free_list_;
+        FrameSet fset_;
     };
 
 } // namespace ours::mem

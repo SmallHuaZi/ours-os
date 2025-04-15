@@ -8,8 +8,8 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_MEM_FLAGS_HPP
-#define OURS_MEM_FLAGS_HPP
+#ifndef OURS_MEM_GAF_HPP
+#define OURS_MEM_GAF_HPP
 
 #include <ours/mem/types.hpp>
 #include <ours/macro_abi.hpp>
@@ -54,39 +54,38 @@ namespace gafns {
     USTL_ENABLE_ENUM_BITMASK(Gaf);
 
     FORCE_INLINE CXX11_CONSTEXPR
-    static auto zone_type(Gaf gaf) -> ZoneType
-    {
+    static auto gaf_zone_type(Gaf gaf) -> ZoneType {
         // ZONE_SHIFT 
         CXX11_CONSTEXPR
-        auto const GAF_ZONE_SHIFT = MAX_ZONES_BITS - 1;
+        auto const kGafZoneShift = MAX_ZONES_BITS - 1;
 
         CXX11_CONSTEXPR
-        auto const GAF_ZONE_MASK = Gaf::Dma | Gaf::Dma32;
+        auto const kGafZoneMask = Gaf::Dma | Gaf::Dma32;
 
         CXX11_CONSTEXPR
-        Gaf const ZONE_TABLE {
-            BIT(Gaf::Dma * GAF_ZONE_SHIFT)   |
-            BIT(Gaf::Dma32 * GAF_ZONE_SHIFT)
+        Gaf const kZoneTable {
+            BIT(Gaf::Dma * kGafZoneShift)   |
+            BIT(Gaf::Dma32 * kGafZoneShift)
         };
 
-        auto const bits = gaf & GAF_ZONE_MASK;
-        auto zone = ZONE_TABLE >> (bits * GAF_ZONE_SHIFT);
+        auto const bits = gaf & kGafZoneMask;
+        auto zone = kZoneTable >> (bits * kGafZoneShift);
         return ZoneType((1 << bits) - 1);
     }
 
 } // namespace ours::mem::gafns
-    // Export Gaf for user
     using gafns::Gaf;
+    using gafns::gaf_zone_type;
 
     CXX11_CONSTEXPR
-    static auto const GAF_BOOT = Gaf::OnlyThisNode;
+    static auto const kGafBoot = Gaf::OnlyThisNode;
 
     CXX11_CONSTEXPR
-    static auto const GAF_USER = Gaf::OnlyThisNode;
+    static auto const kGafUser= Gaf::OnlyThisNode;
 
     CXX11_CONSTEXPR
-    static auto const GAF_KERNEL = Gaf::OnlyThisNode | Gaf::Reclaim;
+    static auto const kGafKernel = Gaf::OnlyThisNode | Gaf::Reclaim;
 
 } // namespace ours::mem
 
-#endif // OURS_MEM_FLAGS_HPP
+#endif // OURS_MEM_GAF_HPP

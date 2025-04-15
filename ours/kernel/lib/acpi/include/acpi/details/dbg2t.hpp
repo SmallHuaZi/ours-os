@@ -24,7 +24,7 @@ namespace acpi {
         auto size() const -> usize { 
             return header.length; 
         }
-        static constexpr auto SIGNATURE = AcpiSignature("DBG2");
+        static constexpr auto kSignature = AcpiSignature("DBG2");
     };
     static_assert(sizeof(AcpiDbg2Table) == 44);
 

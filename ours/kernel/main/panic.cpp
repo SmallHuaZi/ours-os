@@ -1,5 +1,7 @@
 #include <ours/panic.hpp>
 
+#include <logz4/log.hpp>
+
 namespace ours {
     NO_RETURN
     auto panic() -> void { 
@@ -8,6 +10,7 @@ namespace ours {
 
     NO_RETURN
     auto do_panic(ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void { 
+        log::log_impl(logz4::get_global_logger(), logz4::Level::Error, fmt, args);
         while (1); 
     }
 

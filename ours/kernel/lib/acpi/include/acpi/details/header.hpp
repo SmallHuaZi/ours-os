@@ -8,9 +8,8 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
-#ifndef ACPI_HEADER_HPP
-#define ACPI_HEADER_HPP 1
+#ifndef ACPI_DETAILS_HEADER_HPP
+#define ACPI_DETAILS_HEADER_HPP 1
 
 #include <ours/config.hpp>
 #include <ours/types.hpp>
@@ -89,9 +88,9 @@ namespace acpi {
         if (src->size() < sizeof(Dest)) {
             return nullptr;
         }
-        return reinterpret_cast<const Dest*>(src);
+        return reinterpret_cast<Dest const *>(src);
     }
 
 } // namespace acpi
 
-#endif // #ifndef ACPI_HEADER_HPP
+#endif // #ifndef ACPI_DETAILS_HEADER_HPP

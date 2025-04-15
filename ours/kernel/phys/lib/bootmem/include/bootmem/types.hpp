@@ -14,6 +14,7 @@
 #include <ours/config.hpp>
 #include <ours/mem/cfg.hpp>
 #include <ours/mem/types.hpp>
+#include <ours/mem/new.hpp>
 #include <ours/status.hpp>
 #include <ours/types.hpp>
 
@@ -29,6 +30,7 @@ namespace bootmem {
     using ours::usize;
     using ours::mem::NodeId;
     using ours::mem::Pfn;
+    using ours::AlignVal;
 
     enum class RegionType : u16 {
         Normal,

@@ -1,5 +1,6 @@
 #include <ours/arch/asm.hpp>
 #include <ours/cpu-cfg.hpp>
+#include <ours/mem/cfg.hpp>
 
 .object _temp_gdtr_words, scope=local, type=relro, align=8
 .skip 6
@@ -8,7 +9,7 @@
     .quad  g_gdt 
 .end_object
 
-.object g_gdt, scope=global, type=data, align=8
+.object g_gdt, scope=global, type=data, align=PAGE_SIZE
     /* null entry */
     .quad 0
 

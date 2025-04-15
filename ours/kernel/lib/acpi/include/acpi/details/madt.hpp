@@ -225,7 +225,7 @@ namespace acpi {
         u32 flags;
 
         CXX11_CONSTEXPR
-        static auto const SIGNATURE = AcpiSignature("APIC");
+        static auto const kSignature = AcpiSignature("APIC");
     };
 
 } // namespace acpi

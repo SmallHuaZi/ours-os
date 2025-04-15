@@ -8,12 +8,12 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_PM_NODE_HPP
 #define OURS_MEM_PM_NODE_HPP 1
 
 #include <ours/mem/gaf.hpp>
 #include <ours/mem/node-mask.hpp>
+#include <ours/mem/node-states.hpp>
 #include <ours/mem/frame_queue.hpp>
 
 #include <ours/assert.hpp>
@@ -34,135 +34,139 @@
 #include <ustl/traits/is_invocable.hpp>
 #include <ustl/mem/address_of.hpp>
 #include <ustl/util/pair.hpp>
+#include <ustl/iterator/traits.hpp>
 
 #include <gktl/canary.hpp>
 
 #include <kmrd/damon.hpp>
 
 namespace ours::mem {
-    struct NodeStates {
-        enum NodeStateType {
-            DmaMemory = ZoneType::Dma,
+    struct NodePath {
+        NodePath()
+            : count_(),
+              path_()
+        {}
 
-            Dma32Memory = ZoneType::Dma32,
-
-            NormalMemory = ZoneType::Normal,
-
-            // When a node created but not initialized, it's state is possible,
-            // Meaning that it become a online probablely during system runtime.
-            Possible,
-
-            // When a node created and initialized, it's state is online.
-            // Meaning that it is active in system, so the de/allocation requests
-            // on it is feasible.
-            Online,
-            MaxNumStateType,
-        };
-
-        FORCE_INLINE
-        static auto is_state(NodeId nid, NodeStateType state) -> bool {
-            return NODE_STATES[state].test(nid);
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_next(NodeId to) -> void {
+            count_ += 1;
+            path_.push_back(to);
         }
 
-        FORCE_INLINE
-        static auto is_online(NodeId nid) -> bool {
-            return is_state(nid, Online);
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto clear() -> void {
+            path_.clear();
         }
 
-        FORCE_INLINE
-        static auto is_offline(NodeId nid) -> bool
-        {  return !is_online(nid);  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto begin() {
+            return path_.begin();
+        }
 
-        FORCE_INLINE
-        static auto is_possible(NodeId nid) -> bool
-        {  return is_state(nid, Possible);  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto end() {
+            return begin() + count_;
+        }
 
-        FORCE_INLINE
-        static auto set_state(NodeId nid, NodeStateType state) -> void
-        {  NODE_STATES[state].set(nid);  }
-
-        FORCE_INLINE
-        static auto set_online(NodeId nid) -> void
-        {  set_state(nid, Online);  }
-
-        FORCE_INLINE
-        static auto set_offline(NodeId nid) -> void
-        {  NODE_STATES[Online].set(nid, 0);  }
-
-        FORCE_INLINE
-        static auto set_possible(NodeId nid) -> void
-        {  set_state(nid, Possible);  }
-
-        template <typename F>
-            requires ustl::traits::Invocable<F, NodeId>
-        FORCE_INLINE
-        static auto for_each_online(F &&functor)
-        {  NODE_STATES[Online].for_each(functor);  }
-
-        template <typename F>
-            requires ustl::traits::Invocable<F, NodeId>
-        FORCE_INLINE
-        static auto for_each_possible(F &&functor)
-        {  NODE_STATES[Possible].for_each(functor);  }
-
-        using Inner = ustl::collections::StaticVec<NodeMask, MaxNumStateType>;
-        static Inner NODE_STATES;
+        usize count_;
+        ustl::collections::StaticVec<usize, MAX_NODES - 1> path_;
     };
 
     /// `ZoneQueues` is a helper class separated from `PmNode`, specifically
     /// designed to manage zones of different priorities within a node and provide
     /// cross-node zone access and communication capabilities.
     struct ZoneQueues {
-        struct ZoneRef {
-            PmZone *zone;
-            ZoneType type;
-        };
-        typedef ustl::collections::StaticVec<ZoneRef, MAX_ZONES>           GlobalQueue;
-        typedef ustl::collections::StaticVec<ZoneRef, NR_ZONES_PER_NODE>   LocalQueue;
-
-        static_assert(ustl::traits::IsSameV<GlobalQueue::IterMut, LocalQueue::IterMut>);
-
-        /// `Iterator`
-        template <typename Inner>
-        struct Iterator;
-        typedef Iterator<GlobalQueue::IterMut>      IterMut;
-        typedef Iterator<GlobalQueue::RevIterMut>   RevIterMut;
+        typedef PmZone *    ZoneRef;
+        typedef ustl::views::Span<ZoneRef>  ZoneQueue;
 
         enum QueueType {
-            NodeAffinity,
-            ZonePriority,
-            MaxNumGlobalQueue,
-            Local = MaxNumGlobalQueue,
+            /// A zone queue which arranged by zone type, there may be holes if a type of zone do not exist
+            /// in the node. It's just useful when we free a frame.
+            LocalSequential,
+            LocalContiguous,
+            SharedAffinity,
+            SharedSequential,
+            MaxNumQueues,
         };
 
-        ZoneQueues(NodeId nid);
+        ZoneQueues(NodeId nid) 
+            : nid_(nid),
+              queues_(),
+              queue_storage_(),
+              connected_(),
+              queue_sizes_()
+        { init_queues(); } 
 
-        auto emplace(PmZone *zone, ZoneType ztype) -> void;
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto insert_local_zone(PmZone *zone, ZoneType ztype) -> void {
+            DEBUG_ASSERT(ztype < NR_ZONES_PER_NODE);
+            DEBUG_ASSERT(get_queue(QueueType::LocalSequential)[ztype] == 0);
+            DEBUG_ASSERT(zone != 0);
 
-        auto insert_queue(LocalQueue const &queue) -> void;
+            get_queue(QueueType::LocalSequential)[ztype] = zone;
+            push_back(zone, QueueType::LocalContiguous);
+            push_back(zone, QueueType::SharedAffinity);
+            set_node_state(nid_, NodeStates::Type(ztype), true);
+        }
 
-        auto remove(PmZone *zone) -> void;
+        /// Call it after init_queues
+        auto connect(NodeMask const &nodemask) -> void;
 
-        auto local_zone(ZoneType ztype) -> PmZone *
-        {  return local_zones_[ztype]; }
+        auto dump_queue(QueueType type) const -> void;
 
-        auto iter(QueueType ztype) -> IterMut;
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto get_local_zone(ZoneType ztype) -> ZoneRef {
+            DEBUG_ASSERT(ztype < NR_ZONES_PER_NODE);
+            return get_queue(QueueType::LocalSequential)[ztype];
+        }
 
-        auto rev_iter(QueueType type) -> RevIterMut;
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto get_queue(QueueType type) -> ZoneQueue {
+            return queues_[type].subspan(0, get_queue_size(type));
+        }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto get_queue(QueueType type) const -> ZoneQueue {
+            return queues_[type].subspan(0, get_queue_size(type));
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto get_queue_size(QueueType type) const -> usize {
+            return queue_sizes_[type];
+        }
     private:
-        template <QueueType Type>
-        auto priv_insert_queue(LocalQueue const &queue) -> void;
+        auto init_queues() -> void;
+
+        auto insert_remote_queue(ZoneQueue const &queue) -> void;
 
         template <QueueType Type>
-        auto priv_remove(PmZone *zone) -> void;
+        auto insert_remote_queue(ZoneQueue const &remote_queue) -> void;
 
+        template <QueueType Type>
+        auto priv_remove_zone(PmZone *zone) -> void;
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto push_back(PmZone *zone, QueueType type) -> void {
+            queues_[type][queue_sizes_[type]] = zone;
+            queue_sizes_[type] += 1;
+        }
+
+        CXX11_CONSTEXPR
+        static usize const kNumLocalQueues = SharedAffinity;
+
+        CXX11_CONSTEXPR
+        static usize const kMaxZoneRef = {
+            MAX_NODES * (MaxNumQueues - kNumLocalQueues) + (NR_ZONES_PER_NODE * kNumLocalQueues)
+        };
+
+        ustl::Array<PmZone *, kMaxZoneRef> queue_storage_;
+        usize queue_sizes_[MaxNumQueues];
+        ZoneQueue queues_[MaxNumQueues];
+        NodeMask connected_;
         NodeId nid_;
-        ustl::collections::StaticVec<PmZone *, NR_ZONES_PER_NODE>   local_zones_;
-        ustl::collections::StaticVec<ZoneRef, NR_ZONES_PER_NODE>    local_queue_;
-        ustl::collections::StaticVec<ZoneRef, MAX_ZONES>            node_affinity_queue_;
-        ustl::collections::StaticVec<PmZone *, NR_ZONES_PER_NODE, MAX_NODES> zone_priority_queue_;
     };
+
+    struct AllocationContext;
 
     /// `PmNode` is a class that describes a NUMA domain.
     ///
@@ -172,9 +176,51 @@ namespace ours::mem {
     class PmNode {
         typedef PmNode     Self;
     public:
+        PmNode(NodeId nid);
+
+        /// Initialize this node. The primary task involves verifying the existence of the
+        /// specified PFN range.
+        ///
+        /// Requires:
+        ///     1). Range [start, end) is sorted by address.
+        auto init(Pfn start, Pfn end) -> Status;
+
+        auto alloc_frame(Gaf gaf, usize order = 0) -> ustl::Result<PmFrame *, Status> {
+            return alloc_frame(gaf, order, node_online_mask()) ;
+        }
+
+        auto alloc_frame(Gaf flags, usize n, NodeMask const &mask) -> ustl::Result<PmFrame *, Status>;
+
+        /// Allocate `|n|` of frames and do best to
+        auto alloc_frames(Gaf flags, usize n, ai_out FrameList<> *out, NodeMask const &mask) -> Status;
+
+        /// Allocate `|n|` of frames and do best to
+        auto alloc_frames_bulk(Gaf flags, usize n, ai_out FrameList<> *out) -> Status;
+
+        /// Free a frame, 
+        static auto free_frame(PmFrame *frame, usize order) -> void;
+
+        /// Free a list of frame, 
+        static auto free_frames(FrameList<> *list) -> void;
+
+        auto contains(usize order, ZoneType type) -> bool;
+
+        auto dump() const -> void;
+
         FORCE_INLINE
-        static auto node(NodeId nid) -> PmNode *
-        {  return s_node_list[nid];  }
+        auto nid() const -> NodeId {
+            return this->id_;
+        }
+
+        FORCE_INLINE
+        auto zone_queues() -> ZoneQueues * {
+            return &zone_queues_;
+        }
+
+        FORCE_INLINE
+        static auto node(NodeId nid) -> PmNode * {
+            return s_node_list[nid];
+        }
 
         FORCE_INLINE
         static auto distance(NodeId x, NodeId y) -> usize {
@@ -193,43 +239,13 @@ namespace ours::mem {
             s_node_distance[x][y] = dis;
         }
 
-        /// Initialize this node. The primary task involves verifying the existence of the
-        /// specified PFN range.
-        ///
-        /// Requires:
-        ///     1). Range [start, end) is sorted by address.
-        auto init(Pfn start, Pfn end) -> Status;
-
-        /// This allows this node to share with another node whose id is equal to |nid| its local memory.
-        ///
-        auto share_with(NodeId nid) -> Status;
-
-        auto alloc_frame(Gaf flags, usize order = 0) -> ustl::Result<PmFrame *, Status>;
-
-        auto free_frame(PmFrame *frame, usize order) -> void;
-
-        auto alloc_frames(Gaf flags, usize n, ai_out FrameList<> *out) -> Status;
-
-        auto free_frames(FrameList<> *list) -> void;
-
-        auto contains(usize order, ZoneType type) -> bool;
-
-        FORCE_INLINE
-        auto nid() const -> NodeId
-        {  return this->id_;  }
-
-        FORCE_INLINE
-        auto zone_queues() -> ZoneQueues *
-        {  return &zone_queues_;  }
-
-        auto recalculate_present_frames();
-
-        PmNode(NodeId nid);
+        static auto make_optimal_node_path(NodeId from, NodePath &path, NodeMask const &filter) -> void;
     private:
-        /// This method is marked `template` to avoid giving the concrete type in the header.
-        /// We put the implementation on source files
-        template <typename Inner>
-        auto alloc_frame_core(ZoneQueues::Iterator<Inner>, Gaf, usize) -> ustl::Result<PmFrame *, Status>;
+        friend class ZoneQueues;
+
+        auto alloc_frame_core(Gaf gaf, usize order, AllocationContext &context) -> PmFrame *;
+
+        auto finish_allocation(PmFrame *frame, Gaf gaf, usize order, AllocationContext const &context) -> void;
 
         GKTL_CANARY(PmNode, canary_);
 
@@ -245,8 +261,6 @@ namespace ours::mem {
         ustl::sync::AtomicUsize present_frames_;
 
         ustl::sync::AtomicUsize reserved_frames_;
-
-        NodeMask shared_nodes_;
 
         ZoneQueues zone_queues_;
 

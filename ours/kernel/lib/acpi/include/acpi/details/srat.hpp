@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef ACPI_SRAT_HPP
 #define ACPI_SRAT_HPP 1
 
@@ -27,14 +26,12 @@ namespace acpi {
     // Reference: ACPI v6.3 Section 5.2.16.
     struct PACKED AcpiSrat {
         AcpiTableHeader header;
-        u32 _reserved; // Should be 1
-        u32 _reserved2;
-        u32 _reserved3;
+        u8 reserved[12];
 
         auto size() const -> usize {
             return header.length;
         }
-        static constexpr auto SIGNATURE = AcpiSignature("SRAT");
+        static constexpr auto kSignature = AcpiSignature("SRAT");
     };
     static_assert(sizeof(AcpiSrat) == 48);
 

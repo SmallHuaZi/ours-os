@@ -35,10 +35,11 @@ namespace gktl {
     enum class InitLevel: u32 {
         ArchEarly = kDeltaBetweenLevels,
         PlatformEarly = ArchEarly + kDeltaBetweenLevels,
-        HeapInitialized = PlatformEarly + kDeltaBetweenLevels,
-        VmmInitialized = HeapInitialized + kDeltaBetweenLevels,
-        IrqInitialized = VmmInitialized + kDeltaBetweenLevels,
-        Arch = IrqInitialized + kDeltaBetweenLevels,
+        CpuLocal = PlatformEarly + kDeltaBetweenLevels,
+        HeapInitialized = CpuLocal + kDeltaBetweenLevels,
+        Vmm = HeapInitialized + kDeltaBetweenLevels,
+        Irq = Vmm + kDeltaBetweenLevels,
+        Arch = Irq + kDeltaBetweenLevels,
         Platform = Arch + kDeltaBetweenLevels,
         MaxInitLevel = Platform + kDeltaBetweenLevels,
     };

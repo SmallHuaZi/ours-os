@@ -19,12 +19,10 @@
 #include <arch/page_table.hpp>
 
 namespace ours::mem::details {
-    struct PageAllocator
-    {
-        static auto alloc_page() -> PhysAddr
-        {  
+    struct PageAllocator {
+        static auto alloc_page() -> PhysAddr {
             PhysAddr phys_addr;
-            if (auto frame = alloc_frame(GAF_KERNEL, &phys_addr, 0)) {
+            if (auto frame = alloc_frame(kGafKernel, &phys_addr, 0)) {
                 frame->flags().set_role(PfRole::Mmu);
                 frame->increase_mapping();
                 return phys_addr;
@@ -33,9 +31,8 @@ namespace ours::mem::details {
             panic("no memory");
         }
 
-        static auto free_page(PhysAddr phys_addr) -> void
-        {
-            if (auto frame = MemoryModel::phys_to_frame(phys_addr)) {
+        static auto free_page(PhysAddr phys_addr) -> void {
+            if (auto frame = phys_to_frame(phys_addr)) {
                 frame->flags().set_role(PfRole::Pmm);
                 frame->decrease_mapping();
                 free_frame(frame, 0);

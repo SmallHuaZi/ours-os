@@ -29,7 +29,7 @@ namespace ours::mem {
         Normal,
         MaxNumZoneType,
     };
-    static_assert(MaxNumZoneType < NR_ZONES_PER_NODE, "");
+    static_assert(MaxNumZoneType == NR_ZONES_PER_NODE, "");
 
     template <ZoneType>
     struct ZoneTypeMatcher;
@@ -77,12 +77,12 @@ namespace ours::mem {
 
     FORCE_INLINE CXX11_CONSTEXPR
     static auto pfn_to_secnum(Pfn pfn) -> SecNum {  
-        return pfn >> (SECTION_SHIFT - PAGE_SHIFT);  
+        return pfn >> PFN_SECTION_SHIFT;
     }
 
     FORCE_INLINE CXX11_CONSTEXPR
     static auto secnum_to_pfn(SecNum secnum) -> Pfn {  
-        return secnum << (SECTION_SHIFT - PAGE_SHIFT);  
+        return secnum << PFN_SECTION_SHIFT;
     }
 
     /// A pre-allocated storage reserve designed for scenarios requiring specialized physical page management. 
@@ -96,10 +96,7 @@ namespace ours::mem {
     ///    Actively reclaims and repurposes underutilized `PmFrame` objects to eliminate redundant allocation 
     ///    cycles.
     struct Altmap {
-        /// base of the entire dev_pagemap mapping
     	Pfn start;
-
-        /// pages mapped, but reserved for driver use (relative to @base)
     	Pfn end;
 
         // free pages set aside in the mapping for memmap storage
@@ -116,6 +113,7 @@ namespace ours::mem {
     /// Forward declarations.
     /// Main classes for physical memory management.
     class PmFrame;
+    class PmSection;
     class PmFolio;
     class PmZone;
     class PmNode;
@@ -134,10 +132,12 @@ namespace ours::mem {
 } // namespace ours::mem
 
 /// Mark types above as kernel object to enable particular static analysis.
+OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmSection);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmFolio);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmFrame);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmZone);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmNode);
+
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmArea);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmAspace);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmObject);

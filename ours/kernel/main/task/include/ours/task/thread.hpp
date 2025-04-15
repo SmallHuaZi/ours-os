@@ -30,10 +30,15 @@
 namespace ours::task {
     class Process;
 
-    enum class ThreadFlags {
-        // All request from a thread which tagged it to allocate memory
-        // will not be accepted.
-        MemoryAllocationDisabled,
+    struct ThreadState {
+        enum class ThreadFlags {
+        };
+
+        enum class MemoryAllocationState {
+            // All request from a thread which tagged it to allocate memory
+            // will not be accepted.
+            MemoryAllocationDisabled,
+        };
     };
 
     class Thread

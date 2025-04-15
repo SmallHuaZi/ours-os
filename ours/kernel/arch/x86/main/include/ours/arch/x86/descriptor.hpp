@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_ARCH_X86_DESCRIPTOR_HPP
 #define OURS_ARCH_X86_DESCRIPTOR_HPP 1
 
@@ -19,6 +18,7 @@
 #define X86_GDT_USER_CODE32      (4 << 3)
 #define X86_GDT_USER_CODE64      (5 << 3)
 #define X86_GDT_USER_DATA        (6 << 3)
+#define X86_GDT_MAX_SELECTORS    (6 + 1) // Has also the first null descriptor
 
 #define TSS_SELECTOR(i) ((uint16_t)(0x38 + 16 * (i)))
 /* 0x40 is used by the second half of the first TSS descriptor */
@@ -33,5 +33,16 @@
 #define SEG_TYPE_INT_GATE   0xe /* 32 bit */
 #define SEG_TYPE_DATA_RW    0x2
 #define SEG_TYPE_CODE_RW    0xa
+
+#ifndef __ASSEMBLY__
+namespace ours {
+    auto x86_setup_gdt() -> void;
+
+    auto x86_load_gdt() -> void;
+
+    auto x86_dump_gdt() -> void;
+
+} // namespace ours
+#endif // #ifndef __ASSEMBLY__
 
 #endif // #ifndef OURS_ARCH_X86_DESCRIPTOR_HPP

@@ -20,11 +20,11 @@ namespace ours {
             return;
         }
 
-        if (Status::Ok != acpi_init_numa()) {
+        if (Status::Ok == acpi_init_numa()) {
             return;
         }
 
-        if (Status::Ok != pci_init_numa()) {
+        if (Status::Ok == pci_init_numa()) {
             return;
         }
     }

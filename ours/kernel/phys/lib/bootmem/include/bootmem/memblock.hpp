@@ -307,7 +307,7 @@ namespace bootmem {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate_bounded(usize size, usize align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES)
+        auto allocate_bounded(usize size, AlignVal align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES)
             -> PhysAddr {
             auto maybe_region = get_free_region(size, align, lower, upper, RegionType::Normal, nid);
             if (!maybe_region) {
@@ -319,18 +319,18 @@ namespace bootmem {
 
         template <typename T>
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize size, usize align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES) {  
+        auto allocate(usize size, AlignVal align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES) {  
             return reinterpret_cast<T *>(allocate_bounded(size, align, lower, upper, nid));  
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize size, usize align, NodeId nid = MAX_NODES) -> PhysAddr {
+        auto allocate(usize size, AlignVal align, NodeId nid = MAX_NODES) -> PhysAddr {
             return allocate_bounded(size, align, allocation_lower_limit_, allocation_upper_limit_, nid);
         }
 
         template <typename T>
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize n, usize align, NodeId nid = MAX_NODES) -> T * {  
+        auto allocate(usize n, AlignVal align, NodeId nid = MAX_NODES) -> T * {  
             return reinterpret_cast<T *>(allocate(n * sizeof(T), align, nid));  
         }
 
@@ -409,6 +409,7 @@ namespace bootmem {
                     }
                 }
 
+                NodeId nid = context.imem->nid();
                 PhysAddr start, end;
                 if (context.type == RegionType::Unused) {
                     auto region = lookup_next_free_region(memories_.begin(), memories_.end(),
@@ -418,8 +419,8 @@ namespace bootmem {
                         return ustl::none();
                     }
 
-                    start = region->first;
-                    end = region->second;
+                    start = ustl::get<0>(*region);
+                    end = ustl::get<1>(*region);
                 } else if (context.type == RegionType::Normal) {
                     if (context.imem == iter_end) {
                         return ustl::none();
@@ -434,7 +435,7 @@ namespace bootmem {
                 end = ustl::algorithms::clamp(end, context.start, context.end);
 
                 if (start < end) {
-                    return Region(start, end - start, context.imem->type(), context.imem->nid());
+                    return Region(start, end - start, context.type, nid);
                 }
             };
 
@@ -465,16 +466,16 @@ namespace bootmem {
         friend Collection<Region>;
 
         FORCE_INLINE
-        auto get_free_region(usize size, usize align, RegionType type, NodeId nid) {
+        auto get_free_region(usize size, AlignVal align, RegionType type, NodeId nid) {
             return get_free_region(size, align, start_address_, end_address_, type, nid);
         }
 
-        auto get_free_region(usize size, usize align, PhysAddr lower, PhysAddr upper, RegionType type, NodeId nid)
+        auto get_free_region(usize size, AlignVal align, PhysAddr lower, PhysAddr upper, RegionType type, NodeId nid)
             -> ustl::Option<ustl::Pair<PhysAddr, PhysAddr>> {
             if (bool(allocation_control_ & AllocationControl::TopDown)) {
-                return find_free_region_top_down(size, align, lower, upper, type, nid);
+                return find_free_region_top_down(size, usize(align), lower, upper, type, nid);
             } else {
-                return find_free_region_bottom_up(size, align, lower, upper, type, nid);
+                return find_free_region_bottom_up(size, usize(align), lower, upper, type, nid);
             }
         }
 
@@ -489,14 +490,14 @@ namespace bootmem {
                     return ustl::none();
                 }
 
-                if (auto itype = (imem - 1)->type(); itype != type) {
+                NodeId const rnid = ustl::get<2>(*region);
+                if (imem->type() != type) {
                     continue;
-                } else if (auto inid = (imem - 1)->nid(); inid != nid || inid != MAX_NODES) {
+                } else if (rnid != nid && nid != MAX_NODES) {
                     continue;
                 }
-
-                PhysAddr start = ustl::algorithms::clamp(region->first, lower, upper);
-                PhysAddr end = ustl::algorithms::clamp(region->second, lower, upper);
+                PhysAddr start = ustl::algorithms::clamp(ustl::get<0>(*region), lower, upper);
+                PhysAddr end = ustl::algorithms::clamp(ustl::get<1>(*region), lower, upper);
 
                 PhysAddr aligned_start = ustl::mem::align_down(end - size, align);
                 if (aligned_start < start || end - aligned_start < size) {
@@ -518,14 +519,15 @@ namespace bootmem {
                     return ustl::none();
                 }
 
+                NodeId const rnid = ustl::get<2>(*region);
                 if (imem->type() != type) {
                     continue;
-                } else if (imem->nid() != nid || imem->nid() != MAX_NODES) {
+                } else if (rnid != nid && nid != MAX_NODES) {
                     continue;
                 }
 
-                PhysAddr start = ustl::algorithms::clamp(region->first, lower, upper);
-                PhysAddr end = ustl::algorithms::clamp(region->second, lower, upper);
+                PhysAddr start = ustl::algorithms::clamp(ustl::get<0>(*region), lower, upper);
+                PhysAddr end = ustl::algorithms::clamp(ustl::get<1>(*region), lower, upper);
 
                 PhysAddr aligned_start = ustl::mem::align_down(end - size, align);
                 if (aligned_start < start || end - aligned_start < size) {
@@ -656,7 +658,7 @@ namespace bootmem {
         auto grow(usize new_capacity) -> bool {
             auto base = reinterpret_cast<PhysAddr>(regions_);
             auto size = capacity_;
-            if (auto new_base = holder_->get_free_region(new_capacity, alignof(usize), RegionType::Normal, 0 )) {
+            if (auto new_base = holder_->get_free_region(new_capacity, AlignVal(alignof(usize)), RegionType::Normal, 0 )) {
                 auto [start, end] = *new_base;
                 reset(reinterpret_cast<Region *>(start), new_capacity);
                 holder_->protect(start, end - start);

@@ -14,6 +14,7 @@
 #include <ours/cpu-mask.hpp>
 #include <ours/assert.hpp>
 #include <ours/mem/cfg.hpp>
+#include <ours/mem/new.hpp>
 #include <ours/mem/node-mask.hpp>
 #include <ours/phys/arch-handoff.hpp>
 #include <ours/phys/arch-bootmem.hpp>
@@ -33,7 +34,7 @@ namespace ours::phys {
         Fn<auto (PhysAddr, PhysAddr, mem::NodeId) -> void> set_node;
 
         // auto (size, alignment, start, end, nid) -> PhysAddr
-        Fn<auto (usize, usize, PhysAddr, PhysAddr, mem::NodeId) -> PhysAddr> allocate;
+        Fn<auto (usize, AlignVal, PhysAddr, PhysAddr, mem::NodeId) -> PhysAddr> allocate;
 
         // auto deallocate(base, size) -> void
         Fn<auto (PhysAddr, PhysAddr) -> void> deallocate;

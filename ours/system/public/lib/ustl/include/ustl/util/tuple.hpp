@@ -4,304 +4,311 @@
 #include <ustl/util/move.hpp>
 #include <ustl/util/type-list.hpp>
 
+#include <tuple>
+
 namespace ustl {
-namespace details {
-    template <unsigned int I, typename T>
-    struct TupleDataNode
-    {
-        typedef T           ValueType;
-        typedef T const *   Ptr;
-        typedef T *         PtrMut;
-        typedef T const &   Ref;
-        typedef T &         RefMut;
-
-    private:
-        typedef TupleDataNode    Self;
-
-    public:
-        USTL_FORCEINLINE USTL_CONSTEXPR static RefMut _S_value(Self &self) USTL_NOEXCEPT
-        { return self._value; }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR static Ref _S_value(Self const &self) USTL_NOEXCEPT
-        { return self._value; }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void _M_copy(Self const &other)
-        { this->_value = other._value; }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void _M_move(Self &&other)
-        { this->_value = ustl::move(other._value); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void _M_swap(Self &other)
-        {
-            ValueType tmp(other._value);
-            other._value = this->_value;
-            this->_value = tmp;
-        }
-
-    protected:
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleDataNode() USTL_NOEXCEPT = default;
-
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleDataNode(Ref e)
-            : _value(e)
-        {}
-
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleDataNode(ValueType &&e)
-            : _value(forward(e))
-        {}
-
-    protected:
-        ValueType _value;
-    };
-
-    template <unsigned int I, typename T, typename... Ts>
-    struct TupleImpl
-        : public TupleImpl<I + 1, Ts...>,
-          public TupleDataNode<I, T>
-    {
-        typedef T           ValueType;
-        typedef T const *   Ptr;
-        typedef T *         PtrMut;
-        typedef T const &   Ref;
-        typedef T &         RefMut;
-
-    private:
-        typedef TupleImpl   Self;
-        typedef TupleDataNode<I, T> DataNode;
-        typedef TupleImpl<I + 1, Ts...> Base;
-
-    public:
-        USTL_FORCEINLINE USTL_CONSTEXPR static RefMut _S_value(DataNode &self) USTL_NOEXCEPT
-        { return DataNode::_S_value(self); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR static Ref _S_value(DataNode const &self) USTL_NOEXCEPT
-        { return DataNode::_S_value(self); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR static Base &_S_to_base(Self &self) USTL_NOEXCEPT
-        { return self; }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR static Base const &_S_to_base(Self const &self) USTL_NOEXCEPT
-        { return self; }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void _M_copy(Self const &other)
-        {
-            _S_value(*this) = _S_value(other);
-            Base::_M_copy(_S_to_base(other));
-        }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void _M_move(Self &&other)
-        {
-            _S_value(*this) = ustl::move(_S_value(other));
-            Base::_M_move(ustl::move(_S_to_base(other)));
-        }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void _M_swap(Self &self)
-        {
-            DataNode::_M_swap(self);
-            Base::_M_swap(_S_to_base(self));
-        }
-
-    public:
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl() USTL_NOEXCEPT
-            : Base(), DataNode()
-        {}
-
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(Ref h, Ts const &...t)
-            : Base(t...), DataNode(h)
-        {}
-
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(ValueType &&h, Ts &&...t)
-            : Base(forward(t)...),
-              DataNode(forward(h))
-        {}
-
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(Self const &other)
-        { _M_copy(other); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(Self &&other)
-        { _M_move(other); }
-    };
-
-
-    template <unsigned int I, typename T>
-    struct TupleImpl<I, T>
-        : public TupleDataNode<I, T>
-    {
-        typedef T           ValueType;
-        typedef T const *   Ptr;
-        typedef T *         PtrMut;
-        typedef T const &   Ref;
-        typedef T &         RefMut;
-
-    private:
-        typedef TupleImpl   Self;
-        typedef TupleDataNode<I, T>    DataNode;
-
-    public:
-        USTL_FORCEINLINE USTL_CONSTEXPR static Ref
-        _S_value(DataNode const &self) USTL_NOEXCEPT
-        { return DataNode::_S_value(self); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR static
-        RefMut _S_value(DataNode &self) USTL_NOEXCEPT
-        { return DataNode::_S_value(self); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void
-        _M_copy(Self const &other)
-        { _S_value(*this) = _S_value(other); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void
-        _M_move(Self &&other)
-        { _S_value(*this) = ustl::move(_S_value(other)); }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR void
-        _M_swap(Self &other)
-        { DataNode::_M_swap(other); }
-
-    public:
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        TupleImpl() USTL_NOEXCEPT
-            : DataNode()
-        {}
-
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        TupleImpl(Ref h)
-            : DataNode(h)
-        {}
-
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        TupleImpl(ValueType &&h)
-            : DataNode(forward(h))
-        {}
-
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        TupleImpl(Self const &other)
-        {  this->_M_copy(other);  }
-
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        TupleImpl(Self &&other)
-        {  this->_M_move(other);  }
-    };
-} // namespace ustl::details
-
+// namespace details {
     template <typename... Ts>
-    class Tuple
-        : public details::TupleImpl<0, Ts...>
-    {
-    private:
-        USTL_GENERAL_ASSOCIATION_TYPE(Tuple);
+    using Tuple = ::std::tuple<Ts...>;
+    using std::make_tuple;
+    using std::get;
 
-        typedef Tuple Self;
-        typedef details::TupleImpl<0, Ts...>    Base;
+//     template <unsigned int I, typename T>
+//     struct TupleDataNode
+//     {
+//         typedef T           ValueType;
+//         typedef T const *   Ptr;
+//         typedef T *         PtrMut;
+//         typedef T const &   Ref;
+//         typedef T &         RefMut;
 
-    public:
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        Tuple() USTL_NOEXCEPT
-            : Base()
-        {}
+//     private:
+//         typedef TupleDataNode    Self;
 
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        Tuple(Ts const &...args)
-            : Base(args...)
-        {}
+//     public:
+//         USTL_FORCEINLINE USTL_CONSTEXPR static RefMut _S_value(Self &self) USTL_NOEXCEPT
+//         { return self._value; }
 
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        Tuple(Ts &&...args)
-            : Base(forward(args)...)
-        {}
+//         USTL_FORCEINLINE USTL_CONSTEXPR static Ref _S_value(Self const &self) USTL_NOEXCEPT
+//         { return self._value; }
 
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        Tuple(Self const &other)
-            : Base(other)
-        {}
+//         USTL_FORCEINLINE USTL_CONSTEXPR void _M_copy(Self const &other)
+//         { this->_value = other._value; }
 
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        Tuple(Self &&other)
-            : Base(forward(other))
-        {}
+//         USTL_FORCEINLINE USTL_CONSTEXPR void _M_move(Self &&other)
+//         { this->_value = ustl::move(other._value); }
 
-    public:
-        USTL_FORCEINLINE USTL_CONSTEXPR 
-        auto operator=(Ref t) -> Self & {
-            Base::_M_copy(t);
-            return *this;
-        }
+//         USTL_FORCEINLINE USTL_CONSTEXPR void _M_swap(Self &other)
+//         {
+//             ValueType tmp(other._value);
+//             other._value = this->_value;
+//             this->_value = tmp;
+//         }
 
-        USTL_FORCEINLINE USTL_CONSTEXPR 
-        auto operator=(Tuple &&t) -> Self & {
-            Base::_M_move(forward<Tuple>(t));
-            return *this;
-        }
+//     protected:
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleDataNode() USTL_NOEXCEPT = default;
 
-        USTL_FORCEINLINE USTL_CONSTEXPR 
-        auto swap(Self &t) -> void  {  
-            Base::_M_swap(t);  
-        }
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleDataNode(Ref e)
+//             : _value(e)
+//         {}
 
-        USTL_FORCEINLINE USTL_CONSTEXPR 
-        auto size() USTL_NOEXCEPT -> usize {  
-            return TypeList<Ts...>::size();  
-        }
-    };
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleDataNode(ValueType &&e)
+//             : _value(forward(e))
+//         {}
 
-    template <usize I, typename... Ts>
-    USTL_FORCEINLINE USTL_CONSTEXPR
-    auto get(Tuple<Ts...> &t) USTL_NOEXCEPT -> TypeAlgos::At<TypeList<Ts...>, I> & {
-        typedef TypeAlgos::At<TypeList<Ts...>, I> ValueType;
-        return details::TupleImpl<I, ValueType>::_S_value(t);
-    }
+//     protected:
+//         ValueType _value;
+//     };
 
-    template <usize I, typename... Ts>
-    USTL_FORCEINLINE USTL_CONSTEXPR
-    auto get(Tuple<Ts...> const &t) USTL_NOEXCEPT -> TypeAlgos::At<TypeList<Ts...>, I> const & {
-        typedef TypeAlgos::At<TypeList<Ts...>, I> ValueType;
-        return details::TupleImpl<I, ValueType>::_S_value(t);
-    }
+//     template <unsigned int I, typename T, typename... Ts>
+//     struct TupleImpl
+//         : public TupleImpl<I + 1, Ts...>,
+//           public TupleDataNode<I, T>
+//     {
+//         typedef T           ValueType;
+//         typedef T const *   Ptr;
+//         typedef T *         PtrMut;
+//         typedef T const &   Ref;
+//         typedef T &         RefMut;
 
-    template <unsigned int I, typename... Ts>
-    struct TupleEqualImpl {
-        typedef Tuple<Ts...>     TupleType;
+//     private:
+//         typedef TupleImpl   Self;
+//         typedef TupleDataNode<I, T> DataNode;
+//         typedef TupleImpl<I + 1, Ts...> Base;
 
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        auto operator()(TupleType const &x, TupleType const &y) -> bool {
-            return get<I>(x) == get<I>(y) && TupleEqualImpl<I - 1, Ts...>{}(x, y);
-        }
-    };
+//     public:
+//         USTL_FORCEINLINE USTL_CONSTEXPR static RefMut _S_value(DataNode &self) USTL_NOEXCEPT
+//         { return DataNode::_S_value(self); }
 
-    template <typename... Ts>
-    struct TupleEqualImpl<0, Ts...> {
-        typedef Tuple<Ts...>     TupleType;
+//         USTL_FORCEINLINE USTL_CONSTEXPR static Ref _S_value(DataNode const &self) USTL_NOEXCEPT
+//         { return DataNode::_S_value(self); }
 
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        auto operator()(TupleType const &x, TupleType const &y) -> bool {
-            return get<0>(x) == get<0>(y);
-        }
-    };
+//         USTL_FORCEINLINE USTL_CONSTEXPR static Base &_S_to_base(Self &self) USTL_NOEXCEPT
+//         { return self; }
 
-    template <typename... Ts>
-    USTL_FORCEINLINE USTL_CONSTEXPR
-    auto operator==(Tuple<Ts...> const &x, Tuple<Ts...> const &y) -> bool {
-        USTL_CONSTEXPR long const LENGTH = TypeList<Ts...>::size();
-        static_assert(LENGTH != 0, "[ustl-error] Empty tuple cause undefined behavior.\n");
+//         USTL_FORCEINLINE USTL_CONSTEXPR static Base const &_S_to_base(Self const &self) USTL_NOEXCEPT
+//         { return self; }
 
-        return TupleEqualImpl<LENGTH - 1, Ts...>{}(x, y);
-    }
+//         USTL_FORCEINLINE USTL_CONSTEXPR void _M_copy(Self const &other)
+//         {
+//             _S_value(*this) = _S_value(other);
+//             Base::_M_copy(_S_to_base(other));
+//         }
 
-    template <typename... Ts>
-    USTL_FORCEINLINE USTL_CONSTEXPR
-    auto operator!=(Tuple<Ts...> const &x, Tuple<Ts...> const &y) -> bool {
-        return !(x == y);
-    }
+//         USTL_FORCEINLINE USTL_CONSTEXPR void _M_move(Self &&other)
+//         {
+//             _S_value(*this) = ustl::move(_S_value(other));
+//             Base::_M_move(ustl::move(_S_to_base(other)));
+//         }
 
-    template <typename... Ts>
-    USTL_FORCEINLINE USTL_CONSTEXPR
-    auto make_tuple(Ts&&... elems) -> Tuple<Ts...> {
-        return Tuple<Ts...> {forward<Ts>(elems)...};
-    }
+//         USTL_FORCEINLINE USTL_CONSTEXPR void _M_swap(Self &self)
+//         {
+//             DataNode::_M_swap(self);
+//             Base::_M_swap(_S_to_base(self));
+//         }
 
-    template <typename F, typename T>
-    USTL_FORCEINLINE USTL_CONSTEXPR
-    auto apply(F &&f, T &&t) -> void {
-    }
+//     public:
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl() USTL_NOEXCEPT
+//             : Base(), DataNode()
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(Ref h, Ts const &...t)
+//             : Base(t...), DataNode(h)
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(ValueType &&h, Ts &&...t)
+//             : Base(forward(t)...),
+//               DataNode(forward(h))
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(Self const &other)
+//         { _M_copy(other); }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR TupleImpl(Self &&other)
+//         { _M_move(other); }
+//     };
+
+
+//     template <unsigned int I, typename T>
+//     struct TupleImpl<I, T>
+//         : public TupleDataNode<I, T>
+//     {
+//         typedef T           ValueType;
+//         typedef T const *   Ptr;
+//         typedef T *         PtrMut;
+//         typedef T const &   Ref;
+//         typedef T &         RefMut;
+
+//     private:
+//         typedef TupleImpl   Self;
+//         typedef TupleDataNode<I, T>    DataNode;
+
+//     public:
+//         USTL_FORCEINLINE USTL_CONSTEXPR static Ref
+//         _S_value(DataNode const &self) USTL_NOEXCEPT
+//         { return DataNode::_S_value(self); }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR static
+//         RefMut _S_value(DataNode &self) USTL_NOEXCEPT
+//         { return DataNode::_S_value(self); }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR void
+//         _M_copy(Self const &other)
+//         { _S_value(*this) = _S_value(other); }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR void
+//         _M_move(Self &&other)
+//         { _S_value(*this) = ustl::move(_S_value(other)); }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR void
+//         _M_swap(Self &other)
+//         { DataNode::_M_swap(other); }
+
+//     public:
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         TupleImpl() USTL_NOEXCEPT
+//             : DataNode()
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         TupleImpl(Ref h)
+//             : DataNode(h)
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         TupleImpl(ValueType &&h)
+//             : DataNode(forward(h))
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         TupleImpl(Self const &other)
+//         {  this->_M_copy(other);  }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         TupleImpl(Self &&other)
+//         {  this->_M_move(other);  }
+//     };
+// } // namespace ustl::details
+
+//     template <typename... Ts>
+//     class Tuple
+//         : public details::TupleImpl<0, Ts...>
+//     {
+//     private:
+//         USTL_GENERAL_ASSOCIATION_TYPE(Tuple);
+
+//         typedef Tuple Self;
+//         typedef details::TupleImpl<0, Ts...>    Base;
+
+//     public:
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         Tuple() USTL_NOEXCEPT
+//             : Base()
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         Tuple(Ts const &...args)
+//             : Base(args...)
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         Tuple(Ts &&...args)
+//             : Base(forward(args)...)
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         Tuple(Self const &other)
+//             : Base(other)
+//         {}
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         Tuple(Self &&other)
+//             : Base(forward(other))
+//         {}
+
+//     public:
+//         USTL_FORCEINLINE USTL_CONSTEXPR 
+//         auto operator=(Ref t) -> Self & {
+//             Base::_M_copy(t);
+//             return *this;
+//         }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR 
+//         auto operator=(Tuple &&t) -> Self & {
+//             Base::_M_move(forward<Tuple>(t));
+//             return *this;
+//         }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR 
+//         auto swap(Self &t) -> void  {  
+//             Base::_M_swap(t);  
+//         }
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR 
+//         auto size() USTL_NOEXCEPT -> usize {  
+//             return TypeList<Ts...>::size();  
+//         }
+//     };
+
+//     template <usize I, typename... Ts>
+//     USTL_FORCEINLINE USTL_CONSTEXPR
+//     auto get(Tuple<Ts...> &t) USTL_NOEXCEPT -> TypeAlgos::At<TypeList<Ts...>, I> & {
+//         typedef TypeAlgos::At<TypeList<Ts...>, I> ValueType;
+//         return details::TupleImpl<I, ValueType>::_S_value(t);
+//     }
+
+//     template <usize I, typename... Ts>
+//     USTL_FORCEINLINE USTL_CONSTEXPR
+//     auto get(Tuple<Ts...> const &t) USTL_NOEXCEPT -> TypeAlgos::At<TypeList<Ts...>, I> const & {
+//         typedef TypeAlgos::At<TypeList<Ts...>, I> ValueType;
+//         return details::TupleImpl<I, ValueType>::_S_value(t);
+//     }
+
+//     template <unsigned int I, typename... Ts>
+//     struct TupleEqualImpl {
+//         typedef Tuple<Ts...>     TupleType;
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         auto operator()(TupleType const &x, TupleType const &y) -> bool {
+//             return get<I>(x) == get<I>(y) && TupleEqualImpl<I - 1, Ts...>{}(x, y);
+//         }
+//     };
+
+//     template <typename... Ts>
+//     struct TupleEqualImpl<0, Ts...> {
+//         typedef Tuple<Ts...>     TupleType;
+
+//         USTL_FORCEINLINE USTL_CONSTEXPR
+//         auto operator()(TupleType const &x, TupleType const &y) -> bool {
+//             return get<0>(x) == get<0>(y);
+//         }
+//     };
+
+//     template <typename... Ts>
+//     USTL_FORCEINLINE USTL_CONSTEXPR
+//     auto operator==(Tuple<Ts...> const &x, Tuple<Ts...> const &y) -> bool {
+//         USTL_CONSTEXPR long const LENGTH = TypeList<Ts...>::size();
+//         static_assert(LENGTH != 0, "[ustl-error] Empty tuple cause undefined behavior.\n");
+
+//         return TupleEqualImpl<LENGTH - 1, Ts...>{}(x, y);
+//     }
+
+//     template <typename... Ts>
+//     USTL_FORCEINLINE USTL_CONSTEXPR
+//     auto operator!=(Tuple<Ts...> const &x, Tuple<Ts...> const &y) -> bool {
+//         return !(x == y);
+//     }
+
+//     template <typename... Ts>
+//     USTL_FORCEINLINE USTL_CONSTEXPR
+//     auto make_tuple(Ts&&... elems) -> Tuple<Ts...> {
+//         return Tuple<Ts...> {forward<Ts>(elems)...};
+//     }
+
+//     template <typename F, typename T>
+//     USTL_FORCEINLINE USTL_CONSTEXPR
+//     auto apply(F &&f, T &&t) -> void {
+//     }
 
 } // namespace ustl
 

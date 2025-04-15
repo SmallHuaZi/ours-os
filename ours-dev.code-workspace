@@ -259,7 +259,8 @@
                 "preRunCommands": [
                     "target modules add ${workspaceFolder}/target/build/Clang-18-x86_64-pc-linux-gnu/kernel_main",
                     "target modules load --file kernel_main --slide 0xffffff8840000000",
-                    "command script import ${workspaceFolder}/scripts/lldb/parse_pt.py"
+                    "command script import ${workspaceFolder}/scripts/lldb/parse_pt.py",
+                    "command script import ${workspaceFolder}/scripts/lldb/rsdp2srat.py",
                 ],
                 "preLaunchTask": "SetUp",
                 "postDebugTask": "TearDown"

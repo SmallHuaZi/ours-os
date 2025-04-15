@@ -17,8 +17,7 @@ namespace ours::phys {
     LegacyBoot LegacyBoot::g_legacy_boot;
 
     NO_MANGLE NO_RETURN
-    auto phys_main(PhysAddr loader_param) -> void
-    {
+    auto phys_main(PhysAddr loader_param) -> void {
         gktl::init_static_objects();
         init_early_console();
         println("loader params at 0x{:X}", loader_param);

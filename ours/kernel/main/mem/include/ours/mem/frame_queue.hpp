@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_FRAME_QUEUE_HPP
 #define OURS_MEM_FRAME_QUEUE_HPP 1
 
@@ -17,25 +16,23 @@
 #include <ustl/collections/static-vec.hpp>
 
 namespace ours::mem {
-    class FrameQueue
-    {
+    class FrameQueue {
     public:
         CXX11_CONSTEXPR
-        static usize const NR_RECLAIM_QUEUES = 8;
+        static usize const kNumReclaimable = 8;
 
         auto set_pinned(PmFrame *frame) -> void;
         auto set_anonymous(PmFrame *frame) -> void;
         auto set_reclaimable(PmFrame *frame) -> void;
 
         auto mark_accessed(PmFrame *frame) -> void;
-
     private:
         enum QueueType {
             None,
             Anonymous,
             Pinned,
             ReclaimableStart,
-            ReclaimableEnd = ReclaimableStart + NR_RECLAIM_QUEUES - 1,
+            ReclaimableEnd = ReclaimableStart + kNumReclaimable - 1,
             MaxNumQueues,
         };
 

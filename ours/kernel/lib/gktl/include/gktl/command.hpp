@@ -16,21 +16,23 @@
 
 namespace gktl {
     struct Command {
-        typedef auto (*Callback)() -> void;
+        typedef auto (*Callback)(int argc, char **argv) -> int;
 
-        char const *name_;
+        char const *cmd_;
         char const *help_;
         Callback fn_;
     };
 
+    auto do_command(int argc, char **argv) -> void;
+
 } // namespace gktl
 
-#define GKTL_COMMAND(NAME, HANDLER, HELP)   \
-namespace gktl::commands::NAME {            \
-    LINK_SECTION(".data.rel.ro.commands")   \
-    static Command const s_command_##NAME { \
-        #NAME, HELP, HANDLER                \
-    };                                      \
+#define GKTL_COMMAND(NAME, CMD, HANDLER, HELP)               \
+namespace commands::NAME {                        \
+    LINK_SECTION(".data.rel.ro.commands") FORCE_USED    \
+    static ::gktl::Command const s_command_##NAME {             \
+        CMD, HELP, HANDLER                              \
+    };                                                  \
 }
 
 #endif // #ifndef GKTL_COMMAND_HPP

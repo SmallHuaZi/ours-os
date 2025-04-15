@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_UTIL_INDEX_SEQUENCE_HPP
 #define USTL_UTIL_INDEX_SEQUENCE_HPP 1
 
@@ -44,14 +43,14 @@ namespace ustl {
     /// @tparam Integer
     /// @tparam ...N
     template <typename Integer, Integer... N>
-    struct IntegerSequence 
-    {
+    struct IntegerSequence {
         typedef Integer          Element;
         typedef IntegerSequence  Type;
 
         USTL_FORCEINLINE USTL_CONSTEXPR
-        static auto size() -> Element
-        {  return sizeof...(N);  }
+        static auto size() -> Element {  
+            return sizeof...(N);
+        }
     };
 
     template <usize... N>
@@ -110,9 +109,14 @@ namespace ustl {
     template <typename IntegerSequence>
     struct IntegerSequenceCalculatePresumImpl;
 
+    template <typename Item, Item Sum>
+    struct IntegerSequenceCalculatePresumImpl<IntegerSequence<Item, Sum>> {
+        typedef IntegerSequence<Item, Sum>      Type;
+    };
+
     template <typename Item, Item Sum, Item Current, Item... Tails>
     struct IntegerSequenceCalculatePresumImpl<IntegerSequence<Item, Sum, Current, Tails...>> {
-        typedef IntegerSequenceCalculatePresumImpl<IntegerSequence<Item, Sum + Current, Tails...>>
+        typedef typename IntegerSequenceCalculatePresumImpl<IntegerSequence<Item, Sum + Current, Tails...>>::Type
             NewSequenceWithoutCurrent;
         typedef IntegerSequencePushFrontT<NewSequenceWithoutCurrent, Sum + Current>
             Type;

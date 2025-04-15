@@ -33,7 +33,7 @@ namespace ustl::io {
         /// Construct a BinaryReader from a valid structure with a size() method.
         template <typename T>
         static DirectMemory from_variable_sized_struct(T const* header) {
-            return BinaryReader(reinterpret_cast<const u8*>(header), header->size());
+            return DirectMemory(reinterpret_cast<const u8*>(header), header->size());
         }
 
         /// Construct a BinaryReader from a class with a size() method, skipping the header T.

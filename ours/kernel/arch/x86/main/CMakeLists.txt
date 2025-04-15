@@ -19,6 +19,7 @@ INTERFACE
     "exception.S"
     "idt.S"
     "idt.cpp"
+    "descriptor.cpp"
     "faults.cpp"
     "feature.cpp"
     "mp.cpp"

@@ -8,14 +8,11 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_ARCH_MEM_CFG_HPP
-#define OURS_ARCH_MEM_CFG_HPP 1
+#ifndef OURS_ARCH_NUMA_HPP
+#define OURS_ARCH_NUMA_HPP 1
 
-#include <ours/mem/init.hpp>
-#include <ustl/util/type-list.hpp>
+namespace ours {
+    
+} // namespace ours
 
-#define ARCH_MAX_DMA_PFN        (MB(16) >> PAGE_SHIFT)
-#define ARCH_MAX_DMA32_PFN      (GB(32) >> PAGE_SHIFT)
-#define ARHC_MAX_POSIIBLE_PFN   (GB(64) >> PAGE_SHIFT)
-
-#endif // #ifndef OURS_ARCH_MEM_CFG_HPP
+#endif // #ifndef OURS_ARCH_NUMA_HPP

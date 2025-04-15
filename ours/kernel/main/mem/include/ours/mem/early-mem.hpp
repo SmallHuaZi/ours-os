@@ -15,6 +15,7 @@
 #include <ours/mem/types.hpp>
 #include <ours/mem/physmap.hpp>
 #include <ours/mem/cfg.hpp>
+#include <ours/mem/new.hpp>
 
 #include <ours/phys/handoff.hpp>
 
@@ -36,6 +37,8 @@ namespace ours::mem {
     struct EarlyMem {
         typedef phys::BootMem::IterationContext     IterationContext;
 
+        static auto dump() -> void;
+
         FORCE_INLINE
         static auto protect(PhysAddr base, usize size) -> void {  
             s_bootmem->protect(base, size);  
@@ -49,20 +52,23 @@ namespace ours::mem {
         template <typename T>
         FORCE_INLINE
         static auto allocate(usize n, NodeId nid) -> T * {  
-            return allocate<T>(n, alignof(T), nid);
+            return allocate<T>(n, AlignVal(alignof(T)), nid);
         }
 
         template <typename T>
         FORCE_INLINE
-        static auto allocate(usize n, usize align, NodeId nid) -> T * {
+        static auto allocate(usize n, AlignVal align, NodeId nid) -> T * {
             return allocate<T>(n, align, min_address(), max_address(), nid);
         }
 
         template <typename T>
         FORCE_INLINE
-        static auto allocate(usize n, usize align, PhysAddr start, PhysAddr end, NodeId nid) -> T * {
+        static auto allocate(usize n, AlignVal align, PhysAddr start, PhysAddr end, NodeId nid) -> T * {
             DEBUG_ASSERT(s_bootmem);
             PhysAddr phys_addr = s_bootmem->allocate(sizeof(T) * n, align, start, end, nid);
+            if (!phys_addr) {
+                return nullptr;
+            }
             return PhysMap::phys_to_virt<T>(phys_addr);
         }
 
@@ -79,9 +85,11 @@ namespace ours::mem {
             return s_bootmem->iterate(context);  
         }
 
-        static auto get_node_pfn_range(NodeId nid) -> gktl::Range<Pfn>;
+        static auto get_pfn_range_node(NodeId nid) -> gktl::Range<Pfn>;
 
         static auto count_present_frames(Pfn start, Pfn end) -> usize;
+
+        static auto do_handoff() -> void;
 
         FORCE_INLINE
         static auto min_address() -> PhysAddr {  

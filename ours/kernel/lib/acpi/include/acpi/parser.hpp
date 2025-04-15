@@ -69,7 +69,7 @@ namespace acpi {
     template <typename Table>
     FORCE_INLINE 
     auto validate_table(ai_virt Table *table) -> bool {
-        if (table->header.sign != Table::SIGNATURE) {
+        if (table->header.sign != Table::kSignature) {
             return false;
         }
         if (!validate_checksum(table, table->header.size())) {

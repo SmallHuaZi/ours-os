@@ -21,10 +21,8 @@ namespace arch {
     CXX11_CONSTEXPR 
     static usize const CACHE_SIZE = ARCH_CONFIG_CACHE_SIZE;
 
-    struct Cache
-    {
-        static auto flush_line(PhysAddr phys_addr) -> void
-        {
+    struct Cache {
+        static auto flush_line(PhysAddr phys_addr) -> void {
             usize const dirty_line = phys_addr & CACHE_LINE_MASK;
             asm volatile("clflush %0" :: "m"(dirty_line): "memory");
         }

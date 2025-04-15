@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_NEW_HPP
 #define OURS_MEM_NEW_HPP 1
 
@@ -17,14 +16,26 @@
 #include <ours/marker.hpp>
 
 #include <ours/mem/gaf.hpp>
+#include <ours/mem/types.hpp>
+
+#include <arch/cache.hpp>
 
 namespace ours {
+    CXX11_CONSTEXPR
+    static auto const kPageAlign = AlignVal(PAGE_SIZE);
+
+    CXX11_CONSTEXPR
+    static auto const kMaxPageAlign = AlignVal(MAX_PAGE_SIZE);
+
+    CXX11_CONSTEXPR
+    static auto const kCacheAlign = AlignVal(arch::CACHE_SIZE);
+
     /// `Scope<T>` is a strong type allocator designed for managing the lifetime of objects.
     /// If an object is marked as `KernelObject` or `UserObject` by the macro `OURS_IMPL_MARKER_FOR`,
-    /// the instance of it will be allocated by customized methods, namely the specialization of 
+    /// the instance of it will be allocated by customized methods, namely the specialization of
     /// `Scope<T>`.
     ///
-    /// This allocator ensures type safety and proper resource management for both kernel and 
+    /// This allocator ensures type safety and proper resource management for both kernel and
     /// user objects.
     ///
     /// Using \c `Scope<T>` through the following way:
@@ -41,34 +52,61 @@ namespace ours {
 
     template <typename T>
         requires marker::HasImplementedV<T, marker::KernelObject>
-    struct Scope<T>
-    {
-        CXX23_STATIC
-        auto operator new(usize n, usize align = alignof(T)) -> void *
-        {  return operator new(n, mem::GAF_KERNEL, align);  }
+    struct Scope<T> {
+        FORCE_INLINE
+        static auto operator new(usize n, AlignVal align = AlignVal(alignof(T))) -> void * {
+            return operator new(n, mem::kGafKernel, align);
+        }
 
-        CXX23_STATIC
-        auto operator new(usize n, mem::Gaf gaf, usize align = alignof(T)) -> void *;
+        FORCE_INLINE
+        static auto operator new(usize n, AlignVal align = AlignVal(alignof(T)), mem::NodeId nid = MAX_NODES) -> void * {
+            return operator new(n, mem::kGafKernel, align, nid);
+        }
 
-        CXX23_STATIC
-        auto operator delete(void *ptr) -> void;
+        static auto operator new(usize n, mem::Gaf gaf, AlignVal align, mem::NodeId) -> void * {
+            return nullptr;
+        }
 
-        auto raw() -> T *
-        {  return static_cast<T *>(this);  }
+        FORCE_INLINE
+        static auto operator new[](usize n, AlignVal align = AlignVal(alignof(T))) -> void * {
+            return operator new(n, mem::kGafKernel, align);
+        }
+
+        FORCE_INLINE CXX23_STATIC
+        auto operator new[](usize n, AlignVal align = AlignVal(alignof(T)), mem::NodeId nid = MAX_NODES) -> void * {
+            return operator new(n, mem::kGafKernel, align, nid);
+        }
+
+        static auto operator new[](usize n, mem::Gaf gaf, AlignVal align, mem::NodeId) -> void * {
+            return nullptr;
+        }
+
+        static auto operator delete(void *ptr) -> void;
+        static auto operator delete[](void *ptr, usize count) -> void;
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        operator T*() {
+            return raw();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto raw() -> T * {
+            return reinterpret_cast<T *>(this);
+        }
     };
 
     template <typename T>
         requires marker::HasImplementedV<T, marker::UserObject>
-    struct Scope<T>
-    {
+    struct Scope<T> {
         CXX23_STATIC
         auto operator new(usize n, usize alignment = alignof(usize)) -> void *;
 
         CXX23_STATIC
         auto operator delete(void *ptr) -> void;
 
-        auto raw() -> T *
-        {  return static_cast<T *>(this);  }
+        auto raw() -> T * {
+            return static_cast<T *>(this);
+        }
     };
 
 } // namespace ours

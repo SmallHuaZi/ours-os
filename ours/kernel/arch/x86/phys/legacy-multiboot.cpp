@@ -6,28 +6,14 @@
 #include <ours/phys/arch-bootmem.hpp>
 
 #include <ustl/mem/object.hpp>
+#include <ustl/io/binary_reader.hpp>
 #include <bootmem/memblock.hpp>
 
 #include <acpi/numa.hpp>
 #include <acpi/parser.hpp>
 
 namespace ours::phys {
-    static auto print_srat() -> void {
-        struct PhysToVirtForIdentityMapping: public acpi::IPhysToVirt {
-            virtual ~PhysToVirtForIdentityMapping() = default;
-
-            auto phys_to_virt(PhysAddr addr, usize size) -> ktl::Result<ai_virt void const *> override {
-                return ktl::ok(reinterpret_cast<void const *>(addr));
-            }
-        } mapper;
-        auto parser = acpi::AcpiParser::from_rsdp(&mapper, LegacyBoot::get().acpi_rsdp);
-        acpi::enumerate_numa_region(parser.unwrap(), [] (auto domain, auto region) {
-            println("We got numa region");
-        });
-    }
-
-    static auto parse_memory_map(usize base, usize size) -> void
-    {
+    static auto parse_memory_map(usize base, usize size) -> void {
         auto mem = global_bootmem();
         auto const mmap = reinterpret_cast<MultibootTagMmap *>(base);
         auto const end = base + size - 1;
@@ -43,20 +29,24 @@ namespace ours::phys {
 
         // TODO(SmallHuaZi): This is a workaround, we should parse the video memory parameter to get the video memory range. 
         // and add it to the BootMem.
-        mem->add(0xB0000, 0x10000, bootmem::RegionType::ReservedAndNoInit);
+        mem->add(0xB0000, 0x10000, bootmem::RegionType::ReservedAndNoInit, 0);
         mem->protect(0xB0000, 0x10000);
 
         println("{:16} | {:18} | {}", "Type", "Base", "Size");
         while (usize(entry) <= end) {
             println("{:16} | 0x{:<16X} | 0x{:<X}", get_name[entry->type], entry->addr, entry->len);
             switch (entry->type) {
+                case MultibootMmapEntry::Available:
+                    mem->add(entry->addr, entry->len, bootmem::RegionType::Normal, 0);
+                    break;
+                case MultibootMmapEntry::AcpiReclaimable:
+                    mem->add(entry->addr, entry->len, bootmem::RegionType::Normal, 0);
+                    mem->protect(entry->addr, entry->len);
+                    break;
                 case MultibootMmapEntry::BadRam:
                 case MultibootMmapEntry::Reserved:
-                    mem->protect(entry->addr, entry->len);
-                    mem->add(entry->addr, entry->len, bootmem::RegionType::ReservedAndNoInit);
-                    break;
-                default:
-                    mem->add(entry->addr, entry->len, bootmem::RegionType::Normal);
+                    // mem->protect(entry->addr, entry->len);
+                    // mem->add(entry->addr, entry->len, bootmem::RegionType::ReservedAndNoInit, 0);
                     break;
             }
 
@@ -64,8 +54,7 @@ namespace ours::phys {
         }
     }
 
-    auto LegacyBoot::parse_params(usize param) -> void
-    {
+    auto LegacyBoot::parse_params(usize param) -> void {
         println("Multiboot info size {}", *reinterpret_cast<usize *>(param));
         auto tag = reinterpret_cast<MultibootTag *>(param + 8);
         while (tag->type != MULTIBOOT_TAG_TYPE_END) {
@@ -91,15 +80,13 @@ namespace ours::phys {
                 case MULTIBOOT_TAG_TYPE_ACPI_OLD: {
                     acpi_rsdp = (usize)reinterpret_cast<MultibootTagOldAcpi *>(tag)->rsdp;
                     acpi_version = 1;
-                    println("ACPI-V1, RSDP={}", acpi_rsdp);
-                    print_srat();
+                    dprintln("ACPI-V1, RSDP={}", acpi_rsdp);
                     break;
                 }
                 case MULTIBOOT_TAG_TYPE_ACPI_NEW: {
                     acpi_rsdp = (usize)reinterpret_cast<MultibootTagNewAcpi *>(tag)->rsdp;
                     acpi_version = 2;
-                    println("ACPI-V2, RSDP={}", acpi_rsdp);
-                    print_srat();
+                    dprintln("ACPI-V2, RSDP={}", acpi_rsdp);
                     break;
                 }
                 case MULTIBOOT_TAG_TYPE_MODULE: {

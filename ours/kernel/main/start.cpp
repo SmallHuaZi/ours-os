@@ -1,10 +1,14 @@
-#include <ours/platform/init.hpp>
 #include <ours/start.hpp>
 #include <ours/init.hpp>
+#include <ours/cpu-mask.hpp>
 #include <ours/cpu-local.hpp>
 #include <ours/task/thread.hpp>
+
+/// Init calls
 #include <ours/mem/init.hpp>
 #include <ours/irq/init.hpp>
+#include <ours/platform/init.hpp>
+
 #include <ours/phys/handoff.hpp>
 
 #include <logz4/log.hpp>
@@ -52,13 +56,14 @@ namespace ours {
         set_init_level(gktl::InitLevel::PlatformEarly);
 
         // At this point, `PMM` must be initialized.
-        CpuLocal::init(arch_current_cpu());
+        CpuLocal::init(cpu_possible_mask());
+        set_init_level(gktl::InitLevel::CpuLocal);
 
         mem::init_vmm();
-        set_init_level(gktl::InitLevel::VmmInitialized);
+        set_init_level(gktl::InitLevel::Vmm);
 
         irq::init_irq();
-        set_init_level(gktl::InitLevel::IrqInitialized);
+        set_init_level(gktl::InitLevel::Irq);
 
         auto const laborer = task::Thread::spawn("laborer", labour_routine);
         laborer->detach();

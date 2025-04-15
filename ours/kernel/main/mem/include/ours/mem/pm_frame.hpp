@@ -20,10 +20,57 @@
 #include <ustl/collections/intrusive/list.hpp>
 
 namespace ours::mem {
-    class alignas(64) PmFrame
-    {
+    class alignas(64) PmFrame {
         typedef PmFrame     Self;
     public:
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto init(ZoneType ztype, SecNum secnum, NodeId nid) -> void {
+            flags_.set_zone_type(ztype);
+            flags_.set_secnum(secnum);
+            flags_.set_nid(nid);
+            flags_.set_states(PfStates::Active | PfStates::UpToDate);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto nid() const -> NodeId {
+            return flags_.nid();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto zone() const -> ZoneType {
+            return flags_.zone_type();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto secnum() const -> SecNum {
+            return flags_.secnum();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto order() const -> SecNum {
+            return flags_.order();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_order(usize order) -> void {
+            flags_.set_order(order);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto reserve() -> void {
+            flags_.set_states(PfStates::Reserved);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto role() const -> PfRole {
+            return this->flags_.role();
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto set_role(PfRole role) -> void {
+            flags_.set_role(role);
+        }
+
         FORCE_INLINE CXX11_CONSTEXPR
         auto flags() -> FrameFlags & {
             return this->flags_;
@@ -44,9 +91,11 @@ namespace ours::mem {
             num_mappings_ += 1;
         }
 
+        auto dump() const -> void;
+
     private:
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
-        
+
         /// Maybe simultaneously held by multi-VmPage.
         mutable ustl::sync::AtomicU16 num_mappings_;
         mutable ustl::sync::AtomicU16 num_references_;
@@ -59,12 +108,14 @@ namespace ours::mem {
     static_assert(sizeof(PmFrame) <= sizeof(usize) << 8, "");
 
     FORCE_INLINE
-    auto operator==(PmFrame const &x, PmFrame const &y) -> bool
-    {  return &x == &y;  }
+    auto operator==(PmFrame const &x, PmFrame const &y) -> bool {
+        return &x == &y;
+    }
 
     FORCE_INLINE
-    auto operator!=(PmFrame const &x, PmFrame const &y) -> bool
-    {  return &x != &y;  }
+    auto operator!=(PmFrame const &x, PmFrame const &y) -> bool {
+        return &x != &y;
+    }
 
 } // namespace ours::mem
 

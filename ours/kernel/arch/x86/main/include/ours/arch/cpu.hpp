@@ -21,6 +21,8 @@ namespace ours {
 
     auto arch_deactivate_cpu(CpuNum) -> Status;
 
+    auto x86_init_percpu(CpuNum cpunum) -> void;
+
 } // namespace ours
 
 #endif // #ifndef OURS_ARCH_CPU_HPP

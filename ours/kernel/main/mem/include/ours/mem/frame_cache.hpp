@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_FRAME_CACHE_HPP
 #define OURS_MEM_FRAME_CACHE_HPP 1
 

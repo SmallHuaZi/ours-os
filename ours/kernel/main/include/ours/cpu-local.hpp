@@ -27,6 +27,7 @@
 #include <ustl/mem/align.hpp>
 #include <ustl/traits/integral.hpp>
 #include <ustl/function/invoke.hpp>
+#include <ustl/traits/invoke_result.hpp>
 
 #ifndef DEBUG_ASSERT
 #   define DEBUG_ASSERT(...)
@@ -38,11 +39,10 @@
 
 namespace ours {
     template <typename T>
-    struct PerCpu
-    {
+    struct PerCpu {
         template <typename F>
             requires ustl::traits::Invocable<F, T &>
-        auto with_current(F &&f)
+        auto with_current(F &&f) -> ustl::traits::InvokeResultT<F, T &>
         {}
 
         T *value_;
@@ -77,7 +77,9 @@ namespace ours {
         typedef CpuLocal    Self;
     public:
         INIT_CODE
-        static auto init_early() -> void;
+        static auto init_early() -> void {
+            arch_install(0);
+        }
 
         INIT_CODE
         static auto init(CpuMask const &cpus) -> Status;
@@ -86,7 +88,7 @@ namespace ours {
         static auto init_percpu() -> void {
             auto const thiscpu = arch_current_cpu();
             arch_install(s_cpu_offset[thiscpu]);
-            *access(&s_current_cpu_offset) = s_cpu_offset[thiscpu];
+            write(s_current_cpu_offset, s_cpu_offset[thiscpu]);
         }
 
         template <typename Integral>

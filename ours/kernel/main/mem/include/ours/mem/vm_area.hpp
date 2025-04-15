@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_VM_AREA_HPP
 #define OURS_MEM_VM_AREA_HPP 1
 

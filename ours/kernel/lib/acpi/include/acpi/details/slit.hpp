@@ -25,7 +25,7 @@ namespace acpi {
         u8 entry[];
 
         CXX11_CONSTEXPR
-        static AcpiSignature const SIGNATURE{"SLIT"};
+        static AcpiSignature const kSignature{"SLIT"};
     };
 
 } // namespace acpi

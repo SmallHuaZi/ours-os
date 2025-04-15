@@ -26,8 +26,7 @@ using ustl::algorithms::clamp;
 using ustl::mem::construct_at;
 
 namespace ours::mem {
-    struct PresetVmaInfo
-    { 
+    struct PresetVmaInfo {
         char const *name;
         VirtAddr base;
         usize size;
@@ -43,7 +42,7 @@ namespace ours::mem {
         PaddingVma,
         MaxNumPresetVmas,
     };
-    static ustl::LazyInit<VmArea> PRESET_VMAS[MaxNumPresetVmas];
+    static ustl::LazyInit<VmArea> s_named_preset_vmas[MaxNumPresetVmas];
 
     CXX11_CONSTEXPR
     static VmaFlags const PRESET_VMAF = VmaFlags::Mapped;
@@ -52,7 +51,7 @@ namespace ours::mem {
     static MmuFlags const PRESET_MMUF = MmuFlags::PermMask;
 
     INIT_DATA
-    static PresetVmaInfo NAMED_PRESET_VMAS[] = {
+    static PresetVmaInfo s_preset_vmas[] = {
         {
             .name = "k:image",
             // If ASLR(Address space layout randomilization) enabled, this needs to fix up with get_kernel_virt_base().
@@ -60,7 +59,7 @@ namespace ours::mem {
             .size = usize(kImageEnd - kImageStart),
             .rights = PRESET_MMUF,
             .flags = VmaFlags::Mapped,
-            .altvma = PRESET_VMAS[KernelImageVma].data(),
+            .altvma = s_named_preset_vmas[KernelImageVma].data(),
         },
         {
             .name = "k:physmap",
@@ -69,7 +68,7 @@ namespace ours::mem {
             .size = PhysMap::kSize,
             .rights = PRESET_MMUF,
             .flags = VmaFlags::Mapped,
-            .altvma = PRESET_VMAS[PhysMapVma].data(),
+            .altvma = s_named_preset_vmas[PhysMapVma].data(),
         },
         {
             .name = "k:padding",
@@ -77,13 +76,12 @@ namespace ours::mem {
             // Reserve a max page to prevent over prevent overwring.
             .size = MAX_PAGE_SIZE,
             .rights = PRESET_MMUF,
-            .altvma = PRESET_VMAS[PaddingVma].data(),
+            .altvma = s_named_preset_vmas[PaddingVma].data(),
         },
     };
 
     INIT_CODE
-    static auto init_vmm_preheap() -> void
-    {
+    static auto init_vmm_preheap() -> void {
         VmAspace::init_kernel_aspace();
         auto kaspace = VmAspace::kernel_aspace();
 
@@ -93,13 +91,13 @@ namespace ours::mem {
             isize const delta = real_load_addr - link_load_addr;
 
             for (auto i = 0; i < MaxNumPresetVmas; ++i) {
-                NAMED_PRESET_VMAS[i].base += delta;
+                s_preset_vmas[i].base += delta;
             }
         }
 
         // Initialize all of named vmas.
         for (auto i = 0; i < MaxNumPresetVmas; ++i) {
-            auto const &region = NAMED_PRESET_VMAS[i];
+            auto const &region = s_preset_vmas[i];
             auto vma = ustl::make_rc<VmArea>(
                 construct_at(region.altvma, kaspace, region.base, region.size, region.rights, region.flags, region.name)
             );
@@ -108,14 +106,13 @@ namespace ours::mem {
     }
 
     INIT_CODE
-    static auto init_heap() -> void
-    {
+    static auto init_heap() -> void {
 
     }
 
     /// Used in init_vmm_postheap
     INIT_DATA
-    static PresetVmaInfo kKernelVmas[] = {
+    static PresetVmaInfo s_kernel_vmas[] = {
         {
             .name = "k:code",
             .base = VirtAddr(kKernelCodeStart),
@@ -149,8 +146,7 @@ namespace ours::mem {
     };
 
     INIT_CODE
-    static auto init_vmm_postheap() -> void
-    {
+    static auto init_vmm_postheap() -> void {
         auto kaspace = VmAspace::kernel_aspace();
 
         if constexpr (OURS_CONFIG_KASLR) {
@@ -159,11 +155,11 @@ namespace ours::mem {
             isize const delta = real_load_addr - link_load_addr;
 
             for (auto i = 0; i < MaxNumPresetVmas; ++i) {
-                kKernelVmas[i].base += delta;
+                s_kernel_vmas[i].base += delta;
             }
         }
 
-        for (auto &region: kKernelVmas) {
+        for (auto &region: s_kernel_vmas) {
             kaspace->root_area().reserve_subvma(region.name, region.base, region.size, region.rights);
         }
     }
@@ -171,8 +167,7 @@ namespace ours::mem {
     /// Requires:
     ///     1). 
     INIT_CODE 
-    auto init_vmm() -> void 
-    {  
+    auto init_vmm() -> void {
         init_vmm_preheap();
 
         init_heap();

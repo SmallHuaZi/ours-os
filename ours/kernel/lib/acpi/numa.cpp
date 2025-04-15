@@ -5,24 +5,8 @@
 using ours::Status;
 
 namespace acpi {
-    auto count_numa_domain(IAcpiParser const &parser) -> usize {
-        auto const header = get_table_by_signature(parser, AcpiSignature{"SLIT"});
-        if (!header) {
-            return 0;
-        }
-
-        auto slit = reinterpret_cast<AcpiSlit const *>(header);
-        return slit->locality_count;
-    }
-
-    auto enumerate_numa_region(IAcpiParser const &parser, NumaRegionCommitFn const &commit) -> Status {
-        auto const srat = get_table_by_signature(parser, AcpiSignature{"SRAT"});
-        if (!srat) {
-            return Status::NotFound;
-        }
-
-        ustl::io::BinaryReader reader(srat, srat->size());
-        reader.skip_bytes(sizeof(AcpiSrat));
+    auto enumerate_numa_region(AcpiSrat const &srat, NumaRegionCommitFn const &commit) -> Status {
+        auto reader = ustl::io::BinaryReader::from_payload_of_struct(&srat);
         while (reader) {
             auto header = reader.read<AcpiEntryHeader>();
             if (!header) {
@@ -49,20 +33,15 @@ namespace acpi {
         return Status::Ok;
     }
 
-    auto enumerate_cpu_numa_pairs(IAcpiParser const &parser, CpuNumaPairsCommitFn const &commit) -> Status {
-        auto const srat = get_table_by_signature(parser, AcpiSignature{"SRAT"});
-        if (!srat) {
-            return Status::NotFound;
-        }
-        ustl::io::BinaryReader reader(srat, srat->size());
-        reader.skip_bytes(sizeof(AcpiSrat));
+    /// Parse SRAT to acquire the map between APICID and proximity domain(namely NUMA domain).
+    auto enumerate_cpu_numa_pairs(AcpiSrat const &srat, CpuNumaPairsCommitFn const &commit) -> ours::Status {
+        auto reader = ustl::io::BinaryReader::from_payload_of_struct(&srat);
         while (reader) {
             auto header = reader.read<AcpiEntryHeader>();
             if (!header) {
                 return Status::InternalError;
             }
 
-            reader.skip_bytes(header->size() - sizeof(AcpiEntryHeader));
             if (header->type == AcpiSratTypeProcessorAffinity) {
                 auto processor = downcast<AcpiSratProcessorAffinityEntry>(header);
                 if (!processor) {
@@ -87,18 +66,12 @@ namespace acpi {
         return Status::Ok;
     }
 
-    auto enumerate_numa_domain_distance(IAcpiParser const &parser, NumaDistanceCommitFn const &commit) -> Status
-    {
-        auto const slit_header = get_table_by_signature(parser, AcpiSignature{"SLIT"});
-        if (!slit_header)  {
-            return Status::NotFound;
-        }
-
-        auto slit = reinterpret_cast<AcpiSlit const *>(slit_header);
-        auto const num_domain = slit->locality_count;
+    /// Parse SLIT to acquire the distance map among all proximity domains.
+    auto enumerate_numa_domain_distance(AcpiSlit const &slit, NumaDistanceCommitFn const &commit) -> Status {
+        auto const num_domain = slit.locality_count;
         for (u64 i = 0; i < num_domain; ++i) {
             for (u64 j = 0; j < num_domain; ++j) {
-                commit(i, j, slit->entry[i * num_domain + j]);
+                commit(i, j, slit.entry[i * num_domain + j]);
             }
         }
 

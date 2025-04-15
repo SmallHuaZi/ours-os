@@ -9,8 +9,9 @@ namespace acpi {
     using ours::Status;
 
     template <typename Entry, typename Visitor>
+    FORCE_INLINE
     auto enumerate_madt_entry_for_type(AcpiParser const &parser, u8 const type, Visitor visitor) -> Status {
-        auto const madt = get_table_by_signature(parser, AcpiSignature("SART"));
+        auto const madt = get_table_by_signature(parser, AcpiMadt::kSignature);
         ustl::io::BinaryReader reader(madt, madt->size());
         while (reader) {
             auto header = reader.read<AcpiEntryHeader>();

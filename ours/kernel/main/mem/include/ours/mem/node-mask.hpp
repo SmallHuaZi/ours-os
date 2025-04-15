@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_MEM_NODE_MASK_HPP
 #define OURS_MEM_NODE_MASK_HPP 1
 
@@ -27,11 +26,27 @@ namespace ours::mem {
 
         template <typename F>
             requires ustl::traits::Invocable<F, NodeId>
-        auto for_each(F &&functor) const -> void
-        {
+        auto for_each(F &&functor) const -> void {
             auto const n = this->size();
             for (NodeId nid = 0; nid < n; ++nid) {
-                ustl::function::invoke(functor, nid);
+                if (this->test(nid)) {
+                    ustl::function::invoke(functor, nid);
+                }
+            }
+        }
+
+        template <typename F>
+            requires ustl::traits::Invocable<F, NodeId>
+        auto find(F &&matcher) const -> NodeId {
+            auto const n = this->size();
+            for (NodeId nid = 0; nid < n; ++nid) {
+                if (this->test(nid)) {
+                    continue;
+                }
+
+                if (matcher(nid)) {
+                    return nid;
+                }
             }
         }
     };

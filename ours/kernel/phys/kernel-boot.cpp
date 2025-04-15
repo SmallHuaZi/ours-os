@@ -60,7 +60,7 @@ namespace ours::phys {
     auto KernelBoot::load() -> void {
         auto const image_size = ustl::mem::align_up(kimage_.size(), PAGE_SIZE);
         auto const mem = global_bootmem();
-        PhysAddr target_addr = mem->allocate(image_size, MAX_PAGE_SIZE);
+        PhysAddr target_addr = mem->allocate(image_size, kMaxPageAlign);
         if (!target_addr) {
             panic("No enough memory to place image");
         }

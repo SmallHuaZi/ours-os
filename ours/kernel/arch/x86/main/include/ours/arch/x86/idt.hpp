@@ -8,14 +8,18 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_ARCH_MEM_CFG_HPP
-#define OURS_ARCH_MEM_CFG_HPP 1
+#ifndef OURS_ARCH_X86_IDT_HPP
+#define OURS_ARCH_X86_IDT_HPP 1
 
-#include <ours/mem/init.hpp>
-#include <ustl/util/type-list.hpp>
+namespace ours {
+    auto x86_init_idt_early() -> void;
 
-#define ARCH_MAX_DMA_PFN        (MB(16) >> PAGE_SHIFT)
-#define ARCH_MAX_DMA32_PFN      (GB(32) >> PAGE_SHIFT)
-#define ARHC_MAX_POSIIBLE_PFN   (GB(64) >> PAGE_SHIFT)
+    auto x86_setup_idt() -> void;
 
-#endif // #ifndef OURS_ARCH_MEM_CFG_HPP
+    auto x86_load_idt() -> void;
+
+    auto x86_dump_idt() -> void;
+
+} // namespace ours
+
+#endif // #ifndef OURS_ARCH_X86_IDT_HPP

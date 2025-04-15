@@ -17,6 +17,8 @@
 #include <ktl/result.hpp>
 #include <ustl/option.hpp>
 #include <ustl/limits.hpp>
+#include <ours/types.hpp>
+#include <ours/mem/new.hpp>
 
 namespace ours::phys {
     struct Aspace {
@@ -95,7 +97,7 @@ namespace ours::phys {
     private:
         /// Arch-implementation
         auto arch_install() const -> void;
-        auto alloc_page_table(usize size, usize alignment) const -> PhysAddr;
+        auto alloc_page_table(usize size, AlignVal alignment) const -> PhysAddr;
 
         PhysAddr lower_pgd_;
         PhysAddr upper_pgd_;

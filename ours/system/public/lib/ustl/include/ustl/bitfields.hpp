@@ -47,78 +47,94 @@ namespace bitfields {
     static auto const ID_NONE = ustl::NumericLimits<usize>::DIGITS;
 
     USTL_CONSTEXPR
-    static auto const START_BIT_NONE = ustl::NumericLimits<usize>::DIGITS;
+    static auto const kStartBitNone = ustl::NumericLimits<usize>::DIGITS;
 
     /// Manually specifies the ID of a field. If not provided, it defaults to 
     /// an auto-incrementing strategy.
-    USTL_CONSTANT_OPTION(Id, usize, ID);
+    USTL_CONSTANT_OPTION(Id, usize, kId);
 
     /// Indicates how many bits the field needs.
-    USTL_CONSTANT_OPTION(Bits, usize, BITS);
+    USTL_CONSTANT_OPTION(Bits, usize, kBits);
 
     /// Explicitly specify the start bit of a field. Please use with caution, 
     /// as there is a high probability of overlap with other fields.
-    USTL_CONSTANT_OPTION(StartBit, usize, START_BIT);
+    USTL_CONSTANT_OPTION(StartBit, usize, kStartBit);
 
     /// The name of field used for pretty printting.
-    USTL_CONSTANT_OPTION(Name, util::FixedString, NAME);
+    USTL_CONSTANT_OPTION(Name, util::FixedString, kName);
 
     /// Enable or disable the field. If a field is disabled, it will not consume 
     /// memory, and any operations applied to it will have no effect.
-    USTL_CONSTANT_OPTION(Enable, bool, ENABLE);
+    USTL_CONSTANT_OPTION(Enable, bool, kEnable);
+
+    /// Imply that the field do not need any bit-shift
+    USTL_CONSTANT_OPTION(Natural, bool, kNatural);
 
     /// Specify the storage type of the field. This offers convenience by reducing 
     /// the need to explicitly provide the ID when invoking get and set methods.
     USTL_TYPE_OPTION(Type, ValueType);
 
     /// Metadata for a single field.
-    template<typename StorageUnit, int Id, int StartBit, int Bits, typename Type, util::FixedString Name, bool Enable>
+    template<typename StorageUnit, int Id, int StartBit, int Bits, typename Type, util::FixedString Name, 
+             bool Enable, bool Natural>
     struct FieldMetaData {
         USTL_CONSTEXPR
-        static auto const IS_TEMPORARY = traits::IsVoidV<StorageUnit>;
-        typedef traits::ConditionalT<IS_TEMPORARY, usize, StorageUnit>   StorageUnitType;
+        static auto const kIsTemporaryField = traits::IsVoidV<StorageUnit>;
+        typedef traits::ConditionalT<kIsTemporaryField, usize, StorageUnit>   StorageUnitType;
 
         /// The following is interface members.
 
         typedef Type    ValueType;
 
         USTL_CONSTEXPR
-        static auto const ID = Id;
+        static auto const kId = Id;
 
         USTL_CONSTEXPR
-        static auto const BITS = Bits;
+        static auto const kBits = Bits;
 
         // Validate the range of filed .
-        static_assert(BITS <= ustl::NumericLimits<StorageUnitType>::DIGITS,
+        static_assert(kBits <= ustl::NumericLimits<StorageUnitType>::DIGITS,
                      "[ustl-error]: The field can not be cross multiple units");
 
         USTL_CONSTEXPR
-        static StorageUnitType const START_BIT = StartBit;
+        static StorageUnitType const kStartBit = StartBit;
 
         USTL_CONSTEXPR
-        static StorageUnitType const SHIFT = IS_TEMPORARY ? 0 : (START_BIT % ustl::NumericLimits<StorageUnitType>::DIGITS);
+        static StorageUnitType const kRealShift = {
+            kIsTemporaryField ? 0 : (kStartBit % ustl::NumericLimits<StorageUnitType>::DIGITS)
+        };
+
+        USTL_CONSTEXPR
+        static StorageUnitType const kShift = {
+            Natural ? 0 : kRealShift 
+        };
 
         // Validate the range of filed .
-        static_assert(SHIFT + BITS <= ustl::NumericLimits<StorageUnitType>::DIGITS,
+        static_assert(kShift + kBits <= ustl::NumericLimits<StorageUnitType>::DIGITS,
                      "[ustl-error]: The field can not be cross multiple units");
 
         USTL_CONSTEXPR
-        static StorageUnitType const MASK = IS_TEMPORARY ? 0 : MakeBitMask<StorageUnitType, SHIFT, BITS>::VALUE;
+        static StorageUnitType const kMask = {
+            kIsTemporaryField ? 0 : MakeBitMask<StorageUnitType, kRealShift, kBits>::VALUE
+        };
 
         USTL_CONSTEXPR
-        static auto const UNIT = IS_TEMPORARY ? 0 : StartBit / ustl::NumericLimits<StorageUnitType>::DIGITS;
+        static auto const kUnit = kIsTemporaryField ? 0 : StartBit / ustl::NumericLimits<StorageUnitType>::DIGITS;
 
         USTL_CONSTEXPR
-        static auto const NAME = Name;
+        static auto const kName = Name;
 
         USTL_CONSTEXPR
-        static auto const ENABLE = Enable;
+        static auto const kEnable = Enable;
+
+        USTL_CONSTEXPR
+        static auto const kNatural = Natural;
     };
 
     template <int Bits>
     struct SkipBit {
         USTL_CONSTEXPR
-        static auto const ID = ustl::NumericLimits<int>::max();
+        static auto const kId = ustl::NumericLimits<int>::max();
     };
 
     struct DefaultFieldMetaData {
@@ -126,16 +142,19 @@ namespace bitfields {
         typedef void    StorageUnitType;
 
         USTL_CONSTEXPR
-        static auto const BITS = 1;
+        static auto const kBits = 1;
 
         USTL_CONSTEXPR
-        static auto const START_BIT = START_BIT_NONE;
+        static auto const kStartBit = kStartBitNone;
 
         USTL_CONSTEXPR
-        static auto const ENABLE = true;
+        static auto const kEnable = true;
 
         USTL_CONSTEXPR
-        static util::FixedString const NAME{"Anonymous"};
+        static auto const kNatural = false;
+
+        USTL_CONSTEXPR
+        static util::FixedString const kName{"Anonymous"};
     };
 
     /// Make a metadata block from the given options.
@@ -152,12 +171,13 @@ namespace bitfields {
 
         typedef FieldMetaData<
             typename PackedOption::StorageUnitType,
-            PackedOption::ID,
-            PackedOption::START_BIT,
-            PackedOption::BITS,
+            PackedOption::kId,
+            PackedOption::kStartBit,
+            PackedOption::kBits,
             typename PackedOption::ValueType,
-            PackedOption::NAME,
-            PackedOption::ENABLE
+            PackedOption::kName,
+            PackedOption::kEnable,
+            PackedOption::kNatural
         > Type;
     };
 
@@ -182,21 +202,21 @@ namespace bitfields {
     template <typename Storage, int BitAcc, typename HeadField, typename... TailFields>
     struct RelocateFields<Storage, TypeList<HeadField, TailFields...>, BitAcc> {
         USTL_CONSTEXPR
-        static auto const WAS_START_BIT_GIVEN = HeadField::START_BIT != START_BIT_NONE;
+        static auto const WAS_START_BIT_GIVEN = HeadField::kStartBit != kStartBitNone;
 
         // Validate the given start bit
-        static_assert(!WAS_START_BIT_GIVEN || HeadField::START_BIT >= BitAcc,
+        static_assert(!WAS_START_BIT_GIVEN || HeadField::kStartBit >= BitAcc,
                       "[ustl-error]: The start bit of a field specified manually "
                       "by user must not overlap with other fields");
 
         USTL_CONSTEXPR
-        static auto const START_BIT = WAS_START_BIT_GIVEN ? HeadField::START_BIT : BitAcc;
+        static auto const kStartBit = WAS_START_BIT_GIVEN ? HeadField::kStartBit : BitAcc;
 
         // Do recursion to get the result from sub-branch.
-        typedef typename RelocateFields<Storage, TypeList<TailFields...>, START_BIT + HeadField::BITS>::Type
+        typedef typename RelocateFields<Storage, TypeList<TailFields...>, kStartBit + HeadField::kBits>::Type
             NewFieldListWithoutHeadField;
         // Then we first fix the head field up.
-        typedef typename MakeBitField<HeadField, StorageUnit<Storage>, StartBit<START_BIT>>::Type
+        typedef typename MakeBitField<HeadField, StorageUnit<Storage>, StartBit<kStartBit>>::Type
             HeadFieldRelocated;
         // Merge results from sub-branch and this node then to return it to parent node.
         typedef TypeAlgos::PushFront<NewFieldListWithoutHeadField, HeadFieldRelocated>
@@ -221,7 +241,7 @@ namespace bitfields {
     template <typename HeadField, typename... Fields>
     struct FilterDisabledFields<TypeList<HeadField, Fields...>> {
         typedef typename FilterDisabledFields<TypeList<Fields...>>::Type NewFieldListWithoutHeadField;
-        typedef traits::ConditionalT<HeadField::ENABLE, 
+        typedef traits::ConditionalT<HeadField::kEnable, 
             TypeAlgos::PushFront<NewFieldListWithoutHeadField, HeadField>,
             NewFieldListWithoutHeadField
         > Type;
@@ -253,7 +273,7 @@ namespace bitfields {
     {
         template <typename Field>
         struct HasSameId
-            : public traits::BoolConstant<HeadField::ID == Field::ID>
+            : public traits::BoolConstant<HeadField::kId == Field::kId>
         {  typedef bool    RetType;  };
 
         template <int BitsSkipped>
@@ -278,7 +298,7 @@ namespace bitfields {
     struct GetField<TypeList<Fields...>, Id>
     {
         template <typename Field>
-        using Matcher = traits::BoolConstant<Id == Field::ID>;
+        using Matcher = traits::BoolConstant<Id == Field::kId>;
 
         typedef typename util::FindIf<Matcher, Fields...>::Type  Type;
         static_assert(!traits::IsSameV<Type, Monostate>, "The type corresponding to `ID` not exists");
@@ -302,7 +322,7 @@ namespace bitfields {
     {
         template <typename Field>
         struct GetOccupiedBits
-            : public traits::IntConstant<Field::BITS>
+            : public traits::IntConstant<Field::kBits>
         {  typedef isize    RetType;  };
 
         template <int BitsSkipped>
@@ -359,12 +379,11 @@ namespace bitfields {
         };
 
         template <typename Field>
-        struct GetOccupiedBits
-        {
+        struct GetOccupiedBits {
             typedef usize    RetType;
 
             USTL_CONSTEXPR
-            static auto const VALUE = MatchWithGivenIds<Field>::VALUE ? Field::BITS : 0;
+            static auto const VALUE = MatchWithGivenIds<Field>::VALUE ? Field::kBits : 0;
         };
 
         USTL_CONSTEXPR
@@ -406,7 +425,7 @@ namespace bitfields {
 
         template <usize Id>
         USTL_CONSTEXPR
-        static auto const IsFieldEnabledV = GetFieldT<FieldList, Id>::ENABLE;
+        static auto const IsFieldEnabledV = GetFieldT<FieldList, Id>::kEnable;
 
         template <usize Id>
         using ValueTypeOf = typename GetFieldT<FieldList, Id>::ValueType;
@@ -483,9 +502,9 @@ namespace bitfields {
         auto priv_set(ValueTypeOf<Id> const &value, traits::TrueType) USTL_NOEXCEPT -> void {
             // Defining the variables is just to observe their value. Usually them will
             // be optimized out. So don't worry that them occupy the statck space.
-            USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::UNIT;
-            USTL_CONSTEXPR usize const mask = GetFieldT<FieldList, Id>::MASK;
-            USTL_CONSTEXPR usize const shift = GetFieldT<FieldList, Id>::SHIFT;
+            USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::kUnit;
+            USTL_CONSTEXPR usize const mask = GetFieldT<FieldList, Id>::kMask;
+            USTL_CONSTEXPR usize const shift = GetFieldT<FieldList, Id>::kShift;
 
             values[idx] &= ~mask;
             values[idx] |= usize(value) << shift;
@@ -500,9 +519,9 @@ namespace bitfields {
         USTL_FORCEINLINE USTL_CONSTEXPR
         auto priv_get(traits::TrueType) const USTL_NOEXCEPT -> ValueTypeOf<Id> {
             typedef ValueTypeOf<Id> Result;
-            USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::UNIT;
-            USTL_CONSTEXPR usize const mask = GetFieldT<FieldList, Id>::MASK;
-            USTL_CONSTEXPR usize const shift = GetFieldT<FieldList, Id>::SHIFT;
+            USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::kUnit;
+            USTL_CONSTEXPR usize const mask = GetFieldT<FieldList, Id>::kMask;
+            USTL_CONSTEXPR usize const shift = GetFieldT<FieldList, Id>::kShift;
             return Result((values[idx] & mask) >> shift);
         }
 

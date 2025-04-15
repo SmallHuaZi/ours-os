@@ -4,14 +4,24 @@
 #include <ours/init.hpp>
 #include <ours/assert.hpp>
 
+#include <logz4/log.hpp>
+
 namespace ours::mem {
     FORCE_INLINE
-    static auto frame_is_buddy(PmFrame *self, PmFrame *buddy) -> bool 
-    {
+    static auto frame_is_buddy(PmFrame *self, PmFrame *buddy) -> bool {
         if (!buddy->flags().is_role(PfRole::Pmm)) {
             return false;
         }
-        if (self->flags().zone_type() != buddy->flags().zone_type()) {
+        if (self->zone() != buddy->zone()) {
+            return false;
+        }
+        if (self->secnum() != buddy->secnum()) {
+            return false;
+        }
+        if (self->nid() != buddy->nid()) {
+            return false;
+        }
+        if (self->order() != buddy->order()) {
             return false;
         }
 
@@ -19,16 +29,93 @@ namespace ours::mem {
     }
 
     FORCE_INLINE
-    static auto get_buddy(PmFrame *frame, Pfn pfn, usize order) -> PmFrame *
-    {
-        auto buddy_pfn = pfn + (1 << (order - 1));
-        if (auto buddy_frame = MemoryModel::pfn_to_frame(buddy_pfn)) {
+    static auto get_buddy(PmFrame *frame, Pfn pfn, usize order) -> PmFrame * {
+        auto const buddy_pfn = pfn + (1 << order);
+        if (auto buddy_frame = pfn_to_frame(buddy_pfn)) {
             if (frame_is_buddy(frame, buddy_frame)) {
                 return buddy_frame;
             }
         }
 
-        return 0;
+        return nullptr;
+    }
+
+    FORCE_INLINE
+    auto FrameSet::has_frame(usize order) const -> bool {
+        return !lists_[order].empty();
+    }
+
+    FORCE_INLINE
+    auto FrameSet::get_frame(usize order) -> PmFrame * {
+        return &lists_[order].front();
+    }
+
+    FORCE_INLINE
+    auto FrameSet::remove_frame(PmFrame *frame, usize order) -> void {
+        auto const to_erase = lists_[order].iterator_to(*frame);
+        lists_[order].erase(to_erase);
+        frame->set_role(PfRole::None);
+    }
+
+    FORCE_INLINE
+    auto FrameSet::insert_frame(PmFrame *frame, usize order) -> void {
+        lists_[order].push_back(*frame);
+        frame->set_role(PfRole::Pmm);
+        frame->set_order(order);
+    }
+
+    auto FrameSet::acquire_frame_inner(PmFrame *frame, usize lower_order, usize upper_order) -> PmFrame * {
+        auto const pfn = frame_to_pfn(frame);
+        for (auto order = upper_order - 1; order >= lower_order; --order) {
+            auto buddy = get_buddy(frame, pfn, order);
+            insert_frame(buddy, order);
+        }
+        frame->set_order(lower_order);
+
+        return frame;
+    }
+
+    auto FrameSet::acquire_frame_locked(usize target_order) -> PmFrame * {
+        for (auto order = target_order; order < kNumOrders; ++order) {
+            if (!has_frame(order)) {
+                continue;
+            }
+            
+            auto frame = get_frame(order);
+            remove_frame(frame, order);
+            acquire_frame_inner(frame, order, target_order);
+            return frame;
+        }
+
+        return nullptr;
+    }
+
+
+    auto FrameSet::release_frame_inner(PmFrame *frame, Pfn pfn, usize order) -> void {
+        // Do fold
+        for (auto i = order; i < kMaxFrameOrder; ++i) {
+            auto buddy_frame = get_buddy(frame, pfn, order);
+            if (!buddy_frame) {
+                break;
+            }
+
+            remove_frame(buddy_frame, order);
+            order += 1;
+        }
+
+        insert_frame(frame, order);
+    }
+
+    auto FrameSet::release_frame_locked(PmFrame *frame, usize order) -> void {
+        auto pfn = frame_to_pfn(frame);
+        auto const end_pfn = pfn + (1 << order);
+
+        order = ustl::algorithms::min(order, kMaxFrameOrder);
+        while (pfn != end_pfn) {
+            release_frame_inner(frame, pfn, order);
+            pfn += 1 << order;
+            frame = pfn_to_frame(pfn);
+        }
     }
 
     INIT_CODE 
@@ -38,135 +125,49 @@ namespace ours::mem {
     // Requires:
     //      1. @map is must zeroed.
     INIT_CODE 
-    auto PmZone::init(NodeId nid, ZoneType type, Pfn start_pfn, Pfn end_pfn, usize present_frames) -> void
-    {
+    auto PmZone::init(NodeId nid, ZoneType type, Pfn start_pfn, Pfn end_pfn, usize present_frames) -> void {
         DEBUG_ASSERT(type < ZoneType::MaxNumZoneType);
 
         canary_.verify();
 
         name_ = to_string(type);
+        type_ = type;
         nid_ = nid;
         start_pfn_ = start_pfn;
         spanned_frames_ = end_pfn - start_pfn;
         present_frames_ = present_frames;
-
-        init_frame_cache();
     }
 
-    /// |frame| do not exists in `free_list_`
-    ///
-    ///
-    FORCE_INLINE
-    auto PmZone::remove_frame_from_free_list(PmFrame *frame, usize order) -> void
-    {
-        auto const to_erase = free_list_[order].iterator_to(*frame);
-        free_list_[order].erase(to_erase);
+    auto PmZone::finish_allocation(PmFrame *frame, Gaf gaf, usize order) -> void {
+        managed_frames_ -= BIT(order);
     }
 
-    auto PmZone::expand_frame(PmFrame *frame, usize low_order, usize high_order) -> void
-    {
-        DEBUG_ASSERT(low_order >= 0);
-        DEBUG_ASSERT(high_order > low_order);
-
-        auto const pfn = MemoryModel::frame_to_pfn(frame);
-        for (auto order = high_order - 1; order >= low_order; --order) {
-            if (auto buddy_frame = get_buddy(frame, pfn, order)) {
-                free_list_[order].push_back(*frame);
-            }
-        }
-    }
-
-    FORCE_INLINE
-    auto PmZone::remove_and_split_frame(PmFrame *frame, usize order, usize target_order) -> void
-    {
-        remove_frame_from_free_list(frame, order);
-        return expand_frame(frame, order, target_order);
-    }
-
-    auto PmZone::take_frame_from_free_list_locked(usize order) -> PmFrame *
-    {
-        auto const max_order  = free_list_.size();
-        for (auto i = order; i < max_order; ++i) {
-            if (free_list_[i].empty()) {
-                continue;
-            }
-            
-            auto frame = &free_list_[i].front();
-            remove_and_split_frame(frame, i, order);
-            return frame;
-        }
-
-        return nullptr;
-    }
-
-    FORCE_INLINE
-    auto PmZone::take_frame_from_free_list(usize order) -> PmFrame *
-    {
-        ustl::sync::LockGuard<decltype(mutex_)> guard(mutex_);
-        return this->take_frame_from_free_list_locked(order);
-    }
-
-    auto PmZone::alloc_frame(Gaf gaf, usize order) -> PmFrame *
-    {
+    auto PmZone::alloc_frame(Gaf gaf, usize order) -> PmFrame * {
+        PmFrame *result = nullptr;
         if (is_order_within_pcpu_cache_limit(order)) {
-            if (auto frame = frame_cache_[order].take_object()) {
-                return frame;
-            }
+            result = frame_cache_.with_current([order] (FrameCache &cache) {
+                return cache.take_object();
+            });
         }
 
-        return this->take_frame_from_free_list(order);
-    }
-
-    auto PmZone::free_single_frame(PmFrame *frame, Pfn pfn, usize order) -> void
-    {
-        auto const nr_orders  = free_list_.capacity();
-
-        // Do fold
-        for (auto i = order; i < nr_orders; ++i) {
-            auto buddy_frame = get_buddy(frame, pfn, order);
-            if (!buddy_frame) {
-                break;
-            }
-
-            remove_frame_from_free_list(buddy_frame, order);
-            order += 1;
+        if (!result) {
+            result = fset_.acquire_frame(order);
         }
 
-        free_list_[order].push_back(*frame);
-    }
-
-    auto PmZone::free_large_frame_block(PmFrame *frame, Pfn pfn, usize order) -> void
-    {
-        auto const end_pfn = pfn + (1 << order);
-        auto const max_order = free_list_.capacity() - 1;
-
-        order = ustl::algorithms::min(order, max_order);
-
-        while (pfn != end_pfn) {
-            free_single_frame(frame, pfn, order);
-            pfn += 1 << order;
-            frame = MemoryModel::pfn_to_frame(pfn);
+        if (result) {
+            finish_allocation(result, gaf, order);
         }
+        return result;
     }
 
-    FORCE_INLINE
-    auto PmZone::free_frame_inner(PmFrame *frame, Pfn pfn, usize order) -> void 
-    {
+    auto PmZone::free_frame(PmFrame *frame, usize order) -> void {
         if (is_order_within_pcpu_cache_limit(order)) {
-            return frame_cache_[order].return_object(frame);
+            frame_cache_.with_current([frame] (FrameCache &cache) {
+                cache.return_object(frame);
+            });
+        } else {
+            fset_.release_frame(frame, order);
         }
-
-        ustl::sync::LockGuard<decltype(mutex_)> guard(mutex_);
-        free_large_frame_block(frame, pfn, order);
+        managed_frames_ += BIT(order);
     }
-
-    auto PmZone::free_frame(PmFrame *frame, usize order) -> void
-    {
-        auto const pfn = MemoryModel::frame_to_pfn(frame);
-        free_frame_inner(frame, pfn, order);
-
-        auto const nr_pages = 1 << order;
-        this->managed_frames_ += nr_pages;
-    }
-
 }

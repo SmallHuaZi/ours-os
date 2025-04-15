@@ -33,7 +33,7 @@ namespace ours::phys {
         return Status::Unimplemented;
     }
 
-    auto Aspace::alloc_page_table(usize size, usize alignment) const -> PhysAddr {
+    auto Aspace::alloc_page_table(usize size, AlignVal alignment) const -> PhysAddr {
         PhysAddr phys;
         if (allocation_lower_bound_ < allocation_upper_bound_) {
             phys = global_bootmem()->allocate_bounded(size, alignment, allocation_lower_bound_, allocation_upper_bound_);

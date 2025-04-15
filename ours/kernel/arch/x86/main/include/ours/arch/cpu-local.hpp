@@ -30,7 +30,7 @@ namespace ours {
     template <typename Integer>
     FORCE_INLINE
     static auto arch_cpu_local_write(usize offset, Integer value) -> void {
-        arch::write_gs_offset<Integer>(value);
+        arch::write_gs_offset<Integer>(offset, value);
     }
 
 } // namespace ours::arch

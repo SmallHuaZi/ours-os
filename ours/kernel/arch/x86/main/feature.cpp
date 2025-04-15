@@ -14,9 +14,13 @@ namespace ours {
         return cpuinfo->feature().has_feature(type);
     }
 
-    auto x86_init_feature_early() -> void {
+    auto x86_init_feature_percpu() -> void {
         auto cpuinfo = CpuLocal::access(&g_x86_cpu_info);
         cpuinfo->init();
+    }
+
+    auto x86_init_feature_early() -> void {
+        x86_init_feature_percpu();
     }
 
 } // namespace ours

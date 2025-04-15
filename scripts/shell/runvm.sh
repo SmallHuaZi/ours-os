@@ -18,9 +18,8 @@
 # | Memory Backend: m2  |               | Memory Backend: m3  |
 # +---------------------+               +---------------------+
 #
-qemu-system-x86_64 ours.iso \
+qemu-system-x86_64 -drive file=ours.iso,format=raw \
     -cpu max \
-    -M pc \
     -s -S   \
     -m 1G   \
     -smp 8  \
@@ -46,5 +45,5 @@ qemu-system-x86_64 ours.iso \
     -numa dist,src=2,dst=1,val=30 \
     -monitor telnet::45454,server,nowait \
     -serial mon:stdio \
-    --nographic
-    # -no-reboot
+    --nographic \
+    -no-reboot

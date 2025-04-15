@@ -16,6 +16,7 @@
 
 #include <ustl/option.hpp>
 #include <ustl/util/pair.hpp>
+#include <ustl/util/tuple.hpp>
 #include <ustl/algorithms/minmax.hpp>
 #include <ustl/traits/is_same.hpp>
 #include <ustl/traits/is_invocable.hpp>
@@ -101,11 +102,13 @@ namespace bootmem {
         CXX20_REQUIRES(IsRegionIteratorV<Iterator1> && IsRegionIteratorV<Iterator2>)
     auto lookup_next_free_region(Iterator1 const &first1, Iterator1 const &last1, // All
                                    Iterator2 const &first2, Iterator2 const &last2, // Used
-                                   Iterator1 &iter1, Iterator2 &iter2)  -> ustl::Option<ustl::Pair<PhysAddr, PhysAddr>>
+                                   Iterator1 &iter1, Iterator2 &iter2)  
+                                   -> ustl::Option<ustl::Tuple<PhysAddr, PhysAddr, NodeId>>
     {
         for (; iter1 != last1; ++iter1) {
             PhysAddr const start = iter1->base;
             PhysAddr const end = start + iter1->size;
+            NodeId nid = iter1->nid();
             
             while (true) {
                 PhysAddr gap_start; 
@@ -136,7 +139,7 @@ namespace bootmem {
                     } else if (iter2 != last2) {
                         ++iter2;
                     }
-                    return ustl::make_pair(max(start, gap_start), min(end, gap_end));
+                    return ustl::make_tuple(max(start, gap_start), min(end, gap_end), nid);
                 }
 
                 if (iter2 == last2) {
@@ -153,12 +156,14 @@ namespace bootmem {
         CXX20_REQUIRES(IsRegionIteratorV<Iterator1> && IsRegionIteratorV<Iterator2>)
     auto lookup_prev_free_region(Iterator1 const &first1, Iterator1 const &last1, // All
                                    Iterator2 const &first2, Iterator2 const &last2, // Used
-                                   Iterator1 &iter1, Iterator2 &iter2)  -> ustl::Option<ustl::Pair<PhysAddr, PhysAddr>>
+                                   Iterator1 &iter1, Iterator2 &iter2)  
+                                   -> ustl::Option<ustl::Tuple<PhysAddr, PhysAddr, NodeId>>
     {
         // for (auto i = iter1; i != first1; --i) {
         for (; iter1 != first1; --iter1) {
             PhysAddr const start = (iter1 - 1)->base;
             PhysAddr const end = start + (iter1 - 1)->size;
+            NodeId nid = (iter1 - 1)->nid();
 
             while (true) {
                 // The range [gap_start, gap_end) represents the gap between the previous
@@ -194,7 +199,7 @@ namespace bootmem {
                     } else {
                         --iter2;
                     }
-                    return ustl::make_pair(max(start, gap_start), min(end, gap_end));
+                    return ustl::make_tuple(max(start, gap_start), min(end, gap_end), nid);
                 }
 
                 if (iter2 == first2) {
