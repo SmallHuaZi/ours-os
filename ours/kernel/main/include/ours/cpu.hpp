@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_CPU_HPP
 #define OURS_CPU_HPP
 
@@ -16,15 +15,12 @@
 #   error "The header <ours/arch/cpu.hpp> is required by the protocol [kernel.cpu]"
 #endif
 
-#include <ours/cpu-cfg.hpp>
 #include <ours/arch/cpu.hpp>
 
+#include <ours/config.hpp>
+#include <ours/cpu-cfg.hpp>
+
 namespace ours {
-    struct Cpu
-    {
-
-    };
-
 } // namespace ours
 
 #endif // #ifndef OURS_CORE_CPU_HPP

@@ -43,6 +43,14 @@ namespace ustl::io {
             return result;
         }
 
+        template <typename T>
+        auto skip_n(usize n) -> bool {
+            auto const desired_size = sizeof(T) * n;
+            if (buffer_.size_bytes() < desired_size) {
+                return false;
+            }
+        }
+
         /// Read a variable length structure, where the size is determined by T::size().
         template <typename T>
         auto read_at(usize pos = 0) -> T * {

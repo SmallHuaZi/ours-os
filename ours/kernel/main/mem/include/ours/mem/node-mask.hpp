@@ -20,9 +20,9 @@
 
 namespace ours::mem {
     struct NodeMask
-        : public ustl::BitSet<MAX_NODES>
+        : public ustl::BitSet<MAX_NODE>
     {
-        typedef ustl::BitSet<MAX_NODES>      Base;
+        typedef ustl::BitSet<MAX_NODE>      Base;
         using Base::Base;
 
         template <typename F>

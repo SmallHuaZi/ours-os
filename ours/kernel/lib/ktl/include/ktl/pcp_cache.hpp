@@ -116,7 +116,7 @@ namespace ktl {
 
     struct DefaultCacheConfig
     {
-        constexpr static size_t MaxCpuNum = MAX_CPU_NUM;
+        constexpr static size_t MaxCpuNum = MAX_CPU;
         constexpr static size_t DefaultCacheCapacity = 32;
 
         typedef ustl::sync::Mutex   Mutex;

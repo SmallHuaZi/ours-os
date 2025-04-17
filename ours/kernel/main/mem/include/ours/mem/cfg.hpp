@@ -15,12 +15,12 @@
 
 #ifndef OURS_CONFIG_MAX_NODES
 #   if OURS_CONFIG_NUMA == 1 || OURS_CONFIG_NUMA_EMULATION == 1
-#       define MAX_NODES 32
+#       define MAX_NODE 32
 #   else
-#       define MAX_NODES 1
+#       define MAX_NODE 1
 #   endif
 #endif
-#define MAX_NODES_BITS  BIT_WIDTH(MAX_NODES)
+#define MAX_NODES_BITS  BIT_WIDTH(MAX_NODE)
 
 /// [Node.MaxZoneNum]
 #ifndef OURS_CONFIG_NR_ZONES_PER_NODE
@@ -31,7 +31,7 @@
 #   define NR_ZONES_PER_NODE OURS_CONFIG_NR_ZONES_PER_NODE
 #endif
 #define NR_ZONES_PER_NODE_BITS BIT_WIDTH(NR_ZONES_PER_NODE)
-#define MAX_ZONES (NR_ZONES_PER_NODE * MAX_NODES)
+#define MAX_ZONES (NR_ZONES_PER_NODE * MAX_NODE)
 #define MAX_ZONES_BITS BIT_WIDTH(MAX_ZONES)
 
 /// [Frame.Shift]

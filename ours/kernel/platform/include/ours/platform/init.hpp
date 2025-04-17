@@ -56,7 +56,7 @@ namespace ours {
 
     INIT_CODE FORCE_INLINE CXX11_CONSTEXPR
     static auto set_platform_init_level(PlatformInitLevel level) -> void {
-        gktl::set_init_level(gktl::InitLevel(level));
+        gktl::set_init_level(gktl::InitLevel(level), kDeltaBetweenPlatformInitLevels);
     }
 
     /// The followings are private to platform code.

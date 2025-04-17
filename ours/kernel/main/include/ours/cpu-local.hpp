@@ -40,14 +40,7 @@
 
 namespace ours {
     template <typename T>
-    struct PerCpu {
-        template <typename F>
-            requires ustl::traits::Invocable<F, T &>
-        auto with_current(F &&f) -> ustl::traits::InvokeResultT<F, T &>
-        {}
-
-        T *value_;
-    };
+    struct PerCpu;
 
     /// Define a static lifetime CPU-local variable like this:
     /// CPU_LOCAL [static] YourType VAR_NAME;
@@ -78,35 +71,33 @@ namespace ours {
         typedef CpuLocal    Self;
     public:
         INIT_CODE
-        static auto init_early() -> void {
-            arch_install(0);
-        }
+        static auto init_early() -> void;
 
         INIT_CODE
-        static auto init(CpuMask const &cpus) -> Status;
+        static auto init() -> Status;
 
         INIT_CODE FORCE_INLINE
         static auto init_percpu() -> void {
             auto const thiscpu = arch_current_cpu();
-            arch_install(s_cpu_offset[thiscpu]);
+            install(s_cpu_offset[thiscpu]);
             write(s_current_cpu_offset, s_cpu_offset[thiscpu]);
         }
 
-        auto dump() const -> void;
+        static auto dump() -> void;
 
         template <typename Integral>
         FORCE_INLINE
         static auto read(Integral &integer) -> Integral {
             static_assert(ustl::traits::IsIntegralV<Integral>);
             static_assert(sizeof(usize) == sizeof(&integer), "`usize` must has the same size with a pointer");
-            return arch_cpu_local_read<Integral>(reinterpret_cast<usize>(&integer));
+            return ArchCpuLocal::read<Integral>(reinterpret_cast<usize>(&integer));
         }
 
         template <typename Integral>
         FORCE_INLINE
         static auto write(Integral &integer, Integral value) -> void {
             static_assert(ustl::traits::IsIntegralV<Integral>);
-            arch_cpu_local_write(reinterpret_cast<usize>(&integer), value);
+            ArchCpuLocal::write(reinterpret_cast<usize>(&integer), value);
         }
 
         /// Reserved interface for hiding global symbols in certain cases.
@@ -131,7 +122,7 @@ namespace ours {
         template <typename T>
         FORCE_INLINE
         static auto access(T *object, CpuNum cpunum) -> T * {
-            DEBUG_ASSERT(cpunum < MAX_CPU_NUM, "");
+            DEBUG_ASSERT(cpunum < MAX_CPU, "");
             auto const ptr = reinterpret_cast<T *>(
                 reinterpret_cast<u8 *>(object) + s_cpu_offset[cpunum]
             );
@@ -141,12 +132,17 @@ namespace ours {
         }
 
         template <typename T>
-        static auto allocate() -> PerCpu<T>;
+        static auto allocate(AlignVal alignment = alignof(T)) -> PerCpu<T> {
+            return { allocate(sizeof(T), alignment) };
+        }
 
         template <typename T>
-        static auto free(PerCpu<T>) -> void;
+        static auto free(PerCpu<T> object) -> void {
+            return free(object.object);
+        }
 
         template <typename T, typename F>
+        FORCE_INLINE
         static auto for_each(F &&f) -> void {
             for_each_possible_cpu([f] (CpuNum cpunum) {
                 auto local_object = Self::access<T>(cpunum);
@@ -163,20 +159,46 @@ namespace ours {
             });
         }
     private:
-        FORCE_INLINE
-        static auto arch_install(usize offset) -> void {
-            arch_cpu_local_install(offset);
-        }
+        static auto allocate(usize size, AlignVal val) -> void *;
+        static auto free(void *) -> void;
 
-        static auto init_per_domain(NodeId nid) -> Status;
-        static auto init_per_unit(CpuNum cpunum) -> Status;
+        FORCE_INLINE
+        static auto install(usize offset) -> void {
+            ArchCpuLocal::install(offset);
+        }
 
         /// This can save a time of indirect addressing.
         CPU_LOCAL
         static inline isize s_current_cpu_offset = 0;
-        static inline ustl::Array<isize, MAX_CPU_NUM> s_cpu_offset;
-        static inline ustl::Array<isize, MAX_NODES>   s_group_offset;
+        static inline ustl::Array<isize, MAX_CPU>   s_cpu_offset;
     };
+
+    /// A wrapper to prevent directly using the pointer.
+    template <typename T>
+    struct PerCpu {
+        friend CpuLocal;
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        explicit PerCpu(T *object)
+            : object_(object)
+        {}
+
+        ~PerCpu();
+
+        template <typename F>
+            requires ustl::traits::Invocable<F, T &>
+        auto with_current(F &&f) -> ustl::traits::InvokeResultT<F, T &>;
+
+        template <typename F>
+            requires ustl::traits::Invocable<F, T const &>
+        auto with_current(F &&f) const -> ustl::traits::InvokeResultT<F, T const &>;
+
+    private:
+        T *object_;
+    };
+
+    template <typename T>
+    PerCpu(T *) -> PerCpu<T>;
 
 } // namespace ours
 

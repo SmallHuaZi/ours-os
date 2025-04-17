@@ -17,6 +17,7 @@
 #include <ours/assert.hpp>
 #include <ours/arch/cpu.hpp>
 
+#include <ustl/bit.hpp>
 #include <ustl/bitset.hpp>
 #include <ustl/sync/atomic.hpp>
 #include <ustl/function/invoke.hpp>
@@ -24,10 +25,10 @@
 
 namespace ours {
     struct CpuMask
-        : public ustl::BitSet<MAX_CPU_NUM>
+        : public ustl::BitSet<MAX_CPU>
     {
-        typedef CpuMask                     Self;
-        typedef ustl::BitSet<MAX_CPU_NUM>   Base;
+        typedef CpuMask                 Self;
+        typedef ustl::BitSet<MAX_CPU>   Base;
 
         using Base::Base;
     };
@@ -37,19 +38,19 @@ namespace ours {
 
         FORCE_INLINE
         auto set_possible(CpuNum cpunum, bool possible) -> void {
-            DEBUG_ASSERT(cpunum < MAX_CPU_NUM, "");
+            DEBUG_ASSERT(cpunum < MAX_CPU, "");
             possible_cpus.set(cpunum, possible);
         }
 
         FORCE_INLINE
         auto set_online(CpuNum cpunum, bool online) -> void {
-            DEBUG_ASSERT(cpunum < MAX_CPU_NUM, "");
+            DEBUG_ASSERT(cpunum < MAX_CPU, "");
             online_cpus.set(cpunum, online);
         }
 
         FORCE_INLINE
         auto set_active(CpuNum cpunum, bool active) -> void {
-            DEBUG_ASSERT(cpunum < MAX_CPU_NUM, "");
+            DEBUG_ASSERT(cpunum < MAX_CPU, "");
             possible_cpus.set(cpunum, active);
         }
 
@@ -70,6 +71,16 @@ namespace ours {
     FORCE_INLINE
     static auto cpu_possible_mask() -> CpuMask & {
         return global_cpu_states().possible_cpus;
+    }
+
+    FORCE_INLINE
+    static auto cpu_online_mask() -> CpuMask & {
+        return global_cpu_states().online_cpus;
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto num_possible_cpus() -> usize {
+        return cpu_possible_mask().count();
     }
 
     template <typename F>

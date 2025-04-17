@@ -66,6 +66,18 @@ namespace ustl::io {
             return ptr;
         }
 
+        template <typename T>
+        auto read_fixed_n(usize n) -> views::Span<T> {
+            auto *ptr = reinterpret_cast<T *>(const_cast<u8 *>(buffer_.data()));
+
+            // Read the header.
+            if (buffer_.size_bytes() < sizeof(T) * n) {
+                return nullptr;
+            }
+            buffer_ = buffer_.subspan(sizeof(T) * n);
+            return ptr;
+        }
+
         /// Discard the given number of bytes.
         ///
         /// Return true if the bytes could be discarded, or false if there are insufficient bytes.

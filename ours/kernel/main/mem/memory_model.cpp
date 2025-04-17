@@ -120,7 +120,7 @@ namespace ours::mem {
     INIT_CODE
     auto MemoryModel::init_framemap() -> void {
         auto hole_start_pfn = 0, start_pfn = 0, end_pfn = 0;
-        EarlyMem::IterationContext context(bootmem::RegionType::Normal, MAX_NODES);
+        EarlyMem::IterationContext context(bootmem::RegionType::Normal, MAX_NODE);
         while (auto region = EarlyMem::iterate(context)) {
             auto node = PmNode::node(region->nid());
             DEBUG_ASSERT(node != nullptr, "");

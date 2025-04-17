@@ -12,9 +12,9 @@
 #define OURS_CPU_CFG_HPP 1
 
 #ifdef OURS_CONFIG_MAX_CPU_NUM 
-#   define MAX_CPU_NUM OURS_CONFIG_MAX_CPU_NUM 
+#   define MAX_CPU OURS_CONFIG_MAX_CPU_NUM 
 #else
-#   define MAX_CPU_NUM 32 
+#   define MAX_CPU 32 
 #endif // #ifndef OURS_MAX_CPU_NUM
 
 #endif // #ifndef OURS_CPU_CFG_HPP

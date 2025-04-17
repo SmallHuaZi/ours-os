@@ -33,7 +33,7 @@ namespace ours {
     }
 
     /// Called from arch-code.
-    /// Note: Invoke it after finishing the collection to early architecture specific information.
+    /// Note: Invoke it after finishing the collection to early architecture specific information passed from `PhysBoot`.
     /// Assumptions:
     ///     1). The early memory allocator has been initialized.
     NO_MANGLE INIT_CODE
@@ -45,18 +45,13 @@ namespace ours {
 
         setup_handoff(handoff);
 
-        // Start from here, memory allocator is alive.
-        // First thing we should do is to initialize our system logger.
-        log::init(0);
-
         init_arch_early();
         set_init_level(gktl::InitLevel::ArchEarly);
 
         init_platform_early();
         set_init_level(gktl::InitLevel::PlatformEarly);
 
-        // At this point, `PMM` must be initialized.
-        CpuLocal::init(cpu_possible_mask());
+        CpuLocal::init();
         set_init_level(gktl::InitLevel::CpuLocal);
 
         mem::init_vmm();

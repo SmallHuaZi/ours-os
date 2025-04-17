@@ -91,6 +91,11 @@ namespace ours::mem {
             num_mappings_ += 1;
         }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto phys_size() const -> usize {
+            return BIT(order());
+        }
+
         auto dump() const -> void;
 
     private:

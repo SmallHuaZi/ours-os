@@ -49,19 +49,19 @@ namespace ours::mem {
             s_bootmem->set_node(base, size, nid);  
         }
 
-        template <typename T>
+        template <typename T = u8>
         FORCE_INLINE
         static auto allocate(usize n, NodeId nid) -> T * {  
             return allocate<T>(n, AlignVal(alignof(T)), nid);
         }
 
-        template <typename T>
+        template <typename T = u8>
         FORCE_INLINE
         static auto allocate(usize n, AlignVal align, NodeId nid) -> T * {
             return allocate<T>(n, align, min_address(), max_address(), nid);
         }
 
-        template <typename T>
+        template <typename T = u8>
         FORCE_INLINE
         static auto allocate(usize n, AlignVal align, PhysAddr start, PhysAddr end, NodeId nid) -> T * {
             DEBUG_ASSERT(s_bootmem);

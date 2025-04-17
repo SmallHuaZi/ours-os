@@ -89,7 +89,7 @@ namespace ours::mem {
         template <typename F>
             CXX20_REQUIRES(ustl::traits::Invocable<F, NodeId>)
         FORCE_INLINE
-        auto for_each_possible_if_noerr(F &&functor) -> Status {
+        auto for_each_possible_if_no_err(F &&functor) -> Status {
             return states_[Possible].for_each(functor);
         }
 
@@ -117,13 +117,23 @@ namespace ours::mem {
     }
 
     FORCE_INLINE CXX11_CONSTEXPR
-    auto possible_node_mask() -> NodeMask & {
+    auto node_possible_mask() -> NodeMask & {
         return global_node_states().states_[NodeStates::Online];
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto num_possible_nodes() -> usize {
+        return node_possible_mask().count();
     }
 
     FORCE_INLINE CXX11_CONSTEXPR
     auto node_online_mask() -> NodeMask & {
         return global_node_states().states_[NodeStates::Online];
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto num_online_nodes() -> usize {
+        return node_online_mask().count();
     }
 
     FORCE_INLINE CXX11_CONSTEXPR

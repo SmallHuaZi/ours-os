@@ -56,7 +56,7 @@
     .byte  0b10101111       /* G(1) D(0) L(1) AVL(0) limit 19:16 */
     .byte  0x0              /* base 31:24 */
 
-.rept MAX_CPU_NUM 
+.rept MAX_CPU 
     /* TSS_SELECTORs */
     .short 0                /* limit 15:00 */
     .short 0                /* base 15:00 */

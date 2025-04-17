@@ -63,7 +63,7 @@ namespace ours::mem {
 
     INIT_CODE
     static auto init_node_mask(NodeMask &nodemask) -> void {
-        EarlyMem::IterationContext context(bootmem::RegionType::Normal, MAX_NODES);
+        EarlyMem::IterationContext context(bootmem::RegionType::Normal, MAX_NODE);
         while (auto region = EarlyMem::iterate(context)) {
             nodemask.set(region->nid());
         }
@@ -72,7 +72,7 @@ namespace ours::mem {
     INIT_CODE FORCE_INLINE
     static auto dump_bootmem() -> void {
         log::debug("BootMem unused regions information"); 
-        EarlyMem::IterationContext context(bootmem::RegionType::Unused, MAX_NODES);
+        EarlyMem::IterationContext context(bootmem::RegionType::Unused, MAX_NODE);
         while (auto region = EarlyMem::iterate(context)) {
             log::debug("    None-{}| [0x{:X}, 0x{:X})", region->nid(), region->base, region->end());
         }

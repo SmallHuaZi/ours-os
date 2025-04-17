@@ -36,6 +36,6 @@ namespace ours {
     /// Instead, encapsulating this logic within a modular initialization hook streamlines 
     /// the codebase by eliminating such macros, improving maintainability and reducing conditional 
     /// compilation overhead.
-    GKTL_INIT_HOOK(NumaInit, x86_init_numa, PlatformInitLevel::PrePmm - 1);
+    GKTL_INIT_HOOK(NumaInit, x86_init_numa, PlatformInitLevel::PrePmm + 1);
 
 } // namespace ours

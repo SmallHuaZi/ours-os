@@ -3,6 +3,7 @@
 
 #include <ours/init.hpp>
 #include <ours/assert.hpp>
+#include <ours/cpu-local.hpp>
 
 #include <logz4/log.hpp>
 
@@ -118,10 +119,6 @@ namespace ours::mem {
         }
     }
 
-    INIT_CODE 
-    auto PmZone::init_frame_cache() -> void
-    {}
-
     // Requires:
     //      1. @map is must zeroed.
     INIT_CODE 
@@ -136,6 +133,8 @@ namespace ours::mem {
         start_pfn_ = start_pfn;
         spanned_frames_ = end_pfn - start_pfn;
         present_frames_ = present_frames;
+
+        frame_cache_ = CpuLocal::allocate<FrameCache>();
     }
 
     auto PmZone::finish_allocation(PmFrame *frame, Gaf gaf, usize order) -> void {

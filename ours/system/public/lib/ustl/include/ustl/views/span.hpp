@@ -28,6 +28,7 @@ namespace ustl::views {
             : Base(other_span)
         {}
 
+        typedef typename Base::value_type       Element;
         typedef typename Base::iterator         IterMut;
         typedef typename Base::const_iterator   Iter;
         typedef typename Base::reverse_iterator         RevIterMut;

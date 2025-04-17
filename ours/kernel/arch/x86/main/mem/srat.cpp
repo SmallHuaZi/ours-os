@@ -27,7 +27,7 @@ namespace ours {
         auto status = acpi::enumerate_numa_region(parser, 
             [] (u32 domain, acpi::NumaRegion const &region) {
             log::trace("|{:6} | 0x{:16X} | 0x{:16X}", domain, region.base, region.size);
-            if (domain < MAX_NODES) {
+            if (domain < MAX_NODE) {
                 // Not all of machine are NUMA architecture. To support both NUMA and non-NUMA machine simultaneously,
                 // we just register affinity infomation of memory about NUMA.
                 mem::EarlyMem::set_node(region.base, region.size, domain);
@@ -50,8 +50,8 @@ namespace ours {
 
         if (status != Status::Ok) {
             log::info("No NUMA");
-            for (auto i = 0; i < MAX_NODES; ++i) {
-                for (auto j = 0; j < MAX_NODES; ++j) {
+            for (auto i = 0; i < MAX_NODE; ++i) {
+                for (auto j = 0; j < MAX_NODE; ++j) {
                     mem::PmNode::set_distance(i, j, 0);
                 }
             }
@@ -65,10 +65,10 @@ namespace ours {
     /// It should be the content of topology.
     static auto bind_node_to_cpu(acpi::IAcpiParser &parser) -> Status {
         INIT_DATA
-        static usize apicids[MAX_CPU_NUM];
+        static usize apicids[MAX_CPU];
 
         INIT_DATA
-        static usize cpus[MAX_CPU_NUM];
+        static usize cpus[MAX_CPU];
 
         usize count = 0;
         return acpi::enumerate_cpu_numa_pairs(parser, [&] (usize apicid, usize nodeid) {

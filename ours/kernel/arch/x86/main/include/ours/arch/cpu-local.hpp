@@ -14,24 +14,38 @@
 #include <arch/x86/msr.hpp>
 #include <arch/x86/fsgs.hpp>
 
+#include <ustl/traits/ptr.hpp>
+#include <ustl/traits/integral.hpp>
+
 namespace ours {
-    FORCE_INLINE
-    static auto arch_cpu_local_install(usize offset) -> void {
-        using namespace arch;
-        MsrIo::write(MsrRegAddr::IA32KernelGsBase, offset);
-    }
+    struct ArchCpuLocal {
+        CXX11_CONSTEXPR
+        static usize const kDynFirstChunkSize = KB(16);
 
-    template <typename Integer>
-    FORCE_INLINE
-    static auto arch_cpu_local_read(usize offset) -> Integer {
-        return arch::read_gs_offset<Integer>(offset);
-    }
+        CXX11_CONSTEXPR
+        static usize const kUnitAlign = PAGE_SIZE;
 
-    template <typename Integer>
-    FORCE_INLINE
-    static auto arch_cpu_local_write(usize offset, Integer value) -> void {
-        arch::write_gs_offset<Integer>(offset, value);
-    }
+        template <typename T>
+        FORCE_INLINE
+        static auto install(T base) -> void {
+            static_assert(ustl::traits::IsIntegralV<T> || ustl::traits::IsPtrV<T>);
+
+            using namespace arch;
+            MsrIo::write(MsrRegAddr::IA32KernelGsBase, base);
+        }
+
+        template <typename Integer>
+        FORCE_INLINE
+        static auto read(usize offset) -> Integer {
+            return arch::read_gs_offset<Integer>(offset);
+        }
+
+        template <typename Integer>
+        FORCE_INLINE
+        static auto write(usize offset, Integer value) -> void {
+            arch::write_gs_offset<Integer>(offset, value);
+        }
+    };
 
 } // namespace ours::arch
 

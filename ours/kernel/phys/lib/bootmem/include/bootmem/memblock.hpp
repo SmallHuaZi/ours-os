@@ -58,7 +58,7 @@ namespace bootmem {
         {}
 
         CXX11_CONSTEXPR
-        auto add(PhysAddr base, usize size, RegionType type = RegionType::Normal, NodeId nid = MAX_NODES) -> Status {
+        auto add(PhysAddr base, usize size, RegionType type = RegionType::Normal, NodeId nid = MAX_NODE) -> Status {
             if (Base::size() == 0) {
                 emplace_back(base, size, type, nid);
                 return Status::Ok;
@@ -280,7 +280,7 @@ namespace bootmem {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto add(PhysAddr base, usize size, RegionType type, NodeId nid = MAX_NODES) -> Status {
+        auto add(PhysAddr base, usize size, RegionType type, NodeId nid = MAX_NODE) -> Status {
             if (base < start_address_) {
                 start_address_ = base;
             }
@@ -307,7 +307,7 @@ namespace bootmem {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate_bounded(usize size, AlignVal align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES)
+        auto allocate_bounded(usize size, AlignVal align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODE)
             -> PhysAddr {
             auto maybe_region = get_free_region(size, align, lower, upper, RegionType::Normal, nid);
             if (!maybe_region) {
@@ -319,18 +319,18 @@ namespace bootmem {
 
         template <typename T>
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize size, AlignVal align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODES) {  
+        auto allocate(usize size, AlignVal align, PhysAddr lower, PhysAddr upper, NodeId nid = MAX_NODE) {  
             return reinterpret_cast<T *>(allocate_bounded(size, align, lower, upper, nid));  
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize size, AlignVal align, NodeId nid = MAX_NODES) -> PhysAddr {
+        auto allocate(usize size, AlignVal align, NodeId nid = MAX_NODE) -> PhysAddr {
             return allocate_bounded(size, align, allocation_lower_limit_, allocation_upper_limit_, nid);
         }
 
         template <typename T>
         FORCE_INLINE CXX11_CONSTEXPR
-        auto allocate(usize n, AlignVal align, NodeId nid = MAX_NODES) -> T * {  
+        auto allocate(usize n, AlignVal align, NodeId nid = MAX_NODE) -> T * {  
             return reinterpret_cast<T *>(allocate(n * sizeof(T), align, nid));  
         }
 
@@ -370,12 +370,12 @@ namespace bootmem {
 
         struct IterationContext {
             FORCE_INLINE CXX11_CONSTEXPR
-            IterationContext(PhysAddr start, PhysAddr end, RegionType type, NodeId nid = MAX_NODES)
+            IterationContext(PhysAddr start, PhysAddr end, RegionType type, NodeId nid = MAX_NODE)
                 : memblock(0), start(start), end(end), type(type), nid(nid)
             {}
 
             FORCE_INLINE CXX11_CONSTEXPR
-            IterationContext(RegionType type, NodeId nid = MAX_NODES)
+            IterationContext(RegionType type, NodeId nid = MAX_NODE)
                 : memblock(0), start(0), end(ustl::NumericLimits<PhysAddr>::max()), type(type), nid(nid)
             {}
 
@@ -400,7 +400,7 @@ namespace bootmem {
 
             auto const iter_end = memories_.end();
             while (context.imem != iter_end) {
-                if (context.nid != MAX_NODES) {
+                if (context.nid != MAX_NODE) {
                     while (context.imem != iter_end) {
                         if (context.imem->nid() == context.nid) {
                             break;
@@ -493,7 +493,7 @@ namespace bootmem {
                 NodeId const rnid = ustl::get<2>(*region);
                 if (imem->type() != type) {
                     continue;
-                } else if (rnid != nid && nid != MAX_NODES) {
+                } else if (rnid != nid && nid != MAX_NODE) {
                     continue;
                 }
                 PhysAddr start = ustl::algorithms::clamp(ustl::get<0>(*region), lower, upper);
@@ -522,7 +522,7 @@ namespace bootmem {
                 NodeId const rnid = ustl::get<2>(*region);
                 if (imem->type() != type) {
                     continue;
-                } else if (rnid != nid && nid != MAX_NODES) {
+                } else if (rnid != nid && nid != MAX_NODE) {
                     continue;
                 }
 

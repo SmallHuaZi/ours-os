@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_IRQ_MOD_HPP
 #define OURS_IRQ_MOD_HPP 1
 

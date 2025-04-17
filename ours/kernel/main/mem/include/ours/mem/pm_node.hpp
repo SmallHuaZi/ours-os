@@ -69,7 +69,7 @@ namespace ours::mem {
         }
 
         usize count_;
-        ustl::collections::StaticVec<usize, MAX_NODES - 1> path_;
+        ustl::collections::StaticVec<usize, MAX_NODE - 1> path_;
     };
 
     /// `ZoneQueues` is a helper class separated from `PmNode`, specifically
@@ -156,7 +156,7 @@ namespace ours::mem {
 
         CXX11_CONSTEXPR
         static usize const kMaxZoneRef = {
-            MAX_NODES * (MaxNumQueues - kNumLocalQueues) + (NR_ZONES_PER_NODE * kNumLocalQueues)
+            MAX_NODE * (MaxNumQueues - kNumLocalQueues) + (NR_ZONES_PER_NODE * kNumLocalQueues)
         };
 
         ustl::Array<PmZone *, kMaxZoneRef> queue_storage_;
@@ -239,7 +239,7 @@ namespace ours::mem {
 
         FORCE_INLINE CXX11_CONSTEXPR
         static auto distance(NodeId x, NodeId y) -> usize {
-            DEBUG_ASSERT(x < MAX_NODES && y < MAX_NODES, "");
+            DEBUG_ASSERT(x < MAX_NODE && y < MAX_NODE, "");
             return s_node_distance[x][y];
         }
 
@@ -250,7 +250,7 @@ namespace ours::mem {
 
         FORCE_INLINE CXX11_CONSTEXPR
         static auto set_distance(NodeId x, NodeId y, usize dis) -> void {
-            DEBUG_ASSERT(x < MAX_NODES && y < MAX_NODES, "");
+            DEBUG_ASSERT(x < MAX_NODE && y < MAX_NODE, "");
             s_node_distance[x][y] = dis;
         }
 
@@ -283,11 +283,11 @@ namespace ours::mem {
 
         FrameQueue lru_queue_;
 
-        using NodeList = ustl::Array<PmNode *, MAX_NODES>;
+        using NodeList = ustl::Array<PmNode *, MAX_NODE>;
         static inline NodeList s_node_list;
 
         // Th fields bottom is readonly after initializing logically.
-        using DisMap = ustl::Array<usize, MAX_NODES, MAX_NODES>;
+        using DisMap = ustl::Array<usize, MAX_NODE, MAX_NODE>;
         static inline DisMap s_node_distance;
 
         // Th fields bottom is readonly after initializing logically.

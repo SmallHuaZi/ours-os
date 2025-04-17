@@ -150,7 +150,7 @@ namespace ours::mem {
                  .set_zone_range(gaf_zone_type(gaf), gaf_zone_type(gaf));
             
             ZoneQueues::QueueType queue_type;
-            if (gaf & Gaf::OnlyThisNode) {
+            if (bool(gaf & Gaf::OnlyThisNode)) {
                 queue_type = ZoneQueues::LocalContiguous;
             } else {
                 queue_type = ZoneQueues::SharedAffinity;
@@ -196,7 +196,7 @@ namespace ours::mem {
         visited.set(from, true);
 
         auto find_next = [&] () {
-            NodeId result = MAX_NODES;
+            NodeId result = MAX_NODE;
             usize distance = ustl::NumericLimits<usize>::max();
             global_node_states().for_each_state(NodeStates::Memory, [&] (NodeId to) {
                 if (visited.test(to) || filter.test(to)) {
@@ -210,7 +210,7 @@ namespace ours::mem {
                 }
             });
 
-            if (result != MAX_NODES) {
+            if (result != MAX_NODE) {
                 visited.set(result);
             }
 
@@ -219,7 +219,7 @@ namespace ours::mem {
 
         while (1) {
             auto next = find_next();
-            if (next == MAX_NODES) {
+            if (next == MAX_NODE) {
                 break;
             }
 

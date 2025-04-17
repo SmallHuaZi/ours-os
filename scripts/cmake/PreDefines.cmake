@@ -8,7 +8,7 @@ set(OX_PREDEFINES
     "-D_LIBCPP_HAS_UNICODE=0"
     "-D_LIBCPP_HAS_RANDOM_DEVICE=0" # Random device is not supported in freestanding environment
     "-D_LIBCPP_HAS_FILESYSTEM=0" # Filesystem is not supported in freestanding environment
-    "-D_LIBCPP_HAS_NO_WIDE_CHARACTERS=1"
+    # "-D_LIBCPP_HAS_NO_WIDE_CHARACTERS=1"
     "-DBOOST_CONTAINER_USER_DEFINED_THROW_CALLBACKS=1"
     "-DBOOST_DISABLE_ASSERTS=1"
     "-DBOOST_ENABLE_ASSERT_HANDLER=1"

@@ -33,7 +33,7 @@ namespace ours::mem {
     INIT_CODE
     auto EarlyMem::count_present_frames(Pfn start, Pfn end) -> usize {
         usize nr_presents = 0;
-        EarlyMem::IterationContext context(start, end, bootmem::RegionType::Normal, MAX_NODES);
+        EarlyMem::IterationContext context(start, end, bootmem::RegionType::Normal, MAX_NODE);
         while (auto region = iterate(context)) {
             if (region->size < PAGE_SHIFT) {
                 continue;
@@ -74,7 +74,7 @@ namespace ours::mem {
 
     INIT_CODE
     static auto free_unused_memory() -> void {
-        EarlyMem::IterationContext context(bootmem::RegionType::Unused, MAX_NODES);
+        EarlyMem::IterationContext context(bootmem::RegionType::Unused, MAX_NODE);
         while (auto region = EarlyMem::iterate(context)) {
             free_frames_phys_range(region->base, region->end());
         }

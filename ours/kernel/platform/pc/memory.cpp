@@ -43,6 +43,6 @@ namespace ours {
     INIT_CODE
     static auto platform_init_resource() -> void {
     }
-    GKTL_INIT_HOOK(ResourceInit, platform_init_resource, gktl::InitLevel::Heap - 1);
+    GKTL_INIT_HOOK(ResourceInit, platform_init_resource, gktl::InitLevel::Heap);
 
 } // namespace ours

@@ -135,7 +135,6 @@ namespace ours::mem {
             return order < kMaxPcpuCacheOrder;
         }
 
-        auto init_frame_cache() -> void;
         auto finish_allocation(PmFrame *frame, Gaf gaf, usize order) -> void;
     protected:
         friend class PmNode;

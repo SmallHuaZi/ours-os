@@ -39,6 +39,6 @@ namespace ours {
     static auto platform_init_acpi() -> void {
         platform_init_acpi(global_handoff().acpi_rsdp);
     }
-    GKTL_INIT_HOOK(AcpiInit, platform_init_acpi, PlatformInitLevel::StartUp - 1);
+    GKTL_INIT_HOOK(AcpiInit, platform_init_acpi, PlatformInitLevel::StartUp);
 
 } // namespace ours

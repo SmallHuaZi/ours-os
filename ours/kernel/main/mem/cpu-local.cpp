@@ -14,7 +14,7 @@ namespace ours {
     template <>
     auto CpuLocal::access<PmNode>() -> PmNode * {
         NodeId const nid = Self::read(s_local_nid);
-        DEBUG_ASSERT(nid < MAX_NODES, "");
+        DEBUG_ASSERT(nid < MAX_NODE, "");
         return PmNode::node(nid);
     }
 
@@ -23,6 +23,6 @@ namespace ours {
     }
     // When cpu local area has been setup, we should install local node id to enable the version of 
     // `alloc_frame` without specifing explicitly `nid`.
-    GKTL_INIT_HOOK(RegisterNid, register_nid_for_current_cpu, gktl::InitLevel::CpuLocal - 1);
+    GKTL_INIT_HOOK(RegisterNid, register_nid_for_current_cpu, gktl::InitLevel::CpuLocal + 1);
 
 } // namespace ours

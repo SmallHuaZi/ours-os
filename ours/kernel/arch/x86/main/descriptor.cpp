@@ -6,7 +6,7 @@
 namespace ours {
     struct alignas(kPageAlign) Gdt {
         arch::DescPtr64 descs[X86_GDT_MAX_SELECTORS];
-        arch::TaskStateSegment64 tss[MAX_CPU_NUM];
+        arch::TaskStateSegment64 tss[MAX_CPU];
 
         auto load() const -> void {
             struct {

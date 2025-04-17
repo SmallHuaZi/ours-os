@@ -52,8 +52,8 @@ namespace ours::mem {
     }
 
     FORCE_INLINE CXX11_CONSTEXPR
-    static auto size_to_order(usize nr_frames) -> usize {
-        return ustl::bit_floor(nr_frames);
+    static auto num_to_order(usize nr_frames) -> usize {
+        return ustl::bit_ceil(nr_frames);
     }
 
     /// Prefer to allocate a frame on the local node.
@@ -73,7 +73,7 @@ namespace ours::mem {
 
     OM_API FORCE_INLINE
     static auto alloc_frame_n(Gaf gaf, usize nr_frames, NodeMask const &nodes = node_online_mask()) -> PmFrame * {
-        return alloc_frame(gaf, size_to_order(nr_frames), nodes);
+        return alloc_frame(gaf, num_to_order(nr_frames), nodes);
     }
 
     /// Allocate the a frame on a specified node.
@@ -93,11 +93,11 @@ namespace ours::mem {
 
     OM_API FORCE_INLINE
     static auto alloc_frame_n(NodeId nid, Gaf gaf, usize nr_frames, NodeMask const &nodes = node_online_mask()) -> PmFrame * {
-        return alloc_frame(nid, gaf, size_to_order(nr_frames), nodes);
+        return alloc_frame(nid, gaf, num_to_order(nr_frames), nodes);
     }
 
     template <typename T = u8>
-    OM_API
+    OM_API FORCE_INLINE
     auto get_frame(Gaf gaf, usize order = 0, NodeMask const &nodes = node_online_mask()) -> T * {
         if (auto frame = alloc_frame(gaf, order, nodes)) {
             return PhysMap::phys_to_virt<T>(frame_to_phys(frame));
@@ -107,13 +107,25 @@ namespace ours::mem {
     }
 
     template <typename T = u8>
-    OM_API
+    OM_API FORCE_INLINE
+    auto get_frame_n(Gaf gaf, usize nr_frame, NodeMask const &nodes = node_online_mask()) -> T * {
+        return get_frame<T>(gaf, num_to_order(nr_frame), nodes);
+    }
+
+    template <typename T = u8>
+    OM_API FORCE_INLINE
     auto get_frame(NodeId nid, Gaf gaf, usize order = 0, NodeMask const &nodes = node_online_mask()) -> T * {
         if (auto frame = alloc_frame(nid, gaf, order, nodes)) {
             return PhysMap::phys_to_virt<T>(frame_to_phys(frame));
         }
 
         return nullptr;
+    }
+
+    template <typename T = u8>
+    OM_API FORCE_INLINE
+    auto get_frame_n(NodeId nid, Gaf gaf, usize nr_frame, NodeMask const &nodes = node_online_mask()) -> T * {
+        return get_frame<T>(nid, gaf, num_to_order(nr_frame), nodes);
     }
 
     auto free_frame(PmFrame *frame, usize order = 0) -> void;

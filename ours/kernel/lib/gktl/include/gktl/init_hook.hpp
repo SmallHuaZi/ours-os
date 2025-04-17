@@ -64,7 +64,7 @@ namespace gktl {
 
     /// Setting a level causes all hooks with levels between the previous level and the 
     /// newly set |level| (exclusive) to be executed.
-    auto set_init_level(InitLevel level) -> void;
+    auto set_init_level(InitLevel level, usize delta = kDeltaBetweenLevels) -> void;
 
     FORCE_INLINE
     static auto get_init_level() -> InitLevel {

@@ -59,7 +59,7 @@ namespace ours {
         }
 
         FORCE_INLINE
-        static auto operator new(usize n, AlignVal align = AlignVal(alignof(T)), NodeId nid = MAX_NODES) -> void * {
+        static auto operator new(usize n, AlignVal align = AlignVal(alignof(T)), NodeId nid = MAX_NODE) -> void * {
             return operator new(n, mem::kGafKernel, align, nid);
         }
 
@@ -73,7 +73,7 @@ namespace ours {
         }
 
         FORCE_INLINE CXX23_STATIC
-        auto operator new[](usize n, AlignVal align = AlignVal(alignof(T)), NodeId nid = MAX_NODES) -> void * {
+        auto operator new[](usize n, AlignVal align = AlignVal(alignof(T)), NodeId nid = MAX_NODE) -> void * {
             return operator new(n, mem::kGafKernel, align, nid);
         }
 

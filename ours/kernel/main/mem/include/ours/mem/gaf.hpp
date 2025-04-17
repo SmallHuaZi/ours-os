@@ -17,41 +17,40 @@
 #include <ustl/util/enum_bits.hpp>
 
 namespace ours::mem {
-namespace gafns {
-    enum GafBits: usize {
-        DmaBit,
-        Dma32Bit,
-        RequiredBit,
-        OnlyThisNodeBit,
-        NeverFailBit,
-        ZeroBit,
-        ReclaimBit,
-        DirectlyReclaimBit,
-    };
-
     /// `Gaf` is a shordhand of getting available frame.
     ///
-    enum Gaf: usize {
-        Dma             = BIT(DmaBit),
-        Dma32           = BIT(Dma32Bit),
-        Required        = BIT(RequiredBit),
-        OnlyThisNode    = BIT(OnlyThisNodeBit),
+    enum class Gaf: usize {
+        __DmaBit,
+        __Dma32Bit,
+        __RequiredBit,
+        __OnlyThisNodeBit,
+        __NeverFailBit,
+        __ZeroBit,
+        __ReclaimBit,
+        __DirectlyReclaimBit,
+
+        Dma             = BIT(__DmaBit),
+        Dma32           = BIT(__Dma32Bit),
+        Required        = BIT(__RequiredBit),
+        OnlyThisNode    = BIT(__OnlyThisNodeBit),
 
         /// `PMM` will retry infinitely until it get an available frame.
-        NeverFail       = BIT(NeverFailBit),
-        Zero            = BIT(ZeroBit),
+        NeverFail       = BIT(__NeverFailBit),
+        Zero            = BIT(__ZeroBit),
 
         /// In process of an allocation, it indicates `PMM` under memory pressure
         /// that it could enable the back-side thread to reclaim frames and sleep
         /// applicant's thread to avoid wasting CPU time.
-        Reclaim         = BIT(ReclaimBit),
+        Reclaim         = BIT(__ReclaimBit),
 
         /// Allow `PMM` to directly reclaim frames under certain memory pressure,
         /// meaning that the process of reclaim is linear so the applicant does not
         /// wait through sleeping.
-        DirectlyReclaim = BIT(DirectlyReclaimBit),
+        DirectlyReclaim = BIT(__DirectlyReclaimBit),
     };
     USTL_ENABLE_ENUM_BITMASK(Gaf);
+
+    typedef ustl::traits::UnderlyingTypeT<Gaf>  GafVal;
 
     FORCE_INLINE CXX11_CONSTEXPR
     static auto gaf_zone_type(Gaf gaf) -> ZoneType {
@@ -63,19 +62,15 @@ namespace gafns {
         auto const kGafZoneMask = Gaf::Dma | Gaf::Dma32;
 
         CXX11_CONSTEXPR
-        Gaf const kZoneTable {
-            BIT(Gaf::Dma * kGafZoneShift)   |
-            BIT(Gaf::Dma32 * kGafZoneShift)
+        GafVal const kZoneTable {
+            BIT(GafVal(Gaf::Dma) * kGafZoneShift)   |
+            BIT(GafVal(Gaf::Dma32) * kGafZoneShift)
         };
 
-        auto const bits = gaf & kGafZoneMask;
-        auto zone = kZoneTable >> (bits * kGafZoneShift);
+        auto const bits = GafVal(gaf & kGafZoneMask);
+        auto zone = kZoneTable >> (GafVal(bits) * kGafZoneShift);
         return ZoneType((1 << bits) - 1);
     }
-
-} // namespace ours::mem::gafns
-    using gafns::Gaf;
-    using gafns::gaf_zone_type;
 
     CXX11_CONSTEXPR
     static auto const kGafBoot = Gaf::OnlyThisNode;
