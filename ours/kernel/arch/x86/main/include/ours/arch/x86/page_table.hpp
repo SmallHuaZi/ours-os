@@ -23,8 +23,7 @@ namespace ours::mem::details {
         static auto alloc_page() -> PhysAddr {
             PhysAddr phys_addr;
             if (auto frame = alloc_frame(kGafKernel, &phys_addr, 0)) {
-                frame->flags().set_role(PfRole::Mmu);
-                frame->increase_mapping();
+                auto mmu_frame = role_cast<PfRole::Mmu>(frame);
                 return phys_addr;
             }
 
@@ -33,9 +32,11 @@ namespace ours::mem::details {
 
         static auto free_page(PhysAddr phys_addr) -> void {
             if (auto frame = phys_to_frame(phys_addr)) {
-                frame->flags().set_role(PfRole::Pmm);
-                frame->decrease_mapping();
-                free_frame(frame, 0);
+                auto mmu_frame = role_cast<PfRole::Mmu>(frame);
+                mmu_frame->num_mappings -= 1;
+                if (0 == mmu_frame->num_mappings) {
+                    free_frame(frame, 0);
+                } 
             }
         }
     };

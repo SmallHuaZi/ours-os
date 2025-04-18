@@ -63,19 +63,20 @@ namespace pfns {
     };
     USTL_ENABLE_ENUM_BITMASK(PfStates);
 
-    enum PfRole {
+    enum class PfRole {
         None,
         Io,
         Lru,
         Mmu,
         Pmm,
+        Slab,
         Heap,
         MaxNumRoles,
     };
 
     typedef TypeList<
         Field<Id<kFrameStateId>, Name<"State">,Type<PfStates>, Bits<BIT_WIDTH(MaxNumStateBits)>>,
-        Field<Id<kFrameRoleId>, Name<"Role">, Type<PfRole>, Bits<BIT_WIDTH(MaxNumRoles)>>,
+        Field<Id<kFrameRoleId>, Name<"Role">, Type<PfRole>, Bits<BIT_WIDTH(usize(PfRole::MaxNumRoles))>>,
         Field<Id<kZoneId>, Name<"Zone">, Type<ZoneType>, Bits<BIT_WIDTH(MaxNumZoneType)>>,
         Field<Id<kNodeId>, Name<"Nid">, Type<NodeId>, Bits<MAX_NODES_BITS>, Enable<OURS_CONFIG_NUMA>>,
         Field<Id<kOrderId>, Name<"Order">, Type<usize>, Bits<BIT_WIDTH(MAX_FRAME_ORDER)>>,

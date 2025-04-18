@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_BITSET_HPP
 #define USTL_BITSET_HPP 1
 
@@ -18,7 +17,18 @@
 
 namespace ustl {
     template <int NBits>
-    using BitSet = std::bitset<NBits>;
+    struct BitSet: public ::std::bitset<NBits> {
+        typedef ::std::bitset<NBits>        Base;
+        using Base::Base;
+
+        auto test_range(usize start, usize num_bits) -> bool {
+            bool v = true;
+            for (auto i = 0; i < num_bits; ++i) {
+                v &= this->test(i + start);
+            }
+            return v;
+        }
+    };
 
     template <usize Delta = 0, typename BitSet, typename Integer>
     auto copy_bits(BitSet &bitset, Integer value) -> void {

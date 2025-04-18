@@ -8,8 +8,8 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_MEM_NEW_HPP
-#define OURS_MEM_NEW_HPP 1
+#ifndef OURS_MEM_SCOPE_HPP
+#define OURS_MEM_SCOPE_HPP 1
 
 #include <ours/types.hpp>
 #include <ours/config.hpp>
@@ -28,7 +28,7 @@ namespace ours {
     static auto const kMaxPageAlign = AlignVal(MAX_PAGE_SIZE);
 
     CXX11_CONSTEXPR
-    static auto const kCacheAlign = AlignVal(arch::CACHE_SIZE);
+    static auto const kCacheAlign = AlignVal(arch::kCacheSize);
 
     /// `Scope<T>` is a strong type allocator designed for managing the lifetime of objects.
     /// If an object is marked as `KernelObject` or `UserObject` by the macro `OURS_IMPL_MARKER_FOR`,
@@ -111,4 +111,4 @@ namespace ours {
 
 } // namespace ours
 
-#endif // #ifndef OURS_MEM_NEW_HPP
+#endif // #ifndef OURS_MEM_SCOPE_HPP

@@ -14,7 +14,7 @@
 #include <ours/cpu-mask.hpp>
 #include <ours/assert.hpp>
 #include <ours/mem/cfg.hpp>
-#include <ours/mem/new.hpp>
+#include <ours/mem/scope.hpp>
 #include <ours/mem/node-mask.hpp>
 #include <ours/phys/arch-handoff.hpp>
 #include <ours/phys/arch-bootmem.hpp>

@@ -40,7 +40,7 @@ namespace ours {
     auto start_kernel(PhysAddr handoff) -> void {
         gktl::init_static_objects();
 
-        // Install early cpu local data.
+        // Install early cpu local data. The dynamic cpu local allocator for BP will be installed. 
         CpuLocal::init_early();
 
         setup_handoff(handoff);
@@ -51,6 +51,7 @@ namespace ours {
         init_platform_early();
         set_init_level(gktl::InitLevel::PlatformEarly);
 
+        // Before here, the PMM should be fully initialied.
         CpuLocal::init();
         set_init_level(gktl::InitLevel::CpuLocal);
 

@@ -137,6 +137,11 @@ namespace ours::mem {
     }
 
     FORCE_INLINE CXX11_CONSTEXPR
+    auto node_is_state(NodeId nid, NodeStates::Type state) -> bool {
+        return global_node_states().states_[state].test(nid);
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
     auto set_node_state(NodeId nid, NodeStates::Type state, bool online) -> void {
         global_node_states().set_state(nid, state, online);
     }

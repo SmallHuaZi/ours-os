@@ -119,6 +119,7 @@ namespace ours::mem {
     class PmFolio;
     class PmZone;
     class PmNode;
+    class ObjectCache;
 
     /// Auxiliary classes for physical memory management.
     class FrameQueue;
@@ -139,6 +140,7 @@ OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmFolio);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmFrame);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmZone);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::PmNode);
+OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::ObjectCache);
 
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmArea);
 OURS_IMPL_MARKER_FOR(KernelObject, ours::mem::VmAspace);

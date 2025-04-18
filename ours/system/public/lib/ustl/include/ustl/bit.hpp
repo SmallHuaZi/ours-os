@@ -25,6 +25,25 @@ namespace ustl {
     using std::countl_one;
     using std::countr_zero;
     using std::countl_zero;
+    using std::has_single_bit;
+
+    template <typename T>
+    USTL_FORCEINLINE USTL_CXX11_CONSTEXPR
+    auto bit_test_unsafe(T const *bitmap, usize pos) USTL_NOEXCEPT -> bool {
+        static_assert(traits::IsIntegralV<T>);
+        usize const word_offset = pos / ustl::NumericLimits<T>::DIGITS;
+        usize const bit_offset = pos % ustl::NumericLimits<T>::DIGITS;
+        return bitmap[word_offset] & (1 << bit_offset);
+    }
+
+    template <typename T>
+    USTL_FORCEINLINE USTL_CXX11_CONSTEXPR
+    auto bit_set_unsafe(T *bitmap, usize pos, bool value = true) USTL_NOEXCEPT -> bool {
+        static_assert(traits::IsIntegralV<T>);
+        usize const word_offset = pos / ustl::NumericLimits<T>::DIGITS;
+        usize const bit_offset = pos % ustl::NumericLimits<T>::DIGITS;
+        bitmap[word_offset] = (bitmap[word_offset] & ~(T(1) << bit_offset)) | (T(value) << bit_offset);
+    }
 
     template <typename Int, Int StartBit, Int Size>
     struct MakeBitMask {
@@ -38,12 +57,16 @@ namespace ustl {
     };
 
     template <typename Int, Int StartBit, Int Size>
-    auto make_bitmask() -> Int
-    {  return MakeBitMask<Int, StartBit, Size>::VALUE;  }
+    USTL_FORCEINLINE USTL_CXX11_CONSTEXPR
+    static auto make_bitmask() -> Int {
+        return MakeBitMask<Int, StartBit, Size>::VALUE;
+    }
 
     template <typename Int>
-    auto make_bitmask(Int start, Int end) -> Int
-    {  return ((Int(1) << (end - start)) - 1) << start;  }
+    USTL_FORCEINLINE USTL_CXX11_CONSTEXPR
+    static auto make_bitmask(Int start, Int end) -> Int {
+        return ((Int(1) << (end - start)) - 1) << start;
+    }
 
 } // namespace ustl
 

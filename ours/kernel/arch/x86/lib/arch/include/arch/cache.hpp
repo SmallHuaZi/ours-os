@@ -13,13 +13,13 @@
 
 #include <arch/types.hpp>
 
-#ifndef ARCH_CONFIG_CACHE_SIZE
-#   define ARCH_CONFIG_CACHE_SIZE   64
-#endif // #ifndef ARCH_CONFIG_CACHE_SIZE
+#ifndef ARCH_CONFIG_kCacheSize
+#   define ARCH_CONFIG_kCacheSize   64
+#endif // #ifndef ARCH_CONFIG_kCacheSize
 
 namespace arch {
     CXX11_CONSTEXPR 
-    static usize const CACHE_SIZE = ARCH_CONFIG_CACHE_SIZE;
+    static usize const kCacheSize = ARCH_CONFIG_kCacheSize;
 
     struct Cache {
         static auto flush_line(PhysAddr phys_addr) -> void {

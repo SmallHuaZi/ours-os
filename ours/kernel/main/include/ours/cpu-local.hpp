@@ -23,12 +23,14 @@
 #include <ours/assert.hpp>
 #include <ours/mem/cfg.hpp>
 #include <ours/mem/types.hpp>
+#include <ours/mem/gaf.hpp>
 
 #include <ustl/array.hpp>
 #include <ustl/mem/align.hpp>
 #include <ustl/traits/integral.hpp>
 #include <ustl/function/invoke.hpp>
 #include <ustl/traits/invoke_result.hpp>
+#include <ustl/algorithms/minmax.hpp>
 
 #ifndef DEBUG_ASSERT
 #   define DEBUG_ASSERT(...)
@@ -41,6 +43,9 @@
 namespace ours {
     template <typename T>
     struct PerCpu;
+
+    template <typename T>
+    PerCpu(T *) -> PerCpu<T>;
 
     /// Define a static lifetime CPU-local variable like this:
     /// CPU_LOCAL [static] YourType VAR_NAME;
@@ -73,8 +78,10 @@ namespace ours {
         INIT_CODE
         static auto init_early() -> void;
 
-        INIT_CODE
-        static auto init() -> Status;
+        INIT_CODE FORCE_INLINE
+        static auto init() -> Status {
+            return init(ArchCpuLocal::kDynFirstChunkSize, ArchCpuLocal::kUnitAlign);
+        }
 
         INIT_CODE FORCE_INLINE
         static auto init_percpu() -> void {
@@ -132,11 +139,13 @@ namespace ours {
         }
 
         template <typename T>
-        static auto allocate(AlignVal alignment = alignof(T)) -> PerCpu<T> {
-            return { allocate(sizeof(T), alignment) };
+        FORCE_INLINE
+        static auto allocate(AlignVal alignment = alignof(T), mem::Gaf gaf = mem::kGafKernel) -> PerCpu<T> {
+            return PerCpu(allocate(sizeof(T), alignment, gaf)); 
         }
 
         template <typename T>
+        FORCE_INLINE
         static auto free(PerCpu<T> object) -> void {
             return free(object.object);
         }
@@ -159,7 +168,8 @@ namespace ours {
             });
         }
     private:
-        static auto allocate(usize size, AlignVal val) -> void *;
+        static auto init(usize dyn_size, usize unit_align) -> Status;
+        static auto allocate(usize size, AlignVal val, mem::Gaf gaf) -> void *;
         static auto free(void *) -> void;
 
         FORCE_INLINE
@@ -196,9 +206,6 @@ namespace ours {
     private:
         T *object_;
     };
-
-    template <typename T>
-    PerCpu(T *) -> PerCpu<T>;
 
 } // namespace ours
 

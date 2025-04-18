@@ -245,7 +245,7 @@ namespace ours::mem {
         auto frame_to_pfn(PmFrame const *frame) -> Pfn {
             DEBUG_ASSERT(frame != nullptr);
             if (auto const section = frame_to_section(frame)) {
-                return secnum_to_pfn(frame->flags().secnum()) + (frame - section->frame_map().data());
+                return secnum_to_pfn(frame->secnum()) + (frame - section->frame_map().data());
             }
 
             return 0;
@@ -254,7 +254,7 @@ namespace ours::mem {
         FORCE_INLINE CXX11_CONSTEXPR 
         auto frame_to_section(PmFrame const *frame) -> PmSection * {
             DEBUG_ASSERT(frame != nullptr);
-            return secnum_to_section(frame->flags().secnum());
+            return secnum_to_section(frame->secnum());
         }
 
         auto add_range(PhysAddr start, PhysAddr end, NodeId nid) -> Status;
@@ -374,6 +374,12 @@ namespace ours::mem {
 
     FORCE_INLINE
     static auto virt_to_frame(VirtAddr virt_addr) -> PmFrame * {
+        return phys_to_frame(PhysMap::virt_to_phys(virt_addr));
+    }
+
+    template <typename T>
+    FORCE_INLINE
+    static auto virt_to_frame(T virt_addr) -> PmFrame * {
         return phys_to_frame(PhysMap::virt_to_phys(virt_addr));
     }
 

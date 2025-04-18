@@ -119,6 +119,17 @@ namespace ours::mem {
         }
     }
 
+    PmZone::PmZone()
+        : canary_(),
+          name_("Anonymous"),
+          type_(ZoneType::MaxNumZoneType),
+          nid_(),
+          start_pfn_(),
+          spanned_frames_(),
+          present_frames_(),
+          frame_cache_(0)
+    {}
+
     // Requires:
     //      1. @map is must zeroed.
     INIT_CODE 

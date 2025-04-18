@@ -14,14 +14,19 @@
 #include <ours/mem/types.hpp>
 #include <ours/mem/pfs.hpp>
 #include <ours/mem/cfg.hpp>
+#include <ours/assert.hpp>
 
 #include <ustl/option.hpp>
 #include <ustl/sync/atomic.hpp>
+#include <ustl/traits/is_base_of.hpp>
 #include <ustl/collections/intrusive/list.hpp>
+#include <ustl/collections/intrusive/slist.hpp>
 
 namespace ours::mem {
-    class alignas(64) PmFrame {
-        typedef PmFrame     Self;
+    CXX11_CONSTEXPR
+    static auto const kMaxPmFrameDescSize = sizeof(usize) << 3;
+
+    class PmFrameBase {
     public:
         FORCE_INLINE CXX11_CONSTEXPR
         auto init(ZoneType ztype, SecNum secnum, NodeId nid) -> void {
@@ -63,7 +68,7 @@ namespace ours::mem {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto role() const -> PfRole {
-            return this->flags_.role();
+            return flags_.role();
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -72,55 +77,100 @@ namespace ours::mem {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto flags() -> FrameFlags & {
-            return this->flags_;
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto flags() const -> FrameFlags const & {
-            return this->flags_;
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto increase_mapping() -> void {
-            num_mappings_ += 1;
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto decrease_mapping() -> void {
-            num_mappings_ += 1;
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
         auto phys_size() const -> usize {
             return BIT(order());
         }
 
         auto dump() const -> void;
-
     private:
-        ustl::collections::intrusive::ListMemberHook<> managed_hook_;
-
-        /// Maybe simultaneously held by multi-VmPage.
-        mutable ustl::sync::AtomicU16 num_mappings_;
-        mutable ustl::sync::AtomicU16 num_references_;
-
         FrameFlags flags_;
-    public:
-        USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedListOptions);
+        mutable ustl::sync::AtomicU16 num_references_;
     };
-    USTL_DECLARE_LIST_TEMPLATE(PmFrame, FrameList, PmFrame::ManagedListOptions);
-    static_assert(sizeof(PmFrame) <= sizeof(usize) << 8, "");
 
     FORCE_INLINE
-    auto operator==(PmFrame const &x, PmFrame const &y) -> bool {
+    auto operator==(PmFrameBase const &x, PmFrameBase const &y) -> bool {
         return &x == &y;
     }
 
     FORCE_INLINE
-    auto operator!=(PmFrame const &x, PmFrame const &y) -> bool {
+    auto operator!=(PmFrameBase const &x, PmFrameBase const &y) -> bool {
         return &x != &y;
     }
+
+    template <PfRole Role>
+    struct RoleViewDispatcher;
+
+    /// Before call this, the role of frame was reuiqred to be set explicitly.
+    template <PfRole Role>
+    FORCE_INLINE
+    auto role_cast(PmFrameBase &frame) -> RoleViewDispatcher<Role>::Type * {
+        typedef typename RoleViewDispatcher<Role>::Type View;
+        static_assert(ustl::traits::IsBaseOfV<PmFrameBase, View>);
+        static_assert(sizeof(frame) == sizeof(View));
+        frame.set_role(Role);
+        return reinterpret_cast<View *>(&frame);
+    }
+
+    template <PfRole Role>
+    FORCE_INLINE
+    auto role_cast(PmFrameBase *frame) -> RoleViewDispatcher<Role>::Type * {
+        return role_cast<Role>(*frame);
+    }
+
+    /// This is a standard layout frame.
+    struct alignas(64) PmFrame: public PmFrameBase {
+        typedef PmFrame     Self;
+        typedef PmFrameBase Base;
+        using Base::Base;
+
+        ustl::collections::intrusive::ListMemberHook<> managed_hook;
+        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedListOptions);
+    };
+    USTL_DECLARE_LIST_TEMPLATE(PmFrame, FrameList, PmFrame::ManagedListOptions);
+    static_assert(sizeof(PmFrame) == sizeof(usize) << 3, "");
+
+    template <>
+    struct RoleViewDispatcher<PfRole::Pmm> {
+        typedef PmFrame    Type;
+    };
+
+    struct MmuFrame: public PmFrameBase {
+        ustl::collections::intrusive::ListMemberHook<> managed_hook;
+        mutable ustl::sync::AtomicU16 num_mappings;
+    };
+
+    template <>
+    struct RoleViewDispatcher<PfRole::Mmu> {
+        typedef MmuFrame    Type;
+    };
+
+    /// When a frame is being used in `ObjectCache`, it's descriptor has the following layout.
+    struct SlabFrame: public PmFrameBase {
+        typedef SlabFrame   Self;
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto has_object() const -> bool {
+            return num_inuse != num_objects;
+        }
+
+        /// Dummy object that provides a way convenient to build the list organizing free objects.
+        struct Object: public ustl::collections::intrusive::SlistBaseHook<> {};
+        using ObjectList = ustl::collections::intrusive::Slist<Object, 
+                           ustl::collections::intrusive::ConstantTimeSize<false>>;
+
+        ObjectCache *object_cache_;
+        ustl::sync::AtomicU16 num_inuse;
+        ustl::sync::AtomicU16 num_objects;
+        ustl::collections::intrusive::ListMemberHook<> managed_hook;
+        ObjectList free_list;
+        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedListOptions);
+    };
+    USTL_DECLARE_LIST_TEMPLATE(SlabFrame, SlabFrameList, SlabFrame::ManagedListOptions);
+
+    template <>
+    struct RoleViewDispatcher<PfRole::Slab> {
+        typedef SlabFrame    Type;
+    };
 
 } // namespace ours::mem
 

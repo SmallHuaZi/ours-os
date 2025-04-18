@@ -23,7 +23,7 @@ namespace ustl::collections::intrusive {
     using MemberHook = member_hook<Parent, Hook, PtrToMember>;
 
     template <typename... T>
-    using ListBaseHook = list_member_hook<T...>;
+    using ListBaseHook = list_base_hook<T...>;
 
     template <typename... T>
     using ListMemberHook = list_member_hook<T...>;

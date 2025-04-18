@@ -28,8 +28,7 @@ namespace ours::marker {
     struct HasImplementedMarker;
 
     template <typename T>
-    struct HasImplementedMarker<T>
-    {
+    struct HasImplementedMarker<T> {
         CXX11_CONSTEXPR
         static bool const VALUE = true;
     };
@@ -37,8 +36,7 @@ namespace ours::marker {
     template <typename T,
              template<typename U> class Marker,
              template<typename U> class... MarkerList>
-    struct HasImplementedMarker<T, Marker, MarkerList...>
-    {
+    struct HasImplementedMarker<T, Marker, MarkerList...> {
         typedef HasImplementedMarker<T, MarkerList...>   RequiredOtherMarkers;
 
         CXX11_CONSTEXPR

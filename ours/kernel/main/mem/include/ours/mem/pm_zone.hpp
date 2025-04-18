@@ -76,6 +76,8 @@ namespace ours::mem {
         CXX11_CONSTEXPR
         static usize const kMaxPcpuCacheOrder = 0;
 
+        PmZone();
+
         auto init(NodeId nid, ZoneType ztype, Pfn start_pfn, Pfn end_pfn, usize present_frames = 0) -> void;
 
         auto contains(usize order) -> bool;
