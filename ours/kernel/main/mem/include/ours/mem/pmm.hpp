@@ -36,6 +36,8 @@ namespace ours::mem {
 
     auto num_nodes() -> usize;
 
+    auto current_node() -> NodeId;
+
     auto node_cpumask(NodeId nid) -> CpuMask const &;
 
     extern PhysAddr g_max_phys_addr;

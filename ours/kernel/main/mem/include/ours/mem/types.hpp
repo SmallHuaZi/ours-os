@@ -24,13 +24,14 @@
 namespace ours::mem {
     using arch::paging::MmuFlags;
 
-    enum ZoneType {
+    enum class ZoneType {
         Dma OURS_IF_NOT_CFG(ZONE_DMA, = -1),
         Dma32 OURS_IF_NOT_CFG(ZONE_DMA32, = Dma),
         Normal,
         MaxNumZoneType,
     };
-    static_assert(MaxNumZoneType == NR_ZONES_PER_NODE, "");
+    typedef ustl::traits::UnderlyingTypeT<ZoneType> ZoneTypeVal;
+    static_assert(usize(ZoneType::MaxNumZoneType) == NR_ZONES_PER_NODE, "");
 
     template <ZoneType>
     struct ZoneTypeMatcher;
@@ -62,30 +63,13 @@ namespace ours::mem {
         return PhysAddr(pfn << PAGE_SHIFT);  
     }
 
+    template <typename T>
     FORCE_INLINE CXX11_CONSTEXPR 
-    static auto phys_to_pfn(PhysAddr phys_addr) -> Pfn {  
+    static auto phys_to_pfn(T phys_addr) -> Pfn {  
+        static_assert(sizeof(T) == sizeof(PhysAddr));
         return Pfn(phys_addr >> PAGE_SHIFT);  
     }
 
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto phys_to_secnum(PhysAddr phys_addr) -> SecNum {  
-        return phys_addr >> SECTION_SHIFT;  
-    }
-
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto secnum_to_phys(SecNum secnum) -> PhysAddr {  
-        return secnum << SECTION_SHIFT;  
-    }
-
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto pfn_to_secnum(Pfn pfn) -> SecNum {  
-        return pfn >> PFN_SECTION_SHIFT;
-    }
-
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto secnum_to_pfn(SecNum secnum) -> Pfn {  
-        return secnum << PFN_SECTION_SHIFT;
-    }
 
     /// A pre-allocated storage reserve designed for scenarios requiring specialized physical page management. 
     /// It serves two core purposes:

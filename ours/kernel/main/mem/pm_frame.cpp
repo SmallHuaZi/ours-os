@@ -8,13 +8,14 @@
 namespace ours::mem {
     GKTL_COUNTER(EACH_ROLE_FRAMES_COUNTER, )
 
-    auto PmFrame::dump() const -> void {
-        log::info("PmFrame at 0x{:0>8X}: [zone: {:6}, section: {}, node: {}, pa: 0x{:0>8X}]",
+    auto PmFrameBase::dump() const -> void {
+        log::info("PmFrame at 0x{:0>8X}: [role: {:5}, zone: {:6}, section: {}, node: {}, pa: 0x{:0>8X}]",
             usize(this),
+            to_string(role()),
             to_string(zone()),
             secnum(),
             nid(),
-            frame_to_phys(this)
+            frame_to_phys(static_cast<PmFrame const *>(this))
         );
     }
 

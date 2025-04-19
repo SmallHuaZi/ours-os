@@ -77,10 +77,16 @@ namespace ours::mem {
     }
 
     auto alloc_frames(NodeId nid, Gaf gaf, ai_out FrameList<> *list, usize n, NodeMask const &nodes) -> Status {
+        if (nid >= MAX_NODE) {
+            return alloc_frames(gaf, list, n, nodes);
+        }
         return alloc_frames_internal(PmNode::node(nid), gaf, list, n, nodes);
     }
 
     auto alloc_frame(NodeId nid, Gaf gaf, usize order, NodeMask const &nodes) -> PmFrame * {
+        if (nid >= MAX_NODE) {
+            return alloc_frame(gaf, order, nodes);
+        }
         return alloc_frame_internal(PmNode::node(nid), gaf, order,  nodes);
     }
 

@@ -140,8 +140,8 @@ namespace ours {
 
         template <typename T>
         FORCE_INLINE
-        static auto allocate(AlignVal alignment = alignof(T), mem::Gaf gaf = mem::kGafKernel) -> PerCpu<T> {
-            return PerCpu(allocate(sizeof(T), alignment, gaf)); 
+        static auto allocate(AlignVal align= alignof(T), mem::Gaf gaf = mem::kGafKernel) -> PerCpu<T> {
+            return PerCpu(reinterpret_cast<T *>(Self::allocate(sizeof(T), align, gaf))); 
         }
 
         template <typename T>
@@ -188,6 +188,8 @@ namespace ours {
     struct PerCpu {
         friend CpuLocal;
 
+        PerCpu() = default;
+
         FORCE_INLINE CXX11_CONSTEXPR
         explicit PerCpu(T *object)
             : object_(object)
@@ -197,11 +199,20 @@ namespace ours {
 
         template <typename F>
             requires ustl::traits::Invocable<F, T &>
-        auto with_current(F &&f) -> ustl::traits::InvokeResultT<F, T &>;
+        auto with_current(F &&f) -> ustl::traits::InvokeResultT<F, T &> {
+            return ustl::function::invoke(f, *CpuLocal::access(object_));
+        }
 
         template <typename F>
             requires ustl::traits::Invocable<F, T const &>
-        auto with_current(F &&f) const -> ustl::traits::InvokeResultT<F, T const &>;
+        auto with_current(F &&f) const -> ustl::traits::InvokeResultT<F, T const &> {
+            return ustl::function::invoke(f, *CpuLocal::access(object_));
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        operator bool() {
+            return object_ != nullptr;
+        }
 
     private:
         T *object_;

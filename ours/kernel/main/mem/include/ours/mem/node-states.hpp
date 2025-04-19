@@ -17,11 +17,11 @@
 namespace ours::mem {
     struct NodeStates {
         enum Type {
-            Dma = ZoneType::Dma,
+            Dma = usize(ZoneType::Dma),
 
-            Dma32 = ZoneType::Dma32,
+            Dma32 = usize(ZoneType::Dma32),
 
-            Normal = ZoneType::Normal,
+            Normal = usize(ZoneType::Normal),
 
             /// Indicate that the node hold memories.
             Memory,

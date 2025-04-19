@@ -99,11 +99,11 @@ namespace ours::mem {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto insert_local_zone(PmZone *zone, ZoneType ztype) -> void {
-            DEBUG_ASSERT(ztype < NR_ZONES_PER_NODE);
-            DEBUG_ASSERT(get_queue(QueueType::LocalSequential)[ztype] == 0);
+            DEBUG_ASSERT(ZoneTypeVal(ztype) < NR_ZONES_PER_NODE);
+            DEBUG_ASSERT(get_queue(QueueType::LocalSequential)[ZoneTypeVal(ztype)] == 0);
             DEBUG_ASSERT(zone != 0);
 
-            get_queue(QueueType::LocalSequential)[ztype] = zone;
+            get_queue(QueueType::LocalSequential)[ZoneTypeVal(ztype)] = zone;
             push_back(zone, QueueType::LocalContiguous);
             push_back(zone, QueueType::SharedAffinity);
             set_node_state(nid_, NodeStates::Type(ztype), true);
@@ -116,8 +116,8 @@ namespace ours::mem {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto get_local_zone(ZoneType ztype) -> ZoneRef {
-            DEBUG_ASSERT(ztype < NR_ZONES_PER_NODE);
-            return get_queue(QueueType::LocalSequential)[ztype];
+            DEBUG_ASSERT(ZoneTypeVal(ztype) < NR_ZONES_PER_NODE);
+            return get_queue(QueueType::LocalSequential)[ZoneTypeVal(ztype)];
         }
 
         FORCE_INLINE CXX11_CONSTEXPR

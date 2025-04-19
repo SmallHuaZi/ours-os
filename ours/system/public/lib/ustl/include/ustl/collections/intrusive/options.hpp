@@ -18,8 +18,11 @@ namespace ustl::collections::intrusive {
     template <typename Size>
     using SizeType = boost::intrusive::size_type<Size>;
 
-    template <bool Constant>
-    using ConstantTimeSize = boost::intrusive::constant_time_size<Constant>;
+    template <bool Enable>
+    using ConstantTimeSize = boost::intrusive::constant_time_size<Enable>;
+
+    template <bool Enable>
+    using CacheLast = boost::intrusive::cache_last<Enable>;
 
     template <typename HeaderHolder>
     using HeaderHolderType = boost::intrusive::header_holder_type<HeaderHolder>;

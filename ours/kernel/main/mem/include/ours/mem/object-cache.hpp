@@ -14,11 +14,12 @@
 #include <ours/mem/gaf.hpp>
 #include <ours/mem/scope.hpp>
 #include <ours/mem/pm_frame.hpp>
+#include <ours/mem/cfg.hpp>
 
 #include <ours/mutex.hpp>
 #include <ours/cpu-local.hpp>
 
-#include <ustl/ref_counter.hpp>
+#include <ustl/rc.hpp>
 #include <ustl/mem/object.hpp>
 #include <ustl/collections/intrusive/slist.hpp>
 #include <ustl/collections/intrusive/list.hpp>
@@ -26,63 +27,214 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
+    namespace uci = ustl::collections::intrusive;
+
+    enum class OcFlags {
+        Folio,
+        Dma,
+        Dma32,
+    };
+    USTL_ENABLE_ENUM_BITMASK(OcFlags);
+
+    /// When a frame is being used in `ObjectCache`, it's descriptor has the following layout.
+    struct Slab: public PmFrameBase {
+        typedef Slab   Self;
+
+        /// Dummy object that provides a way convenient to build the list organizing free objects.
+        struct Object: public uci::SlistBaseHook<uci::LinkMode<uci::LinkModeType::AutoUnlink>> {};
+        using ObjectList = uci::Slist<Object, uci::ConstantTimeSize<false>>;
+
+        static auto create(ObjectCache *oc, Gaf gaf, usize order, usize obi_size, NodeId nid = MAX_NODE) -> Self *;
+
+        auto init(ObjectCache *oc, usize order, usize obi_size) -> Status;
+
+        FORCE_INLINE
+        auto destory() -> void {
+            DEBUG_ASSERT(num_inuse == 0);
+            managed_hook.unlink();
+            mem::free_frame(to_pmm(), order());
+        }
+
+        auto get_object() -> Object *;
+
+        template <typename T>
+        auto get_object() -> T * {
+            return reinterpret_cast<T *>(get_object());
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto put_object(Object *object) -> void {
+            free_list.push_front(*object);
+            num_inuse -= 1;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto has_object() const -> bool {
+            return num_inuse != num_objects;
+        }
+
+        /// Private on logic.
+        ustl::sync::AtomicU16 num_inuse;
+        ustl::sync::AtomicU16 num_objects;
+        ObjectList free_list;
+        ObjectCache *object_cache;
+        uci::ListMemberHook<uci::LinkMode<uci::LinkModeType::AutoUnlink>> managed_hook;
+        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedListOptions);
+    };
+    USTL_DECLARE_LIST_TEMPLATE(Slab, SlabList, Slab::ManagedListOptions, uci::ConstantTimeSize<false>);
+    static_assert(sizeof(Slab) <= kFrameDescSize, "");
+
+    template <>
+    struct RoleViewDispatcher<PfRole::Slab> {
+        typedef Slab   Type;
+    };
+
+    struct ObjectCachePerNode {
+        typedef ObjectCachePerNode  Self;
+
+        static auto create(NodeId nid) -> Self *;
+
+        auto destory() -> void;
+
+        FORCE_INLINE
+        auto get_slab() -> Slab * {
+            if (!has_slab()) {
+                return nullptr;
+            }
+            return &slabs_partial.front(); 
+        }
+
+        FORCE_INLINE
+        auto add_slab(Slab *slab) -> void {
+            slabs_partial.push_back(*slab);
+            num_slabs += 1;
+            num_partial += 1;
+        }
+
+        FORCE_INLINE
+        auto put_slab(Slab *slab) -> void {
+            DEBUG_ASSERT(!slab->has_object(), "Attempt to put a partial slab object");
+            num_partial -= 1;
+            slabs_full.push_back(*slab);
+        }
+
+        FORCE_INLINE
+        auto has_slab() const -> bool {
+            return !slabs_partial.empty();
+        }
+
+        /// Slabs which contains partial available objects.
+        SlabList<> slabs_partial;
+        /// Slabs which contains all objects inused.
+        SlabList<> slabs_full;
+        Mutex mutex_;
+        usize num_slabs;
+        usize num_partial;
+    };
+
     class ObjectCache
         : public ustl::RefCounter<ObjectCache>
     {
-        typedef ObjectCache     Self;
+        typedef ObjectCache         Self;
+        typedef Slab::Object        Object;
+        typedef Slab::ObjectList    ObjectList;
+    public:
+        struct CacheOnCpu;
+        struct CacheOnNode;
+
+        static auto create(char const *name, usize obj_size, AlignVal align, OcFlags flags) -> ustl::Rc<Self>;
+
+        INIT_CODE
+        static auto create_boot(Self &self, char const *name, usize obj_size, AlignVal align, OcFlags flags) -> Status;
+
+        auto do_allocate(Gaf gaf, NodeId nid) -> Object *;
+
+        FORCE_INLINE
+        auto do_allocate(NodeId nid) -> Object * {
+            return do_allocate(gaf_, nid);
+        }
+
+        template <typename T, typename... Args> 
+        auto allocate(NodeId nid, Args &&...args) -> T * {
+            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
+            auto const object = do_allocate(nid);
+            if (!object) {
+                return nullptr;
+            }
+            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
+        }
 
         template <typename T, typename... Args> 
         auto allocate(Gaf gaf, NodeId nid, Args &&...args) -> T * {
             DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
-            auto const object = allocate(gaf, nid);
+            auto const object = do_allocate(gaf, nid);
             if (!object) {
                 return nullptr;
             }
-            return ustl::mem::construct_at(static_cast<T *>(object), ustl::forward<Args>(args)...);
+            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
         }
 
-        template <typename T> 
+        auto do_deallocate(void *object) -> void {
+            auto slab = role_cast<PfRole::Slab>(virt_to_folio(object));
+            return do_deallocate(slab, object);
+        }
+
+        auto do_deallocate(Slab *slab, void *object) -> void;
+
+        template <typename T>
         auto deallocate(T *object) -> void {
             DEBUG_ASSERT(object, "Pass a invalid object");
-            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
             ustl::mem::destroy_at(object);
-            deallocate(object);
+            do_deallocate(reinterpret_cast<Object *>(object));
         }
+
+        // Do not use it.
+        auto init(char const *name, usize object_size, AlignVal align, OcFlags flags) -> Status;
+        auto init_top_half(char const *name, usize object_size, AlignVal align, OcFlags flags) -> Status;
     private:
-        using Slab = SlabFrame;
-        using SlabList = SlabFrameList<>;
-        using Object = Slab::Object;
-        using ObjectList = Slab::ObjectList;
+        auto init_cache_node() -> Status;
+        auto init_cache_cpu() -> Status;
+        auto parse_ocflags(OcFlags flags) -> Status;
 
-        auto allocate(Gaf gaf, NodeId nid) -> Object *;
+        INIT_CODE
+        auto init_cache_node_boot() -> Status;
 
-        auto deallocate(Object *object) -> void;
-
-        auto get_neighbor(Object *) -> Object *;
+        auto free_cache_node() -> void;
 
         auto get_slab(NodeId nid) -> Slab *;
-        auto get_slab_from_node(NodeId nid) -> Slab *;
-        auto get_slab_any_node() -> Slab *;
 
-        auto alloc_slab(NodeId nid) -> Slab *;
+        FORCE_INLINE
+        auto alloc_slab(NodeId nid, Gaf gaf = {}) -> Slab * {
+            return Slab::create(this, gaf_ | gaf, order_, object_size_, nid);
+        }
 
-        auto free_slab(Slab *) -> void;
+        FORCE_INLINE
+        auto free_slab(Slab *slab) -> void {
+            return slab->destory();
+        }
 
-        struct CacheOnCpu;
-        struct CacheOnNode;
         GKTL_CANARY(MemCache, canary_);
+        OcFlags ocflags_;
 	    Gaf gaf_;
         u16 order_;
         u16 objects_;
 	    u32 object_size_;
 	    u32 object_align_;
 	    u32 inuse_;
+        u32 min_partial_;
 	    const char *name_;
 	    PerCpu<CacheOnCpu> cache_cpu_;
-        ustl::Array<CacheOnNode *, MAX_NODE> cache_node_;
+        ustl::Array<ObjectCachePerNode *, MAX_NODE> cache_node_;
 
-        ustl::collections::intrusive::ListMemberHook<> managed_hook;
-        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedHook);
+        ustl::collections::intrusive::ListMemberHook<> managed_hook_;
+        USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedHook);
+
+        enum class InitState {
+            Bootstrap,
+            Active,
+        };
+        static inline InitState s_state;
+        static inline ustl::collections::intrusive::List<Self, ManagedHook>  s_oclist_;
     };
 
 } // namespace ours::mem

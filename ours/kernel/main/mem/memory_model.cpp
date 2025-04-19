@@ -1,7 +1,7 @@
 #include <ours/mem/memory_model.hpp>
 #include <ours/mem/vmm.hpp>
 #include <ours/mem/pmm.hpp>
-#include <ours/mem/new.hpp>
+#include <ours/mem/scope.hpp>
 #include <ours/mem/pm_zone.hpp>
 #include <ours/mem/early-mem.hpp>
 #include <ours/mem/pm_node.hpp>
@@ -18,8 +18,7 @@ namespace ours::mem {
     static auto memory_model_allocate(usize n, AlignVal alignment, NodeId nid) -> T * {
         T *object;
         if (pmm_enabled()) {
-            auto scope = new (alignment, nid) Scope<T>[n];
-            object = *scope;
+            object = new T[n];
         } else {
             object = EarlyMem::allocate<T>(n, alignment, nid);
             if (!object) {

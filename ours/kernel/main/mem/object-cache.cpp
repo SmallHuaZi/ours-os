@@ -1,78 +1,216 @@
 #include <ours/mem/object-cache.hpp>
 #include <ours/mem/pmm.hpp>
 #include <ours/mem/node-states.hpp>
+#include <ours/mem/early-mem.hpp>
+
+#include <ustl/lazy_init.hpp>
+#include <logz4/log.hpp>
 
 namespace ours::mem {
-    struct ObjectCache::CacheOnCpu {
-        Slab *slab;
-    };
+    static ObjectCache *s_object_cache_self;
+    static ObjectCache *s_object_cache_node;
 
-    struct ObjectCache::CacheOnNode {
-        /// Slabs which contains partial available objects.
-        SlabList slabs_partial;
-        /// Slabs which contains all objects inused.
-        SlabList slabs_full;
-        Mutex mutex_;
-        usize num_slabs;
-    };
+    INIT_DATA
+    static ustl::LazyInit<ObjectCache> s_bootstrap_object_cache;
 
-    auto ObjectCache::free_slab(Slab *slab) -> void {
-        DEBUG_ASSERT(slab->num_inuse == 0, "Attempt to free a frame inused.");
-        auto frame = role_cast<PfRole::Pmm>(slab);
-        mem::free_frame(frame, order_);
-
-        // Trace the number of slabs on a node
-        cache_node_[slab->nid()]->num_slabs -= 1;
-    }
+    INIT_DATA
+    static ustl::LazyInit<ObjectCache> s_bootstrap_object_cache_node;
 
     FORCE_INLINE
-    auto ObjectCache::get_neighbor(Object *object) -> Object * {
-        return reinterpret_cast<Object *>(
-            reinterpret_cast<u8 *>(object) + object_size_
-        );
+    auto Slab::get_object() -> Object * {
+        if (!has_object()) {
+            return nullptr;
+        }
+
+        auto object = ustl::mem::address_of(free_list.front());
+        free_list.pop_front();
+        num_inuse += 1;
+        return object;
     }
 
-    auto ObjectCache::alloc_slab(NodeId nid) -> Slab * {
-        DEBUG_ASSERT(node_is_state(nid, NodeStates::Possible));
+    auto Slab::init(ObjectCache *oc, usize order, usize obj_size) -> Status {
+        num_inuse = 0;
+        num_objects = BIT(order) / obj_size;
 
-        auto frame = mem::alloc_frame(nid, gaf_, order_);
+        auto object = frame_to_virt<Object>(to_pmm());
+        for (auto i = 0; i < num_objects; ++i) {
+            free_list.push_front(*object);
+            object = reinterpret_cast<Object *>(
+                reinterpret_cast<u8 *>(object) + obj_size
+            );
+        }
+
+        object_cache = oc;
+
+        return Status::Ok;
+    }
+
+    auto Slab::create(ObjectCache *oc, Gaf gaf, usize order, usize obi_size, NodeId nid) -> Slab * {
+        auto frame = mem::alloc_frame(nid, gaf, order);
         if (!frame) {
             return nullptr;
         }
         auto slab = role_cast<PfRole::Slab>(frame);
-        slab->num_inuse = 0;
-        slab->num_objects = objects_;
-
-        auto object = frame_to_virt<Object>(frame);
-        for (auto i = 0; i < objects_; ++i) {
-            slab->free_list.push_back(*object);
-            object = get_neighbor(object);
+        auto status = slab->init(oc, order, obi_size);
+        if (Status::Ok != status) {
+            mem::free_frame(frame, order);
+            return nullptr;
         }
 
-        // Trace the number of slabs on a node
-        cache_node_[slab->nid()]->num_slabs += 1;
         return slab;
     }
 
     FORCE_INLINE
-    auto ObjectCache::get_slab_from_node(NodeId nid) -> Slab * {
-        DEBUG_ASSERT(node_is_state(nid, NodeStates::Possible));
-
-        auto &node = *cache_node_[nid];
-        SlabList *list = nullptr;
-        if (!node.slabs_partial.empty()) {
-            list = &node.slabs_partial;
-        } 
-
-        Slab *slab = nullptr;
-        if(list) {
-            slab = &list->front();
+    auto ObjectCachePerNode::create(NodeId nid) -> Self * {
+        auto self = s_object_cache_node->allocate<Self>(nid);
+        if (!self) {
+            return nullptr;
         }
 
-        return slab;
+        return self;
     }
 
-    auto ObjectCache::get_slab_any_node() -> Slab * {
+    FORCE_INLINE
+    auto ObjectCachePerNode::destory() -> void {
+        s_object_cache_node->deallocate(this);
+    }
+
+    struct ObjectCache::CacheOnCpu {
+        Slab *slab;
+    };
+
+    auto ObjectCache::init_cache_cpu() -> Status {
+        cache_cpu_ = CpuLocal::allocate<CacheOnCpu>();
+        if (!cache_cpu_) {
+            return Status::OutOfMem;
+        }
+
+        return Status::Ok;
+    }
+
+    auto ObjectCache::free_cache_node() -> void {
+        for (auto node : cache_node_) {
+            node->destory();
+        }
+    }
+
+    INIT_CODE
+    auto ObjectCache::init_cache_node_boot() -> Status {
+        auto const &node = node_possible_mask();
+        for (auto nid = 0; nid < node.size(); ++nid) {
+            auto slab = alloc_slab(0);
+            if (!slab) {
+                return Status::OutOfMem;
+            }
+            cache_node_[nid] = slab->get_object<ObjectCachePerNode>();
+            cache_node_[nid]->add_slab(slab);
+        }
+
+        return Status::Ok;
+    }
+
+    auto ObjectCache::init_cache_node() -> Status {
+        auto const &node = node_possible_mask();
+        for (auto i = 0; i < node.size(); ++i) {
+            if (!node.test(i)) {
+                continue;
+            }
+
+            auto node = ObjectCachePerNode::create(current_node());
+            if (!node) {
+                // Release all holding and report error.
+                free_cache_node();
+                return Status::OutOfMem;
+            }
+
+            cache_node_[i] = node;
+        }
+
+        return Status::Ok;
+    }
+
+    auto ObjectCache::parse_ocflags(OcFlags flags) -> Status {
+        return Status::Ok;
+    }
+
+    auto ObjectCache::init_top_half(char const *name, usize object_size, AlignVal align, OcFlags flags) -> Status {
+        name_ = name;
+        object_size_ = ustl::mem::align_up(object_size, sizeof(usize));
+        order_ = 0;
+        objects_ = (BIT(order_) * PAGE_SIZE) / object_size_;
+        object_align_ = align;
+        ocflags_ = flags;
+        return parse_ocflags(flags);
+    }
+
+    auto ObjectCache::init(char const *name, usize object_size, AlignVal align, OcFlags flags) -> Status {
+        auto status = init_top_half(name, object_size, align, flags);
+        if (Status::Ok != status) {
+            return status;
+        }
+
+        status = init_cache_node();
+        if (Status::Ok != status) {
+            return status;
+        }
+
+        status = init_cache_cpu();
+        if (Status::Ok != status) {
+            return status;
+        }
+
+        s_oclist_.push_back(*this);
+        return Status::Ok;
+    }
+
+    auto ObjectCache::create(const char *name, usize obj_size, AlignVal align, OcFlags flags) -> ustl::Rc<Self> {
+        // In future we should check if the arguments is valid, but now it is unnecessary.
+        auto self = s_object_cache_self->allocate<Self>(current_node());
+        if (!self) {
+            log::trace("Failed to allcoate a object cache:[name: {}, os: {}, align: {}]", 
+                name, obj_size, usize(align));
+            return {};
+        }
+
+        auto status = self->init(name, obj_size, align, flags);
+        if (Status::Ok != status) {
+            log::trace("Failed to initialize a object cache:[name: {}, os: {}, align: {}]", 
+                name, obj_size, usize(align));
+
+            s_object_cache_self->deallocate(self);
+            return {};
+        }
+
+        return ustl::make_rc<Self>(self);
+    }
+
+    auto ObjectCache::create_boot(Self &self, char const *name, usize obj_size, AlignVal align, OcFlags flags) -> Status {
+        auto status = self.init_top_half(name, obj_size, align, flags);
+        if (status != Status::Ok) {
+            return status;
+        }
+
+        status = self.init_cache_node_boot();
+        if (status != Status::Ok) {
+            return status;
+        }
+
+        status = self.init_cache_cpu();
+        if (status != Status::Ok) {
+            return status;
+        }
+        return Status::Ok;
+    }
+
+    FORCE_INLINE
+    auto ObjectCache::get_slab(NodeId nid) -> Slab * {
+        if (node_is_state(nid, NodeStates::Online)) {
+            if (auto slab = cache_node_[nid]->get_slab()) {
+                return slab;
+            }
+        }
+
+        // Try any nodes.
         Slab *slab = nullptr;
         auto &nodes = node_online_mask();
         for (auto nid = 0; nid < nodes.size(); ++nid) {
@@ -80,7 +218,7 @@ namespace ours::mem {
                 continue; 
             }
 
-            slab = get_slab_from_node(nid);
+            slab = cache_node_[nid]->get_slab();
             if (slab) {
                 break;
             }
@@ -89,15 +227,7 @@ namespace ours::mem {
         return slab;
     }
 
-    FORCE_INLINE
-    auto ObjectCache::get_slab(NodeId nid) -> Slab * {
-        if (auto slab = get_slab_from_node(nid)) {
-            return slab;
-        }
-        return get_slab_any_node();
-    }
-
-    auto ObjectCache::allocate(Gaf gaf, NodeId nid) -> Object * {
+    auto ObjectCache::do_allocate(Gaf gaf, NodeId nid) -> Object * {
         // Alwasy look up the cache per cpu firstly.
         auto *slab = cache_cpu_.with_current([] (CacheOnCpu &cache) {
             return cache.slab;
@@ -116,32 +246,48 @@ namespace ours::mem {
 
         if (!slab) {
             // CPU and NODE cache is all empty, to allocate a slab.
-            slab = alloc_slab(nid);
+            slab = alloc_slab(nid, gaf);
         }
 
         if (!slab) {
             return nullptr;
         }
 
-        auto &object = slab->free_list.front();
-        slab->free_list.pop_front();
+        auto object = slab->get_object();
 
         if (!slab->has_object()) {
-            cache_node_[slab->nid()]->slabs_full.push_back(*slab);
+            cache_node_[slab->nid()]->put_slab(slab);
             slab = nullptr;
         }
 
         cache_cpu_.with_current([slab] (CacheOnCpu &cache) {
             cache.slab = slab;
         });
-        slab->num_inuse += 1;
-        return &object;
+        return object;
     }
 
-    auto ObjectCache::deallocate(Object *object) -> void {
-        auto slab = role_cast<PfRole::Slab>(virt_to_frame(object));
-        slab->free_list.push_back(*object);
+    auto ObjectCache::do_deallocate(Slab *slab, void *object) -> void {
+        DEBUG_ASSERT(slab);
+
+        slab->put_object(static_cast<Object *>(object));
         slab->num_inuse -= 1;
+        if (slab->num_inuse != 0) {
+            return;
+        }
+
+        auto node = cache_node_[slab->nid()];
+        if (node->num_partial >= min_partial_) {
+            free_slab(slab);
+        }
+    }
+
+    /// Requires that PMM is available.
+    INIT_CODE
+    auto init_object_cache() -> void {
+        s_object_cache_self = s_bootstrap_object_cache.data();
+        s_object_cache_node = s_bootstrap_object_cache_node.data();
+        ObjectCache::create_boot(*s_object_cache_self, "self-cache", sizeof(ObjectCache), alignof(ObjectCache), {});
+        ObjectCache::create_boot(*s_object_cache_node, "node-cache", sizeof(ObjectCachePerNode), alignof(ObjectCachePerNode), {});
     }
 
 } // namespace ours::mem

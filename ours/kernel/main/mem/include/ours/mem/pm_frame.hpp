@@ -24,10 +24,18 @@
 
 namespace ours::mem {
     CXX11_CONSTEXPR
-    static auto const kMaxPmFrameDescSize = sizeof(usize) << 3;
+    static auto const kFrameDescSize = sizeof(usize) << 3;
 
-    class PmFrameBase {
-    public:
+    /// Limit of usage is double word.
+    struct PmFrameBase {
+        typedef PmFrameBase     Self;
+
+        PmFrameBase() = default;
+
+        /// A frame can not be moved and copied in any way.
+        PmFrameBase(Self &&) = delete;
+        PmFrameBase(Self const &) = delete;
+
         FORCE_INLINE CXX11_CONSTEXPR
         auto init(ZoneType ztype, SecNum secnum, NodeId nid) -> void {
             flags_.set_zone_type(ztype);
@@ -77,14 +85,32 @@ namespace ours::mem {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
+        auto is_role(PfRole role) const -> bool {
+            return flags_.role() == role;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
         auto phys_size() const -> usize {
             return BIT(order());
         }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto mark_folio() -> Self & {
+            flags_.set_states(PfStates::Folio);
+            return *this;
+        }
+
         auto dump() const -> void;
-    private:
+
+        auto to_pmm() -> PmFrame * {
+            return reinterpret_cast<PmFrame *>(this);
+        }
+
         FrameFlags flags_;
-        mutable ustl::sync::AtomicU16 num_references_;
+        // The size of following fields type should be hanf of a word.
+        mutable ustl::sync::AtomicU32 num_references_;
+        // Trace the position of current frame in a large frame.
+        mutable ustl::sync::AtomicU32 index_compouned_;
     };
 
     FORCE_INLINE
@@ -100,13 +126,14 @@ namespace ours::mem {
     template <PfRole Role>
     struct RoleViewDispatcher;
 
-    /// Before call this, the role of frame was reuiqred to be set explicitly.
+    /// Set the role for frame and return the expected role view. 
     template <PfRole Role>
     FORCE_INLINE
     auto role_cast(PmFrameBase &frame) -> RoleViewDispatcher<Role>::Type * {
         typedef typename RoleViewDispatcher<Role>::Type View;
         static_assert(ustl::traits::IsBaseOfV<PmFrameBase, View>);
-        static_assert(sizeof(frame) == sizeof(View));
+        static_assert(kFrameDescSize >= sizeof(View));
+
         frame.set_role(Role);
         return reinterpret_cast<View *>(&frame);
     }
@@ -117,17 +144,18 @@ namespace ours::mem {
         return role_cast<Role>(*frame);
     }
 
-    /// This is a standard layout frame.
+    /// This is a standard layout frame mainly used by PMM.
     struct alignas(64) PmFrame: public PmFrameBase {
         typedef PmFrame     Self;
         typedef PmFrameBase Base;
         using Base::Base;
 
+        /// Used by PMM
         ustl::collections::intrusive::ListMemberHook<> managed_hook;
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedListOptions);
     };
     USTL_DECLARE_LIST_TEMPLATE(PmFrame, FrameList, PmFrame::ManagedListOptions);
-    static_assert(sizeof(PmFrame) == sizeof(usize) << 3, "");
+    static_assert(sizeof(PmFrame) == kFrameDescSize, "");
 
     template <>
     struct RoleViewDispatcher<PfRole::Pmm> {
@@ -138,39 +166,30 @@ namespace ours::mem {
         ustl::collections::intrusive::ListMemberHook<> managed_hook;
         mutable ustl::sync::AtomicU16 num_mappings;
     };
+    static_assert(sizeof(MmuFrame) <= kFrameDescSize, "");
 
     template <>
     struct RoleViewDispatcher<PfRole::Mmu> {
         typedef MmuFrame    Type;
     };
 
-    /// When a frame is being used in `ObjectCache`, it's descriptor has the following layout.
-    struct SlabFrame: public PmFrameBase {
-        typedef SlabFrame   Self;
 
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto has_object() const -> bool {
-            return num_inuse != num_objects;
-        }
-
-        /// Dummy object that provides a way convenient to build the list organizing free objects.
-        struct Object: public ustl::collections::intrusive::SlistBaseHook<> {};
-        using ObjectList = ustl::collections::intrusive::Slist<Object, 
-                           ustl::collections::intrusive::ConstantTimeSize<false>>;
-
-        ObjectCache *object_cache_;
-        ustl::sync::AtomicU16 num_inuse;
-        ustl::sync::AtomicU16 num_objects;
-        ustl::collections::intrusive::ListMemberHook<> managed_hook;
-        ObjectList free_list;
-        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedListOptions);
+    struct PmFolio: public PmFrame {
+        PmFrameBase second_metadata;
     };
-    USTL_DECLARE_LIST_TEMPLATE(SlabFrame, SlabFrameList, SlabFrame::ManagedListOptions);
 
-    template <>
-    struct RoleViewDispatcher<PfRole::Slab> {
-        typedef SlabFrame    Type;
-    };
+    template <PfRole Role>
+    FORCE_INLINE
+    auto folio_to_frame(PmFolio *folio) -> RoleViewDispatcher<Role>::Type {
+        return static_cast<typename RoleViewDispatcher<Role>::Type * >(folio);
+    }
+
+    FORCE_INLINE
+    auto frame_to_folio(PmFrameBase *frame) -> PmFolio * {
+        return static_cast<PmFolio *>(
+            &static_cast<PmFrame *>(frame)[-static_cast<PmFrame *>(frame)->index_compouned_]
+        );
+    }
 
 } // namespace ours::mem
 

@@ -1,8 +1,9 @@
 #include <ours/mem/init.hpp>
 
+#include <ours/mem/early-mem.hpp>
 #include <ours/mem/pm_zone.hpp>
 #include <ours/mem/pm_node.hpp>
-#include <ours/mem/early-mem.hpp>
+#include <ours/mem/object-cache.hpp>
 #include <ours/mem/memory_model.hpp>
 #include <ours/mem/physmap.hpp>
 #include <ours/mem/pmm.hpp>
@@ -30,6 +31,8 @@ using ustl::algorithms::max;
 using ustl::algorithms::clamp;
 
 namespace ours::mem {
+    auto init_object_cache() -> void;
+
     bool g_pmm_enabled = false;
 
     INIT_DATA
@@ -58,7 +61,7 @@ namespace ours::mem {
 
     FORCE_INLINE
     static auto clamp_pfn_to_zone(Pfn pfn, ZoneType ztype) -> Pfn {  
-        return clamp(pfn, s_zone_lower_pfn[ztype], s_zone_upper_pfn[ztype]);
+        return clamp(pfn, s_zone_lower_pfn[ZoneTypeVal(ztype)], s_zone_upper_pfn[ZoneTypeVal(ztype)]);
     }
 
     INIT_CODE
@@ -149,14 +152,11 @@ namespace ours::mem {
 
     INIT_CODE
     static auto setup_possible_nodes() -> void {
-        NodeMask nodemask{};
-        init_node_mask(nodemask);
+        create_nodes(node_possible_mask());
 
-        create_nodes(nodemask);
+        init_nodes(node_possible_mask());
 
-        init_nodes(nodemask);
-
-        connect_nodes(nodemask);
+        connect_nodes(node_possible_mask());
     }
 
     INIT_CODE
@@ -170,6 +170,8 @@ namespace ours::mem {
         global_memory_model().dump();
 
         EarlyMem::do_handoff();
+
+        init_object_cache();
 
         // Ok, PMM is available now.
         g_pmm_enabled = true;

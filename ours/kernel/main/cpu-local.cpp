@@ -216,9 +216,9 @@ namespace ours {
         auto const total_groups = nodes.count();
         auto const total_units = num_possible_cpus();
         auto clai = CpuLocalAreaInfo::global();
-        if (Status::Ok != clai->init(total_groups, total_units, dyn_size)) {
-            panic("Failed to intialize glboal cpu local area info descriptor");
-        }
+        // if (Status::Ok != clai->init(total_groups, total_units, dyn_size)) {
+            // panic("Failed to intialize glboal cpu local area info descriptor");
+        // }
 
         mem::FrameList<> frames;
         ustl::views::Span<CpuNum> u2c_map;

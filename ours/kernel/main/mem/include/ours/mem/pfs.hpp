@@ -29,37 +29,28 @@ namespace pfns {
     using ustl::bitfields::Type;
     using ustl::bitfields::Enable;
 
-    enum PfsFieldId {
-        kFrameStateId,
-        kFrameRoleId,
-        kZoneId,
-        kNodeId,
-        kOrderId,
-        kSectionId,
-    };
-
     /// `PfStates` is a shorthand of physical frame states.
-    enum PfStatesBits {
-        ActiveBit,
-        PinnedBit,
-        DirtyBit,
-        UpToDateBit,
-        ForeignBit,
-        BeingWaitingBit,
-        FolioBit,
-        ReclaimableBit,
-        ReservedBit,
-        MaxNumStateBits,
-    };
     enum class PfStates {
-        Active   = BIT(ActiveBit),
-        Pinned   = BIT(PinnedBit),
-        Dirty    = BIT(DirtyBit),
-        UpToDate = BIT(UpToDateBit),
-        Foreign  = BIT(ForeignBit),
-        BeginWaiting = BIT(BeingWaitingBit),
-        Reclaimable = BIT(ReclaimableBit),
-        Reserved = BIT(ReservedBit),
+        __ActiveBit,
+        __PinnedBit,
+        __DirtyBit,
+        __UpToDateBit,
+        __ForeignBit,
+        __BeingWaitingBit,
+        __FolioBit,
+        __ReclaimableBit,
+        __ReservedBit,
+
+        Active   = BIT(__ActiveBit),
+        Pinned   = BIT(__PinnedBit),
+        Dirty    = BIT(__DirtyBit),
+        UpToDate = BIT(__UpToDateBit),
+        Foreign  = BIT(__ForeignBit),
+        BeginWaiting = BIT(__BeingWaitingBit),
+        Folio    = BIT(__FolioBit),
+        Reclaimable = BIT(__ReclaimableBit),
+        Reserved = BIT(__ReservedBit),
+        MaxNumStates,
     };
     USTL_ENABLE_ENUM_BITMASK(PfStates);
 
@@ -74,10 +65,33 @@ namespace pfns {
         MaxNumRoles,
     };
 
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto to_string(PfRole role) -> char const * {
+        switch (role) {
+            case PfRole::None:  return "None";
+            case PfRole::Io:    return "Io";
+            case PfRole::Lru:   return "Lru";
+            case PfRole::Mmu:   return "MMU";
+            case PfRole::Pmm:   return "PMM";
+            case PfRole::Slab:  return "Slab";
+            case PfRole::Heap:  return "Heap";
+        }
+        return "Anonymous";
+    }
+
+    enum PfsFieldId {
+        kStateId,
+        kRoleId,
+        kZoneId,
+        kNodeId,
+        kOrderId,
+        kSectionId,
+    };
+
     typedef TypeList<
-        Field<Id<kFrameStateId>, Name<"State">,Type<PfStates>, Bits<BIT_WIDTH(MaxNumStateBits)>>,
-        Field<Id<kFrameRoleId>, Name<"Role">, Type<PfRole>, Bits<BIT_WIDTH(usize(PfRole::MaxNumRoles))>>,
-        Field<Id<kZoneId>, Name<"Zone">, Type<ZoneType>, Bits<BIT_WIDTH(MaxNumZoneType)>>,
+        Field<Id<kStateId>, Name<"State">,Type<PfStates>, Bits<BIT_WIDTH(usize(PfStates::MaxNumStates))>>,
+        Field<Id<kRoleId>, Name<"Role">, Type<PfRole>, Bits<BIT_WIDTH(usize(PfRole::MaxNumRoles))>>,
+        Field<Id<kZoneId>, Name<"Zone">, Type<ZoneType>, Bits<BIT_WIDTH(usize(ZoneType::MaxNumZoneType))>>,
         Field<Id<kNodeId>, Name<"Nid">, Type<NodeId>, Bits<MAX_NODES_BITS>, Enable<OURS_CONFIG_NUMA>>,
         Field<Id<kOrderId>, Name<"Order">, Type<usize>, Bits<BIT_WIDTH(MAX_FRAME_ORDER)>>,
         Field<Id<kSectionId>, Name<"Sec">, Type<SecNum>, Bits<MAX_PHYSADDR_BITS - SECTION_SIZE_BITS>, Enable<1>>
@@ -116,17 +130,17 @@ namespace pfns {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto role() const -> PfRole {
-            return inner_.get<kFrameRoleId>();
+            return inner_.get<kRoleId>();
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto set_role(PfRole role) -> void {
-            inner_.set<kFrameRoleId>(role);
+            inner_.set<kRoleId>(role);
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto is_role(PfRole const role) const -> bool {
-            return role == inner_.get<kFrameRoleId>();
+            return role == inner_.get<kRoleId>();
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -141,12 +155,12 @@ namespace pfns {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto state() const -> PfStates {
-            return inner_.get<kFrameStateId>();
+            return inner_.get<kStateId>();
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto set_states(PfStates states) -> void {
-            inner_.set<kFrameStateId>(states);
+            inner_.set<kStateId>(inner_.get<kStateId>() | states);
         }
 
         BitFields<FieldList>    inner_;

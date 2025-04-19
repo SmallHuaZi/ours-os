@@ -1,6 +1,6 @@
 #include <ours/arch/x86/descriptor.hpp>
 #include <ours/cpu-local.hpp>
-#include <ours/mem/new.hpp>
+#include <ours/mem/scope.hpp>
 #include <arch/x86/descriptor.hpp>
 
 namespace ours {

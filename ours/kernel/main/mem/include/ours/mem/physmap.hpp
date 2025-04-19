@@ -69,7 +69,7 @@ namespace ours::mem {
         static auto virt_to_phys(T virt_addr) -> PhysAddr {
             static_assert(sizeof(usize) == sizeof(T));
             if (PhysMap::is_valid_virt_addr(virt_addr)) {
-                return PhysAddr(kPhysBase + (virt_addr - kVirtBase));
+                return PhysAddr(kPhysBase + (reinterpret_cast<VirtAddr>(virt_addr) - kVirtBase));
             }
             return PhysAddr();
         }

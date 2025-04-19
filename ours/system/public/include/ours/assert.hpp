@@ -14,11 +14,16 @@
 
 #include <ours/panic.hpp>
 
-#define DEBUG_ASSERT(condition, ...) \
-if constexpr (OURS_DEBUG) {\
+#define ASSERT(condition, ...)  \
     if (!(condition)) {\
         ours::panic(__VA_ARGS__);\
-    }\
-}
+    }
+
+#define DEBUG_ASSERT(condition, ...) \
+    if constexpr (OURS_DEBUG) {\
+        if (!(condition)) {\
+            ours::panic(__VA_ARGS__);\
+        }\
+    }
 
 #endif // #ifndef OURS_ASSERT_HPP

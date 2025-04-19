@@ -20,17 +20,20 @@ namespace ours::mem {
     /// `Gaf` is a shordhand of getting available frame.
     ///
     enum class Gaf: usize {
-        __DmaBit,
-        __Dma32Bit,
+        __ZoneDmaBit,
+        __ZoneDma32Bit,
+        __ZoneNormalBit,
         __RequiredBit,
         __OnlyThisNodeBit,
         __NeverFailBit,
         __ZeroBit,
         __ReclaimBit,
         __DirectlyReclaimBit,
+        __FolioBit,
 
-        Dma             = BIT(__DmaBit),
-        Dma32           = BIT(__Dma32Bit),
+        ZoneDma         = BIT(__ZoneDmaBit),
+        ZoneDma32       = BIT(__ZoneDma32Bit),
+        ZoneNormal      = BIT(__ZoneNormalBit),
         Required        = BIT(__RequiredBit),
         OnlyThisNode    = BIT(__OnlyThisNodeBit),
 
@@ -47,6 +50,8 @@ namespace ours::mem {
         /// meaning that the process of reclaim is linear so the applicant does not
         /// wait through sleeping.
         DirectlyReclaim = BIT(__DirectlyReclaimBit),
+
+        Folio           = BIT(__FolioBit),
     };
     USTL_ENABLE_ENUM_BITMASK(Gaf);
 
@@ -56,21 +61,23 @@ namespace ours::mem {
     static auto gaf_zone_type(Gaf gaf) -> ZoneType {
         // ZONE_SHIFT 
         CXX11_CONSTEXPR
-        auto const kGafZoneShift = MAX_ZONES_BITS - 1;
-
-        CXX11_CONSTEXPR
-        auto const kGafZoneMask = Gaf::Dma | Gaf::Dma32;
+        auto const kGafZoneMask = Gaf::ZoneDma | Gaf::ZoneDma32 | Gaf::ZoneNormal;
 
         CXX11_CONSTEXPR
         GafVal const kZoneTable {
-            BIT(GafVal(Gaf::Dma) * kGafZoneShift)   |
-            BIT(GafVal(Gaf::Dma32) * kGafZoneShift)
+            GafVal(ZoneType::Dma) << GafVal(Gaf::ZoneDma) * ZONES_SHIFT      |
+            GafVal(ZoneType::Dma32) << GafVal(Gaf::ZoneDma32) * ZONES_SHIFT  |
+            GafVal(ZoneType::Normal) << GafVal(Gaf::ZoneNormal) * ZONES_SHIFT
         };
 
+        // Extract the bits that indicates the type of zone.
         auto const bits = GafVal(gaf & kGafZoneMask);
-        auto zone = kZoneTable >> (GafVal(bits) * kGafZoneShift);
-        return ZoneType((1 << bits) - 1);
+        auto zone = (kZoneTable >> (GafVal(bits) * ZONES_SHIFT)) & ((1 << ZONES_SHIFT) - 1);
+        return ZoneType(zone);
     }
+    static_assert(gaf_zone_type(Gaf::ZoneDma) == ZoneType::Dma);
+    static_assert(gaf_zone_type(Gaf::ZoneDma32) == ZoneType::Dma32);
+    static_assert(gaf_zone_type(Gaf::ZoneNormal) == ZoneType::Normal);
 
     CXX11_CONSTEXPR
     static auto const kGafBoot = Gaf::OnlyThisNode;
@@ -79,7 +86,7 @@ namespace ours::mem {
     static auto const kGafUser= Gaf::OnlyThisNode;
 
     CXX11_CONSTEXPR
-    static auto const kGafKernel = Gaf::OnlyThisNode | Gaf::Reclaim | Gaf::Dma | Gaf::Dma32;
+    static auto const kGafKernel = Gaf::OnlyThisNode | Gaf::Reclaim | Gaf::ZoneNormal;
 
 } // namespace ours::mem
 

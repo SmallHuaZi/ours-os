@@ -1,5 +1,5 @@
 #include <ours/mem/vm_aspace.hpp>
-#include <ours/mem/new.hpp>
+#include <ours/mem/scope.hpp>
 #include <ours/arch/aspace_layout.hpp>
 
 #include <ustl/lazy_init.hpp>

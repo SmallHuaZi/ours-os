@@ -14,6 +14,7 @@
 
 #include <boost/intrusive/list.hpp>
 #include <ustl/collections/intrusive/list_hook.hpp>
+#include <ustl/collections/intrusive/link_mode.hpp>
 
 namespace ustl::collections::intrusive {
     using namespace boost::intrusive;

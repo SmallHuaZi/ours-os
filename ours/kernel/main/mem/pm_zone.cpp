@@ -10,7 +10,7 @@
 namespace ours::mem {
     FORCE_INLINE
     static auto frame_is_buddy(PmFrame *self, PmFrame *buddy) -> bool {
-        if (!buddy->flags().is_role(PfRole::Pmm)) {
+        if (!buddy->is_role(PfRole::Pmm)) {
             return false;
         }
         if (self->zone() != buddy->zone()) {

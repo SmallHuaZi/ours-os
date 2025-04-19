@@ -20,9 +20,9 @@
 
 namespace ours {
     using ArchPmmZoneConfig = ustl::TypeList<
-         mem::MaxZonePfn<mem::Dma, ARCH_MAX_DMA_PFN, OURS_CONFIG_ZONE_DMA>,
-         mem::MaxZonePfn<mem::Dma32, ARCH_MAX_DMA32_PFN, OURS_CONFIG_ZONE_DMA32>,
-         mem::MaxZonePfn<mem::Normal, ARHC_MAX_PFN_LIMIT>
+         mem::MaxZonePfn<mem::ZoneType::Dma, ARCH_MAX_DMA_PFN, OURS_CONFIG_ZONE_DMA>,
+         mem::MaxZonePfn<mem::ZoneType::Dma32, ARCH_MAX_DMA32_PFN, OURS_CONFIG_ZONE_DMA32>,
+         mem::MaxZonePfn<mem::ZoneType::Normal, ARHC_MAX_PFN_LIMIT>
      >;
 } // namespace ours
 

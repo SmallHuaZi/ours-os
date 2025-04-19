@@ -4,7 +4,7 @@
 #include <ours/mem/pm_zone.hpp>
 #include <ours/mem/physmap.hpp>
 #include <ours/mem/memory_model.hpp>
-#include <ours/mem/new.hpp>
+#include <ours/mem/scope.hpp>
 
 #include <ours/panic.hpp>
 #include <ours/assert.hpp>

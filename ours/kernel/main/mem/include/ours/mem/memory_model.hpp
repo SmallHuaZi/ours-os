@@ -26,6 +26,28 @@
 #include <ustl/result.hpp>
 
 namespace ours::mem {
+    template <typename T>
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto phys_to_secnum(T phys_addr) -> SecNum {  
+        static_assert(sizeof(T) == sizeof(PhysAddr));
+        return reinterpret_cast<PhysAddr>(phys_addr) >> SECTION_SHIFT;
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto secnum_to_phys(SecNum secnum) -> PhysAddr {  
+        return secnum << SECTION_SHIFT;  
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto pfn_to_secnum(Pfn pfn) -> SecNum {  
+        return pfn >> PFN_SECTION_SHIFT;
+    }
+
+    FORCE_INLINE CXX11_CONSTEXPR
+    static auto secnum_to_pfn(SecNum secnum) -> Pfn {  
+        return secnum << PFN_SECTION_SHIFT;
+    }
+
     /// Leaf node
     struct PmSection {
         typedef ustl::views::Span<PmFrame>     FrameMap;
@@ -357,8 +379,9 @@ namespace ours::mem {
         return global_memory_model().pfn_to_frame(pfn);
     }
 
+    template <typename T>
     FORCE_INLINE
-    static auto phys_to_frame(PhysAddr phys_addr) -> PmFrame * {
+    static auto phys_to_frame(T phys_addr) -> PmFrame * {
         return pfn_to_frame(phys_to_pfn(phys_addr));
     }
 
@@ -370,11 +393,6 @@ namespace ours::mem {
     FORCE_INLINE
     static auto frame_to_phys(PmFrame const *frame) -> PhysAddr {
         return pfn_to_phys(frame_to_pfn(frame));
-    }
-
-    FORCE_INLINE
-    static auto virt_to_frame(VirtAddr virt_addr) -> PmFrame * {
-        return phys_to_frame(PhysMap::virt_to_phys(virt_addr));
     }
 
     template <typename T>
@@ -393,6 +411,14 @@ namespace ours::mem {
     static auto frame_to_virt(PmFrame *frame) -> T * {
         DEBUG_ASSERT(frame->phys_size() > sizeof(T), "T is too large");
         return PhysMap::phys_to_virt<T>(frame_to_phys(frame));
+    }
+
+    template <typename T>
+    FORCE_INLINE
+    static auto virt_to_folio(T virt_addr) -> PmFolio * {
+        return frame_to_folio(
+            phys_to_frame(PhysMap::virt_to_phys(virt_addr))
+        );
     }
 
 } // namespace ours::mem
