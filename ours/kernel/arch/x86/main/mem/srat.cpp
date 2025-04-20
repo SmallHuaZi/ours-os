@@ -75,6 +75,7 @@ namespace ours {
             apicids[count] = apicid;
             cpus[count] = count;
             cpu_possible_mask().set(count);
+            mem::node_possible_mask().set(nodeid);
             mem::bind_cpu_to_node(count++, nodeid);
         });
     }

@@ -28,7 +28,7 @@ namespace ours {
         /// - **Synchronization Note**: 
         ///   This phase executes before memory management initialization, thus requiring lock-free 
         ///   synchronization mechanisms if concurrent access is possible.
-        StartUp = static_cast<int>(gktl::InitLevel::ArchEarly) + kDeltaBetweenPlatformInitLevels,
+        StartUp = static_cast<int>(gktl::InitLevel::PlatformEarly) + kDeltaBetweenPlatformInitLevels,
 
         /// Serves as the preparatory stage for Physical Memory Manager (PMM) initialization.
         /// - **Primary Objective**:

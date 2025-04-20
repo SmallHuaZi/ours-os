@@ -42,6 +42,11 @@ namespace ours::mem {
     }
 
     FORCE_INLINE
+    static auto get_buddy_unchecked(PmFrame *frame, Pfn pfn, usize order) -> PmFrame * {
+        return &frame[BIT(order)];
+    }
+
+    FORCE_INLINE
     auto FrameSet::has_frame(usize order) const -> bool {
         return !lists_[order].empty();
     }
@@ -67,9 +72,12 @@ namespace ours::mem {
 
     auto FrameSet::acquire_frame_inner(PmFrame *frame, usize lower_order, usize upper_order) -> PmFrame * {
         auto const pfn = frame_to_pfn(frame);
-        for (auto order = upper_order - 1; order >= lower_order; --order) {
-            auto buddy = get_buddy(frame, pfn, order);
-            insert_frame(buddy, order);
+        while (upper_order > lower_order) {
+            upper_order -= 1;
+
+            // In split process, directly taking a buddy frame is absolutely safe.
+            auto buddy = get_buddy_unchecked(frame, pfn, upper_order);
+            insert_frame(buddy, upper_order);
         }
         frame->set_order(lower_order);
 
@@ -84,7 +92,7 @@ namespace ours::mem {
             
             auto frame = get_frame(order);
             remove_frame(frame, order);
-            acquire_frame_inner(frame, order, target_order);
+            acquire_frame_inner(frame, target_order, order);
             return frame;
         }
 

@@ -42,6 +42,7 @@ namespace ours::mem {
             flags_.set_secnum(secnum);
             flags_.set_nid(nid);
             flags_.set_states(PfStates::Active | PfStates::UpToDate);
+            flags_.set_role(PfRole::None);
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -72,6 +73,11 @@ namespace ours::mem {
         FORCE_INLINE CXX11_CONSTEXPR
         auto reserve() -> void {
             flags_.set_states(PfStates::Reserved);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto activate() -> void {
+            flags_.set_states(PfStates::Active);
         }
 
         FORCE_INLINE CXX11_CONSTEXPR

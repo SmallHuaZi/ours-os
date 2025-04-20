@@ -92,6 +92,14 @@ auto operator new(usize size, std::align_val_t align) -> void * {
     return ours::mem::kmalloc(size, ours::mem::kGafKernel, ours::mem::current_node());
 }
 
+auto operator new[](usize size) -> void * {
+    return ours::mem::kmalloc(size, ours::mem::kGafKernel, ours::mem::current_node());
+}
+auto operator new[](usize size, std::align_val_t align) -> void * {
+    return ours::mem::kmalloc(size, ours::mem::kGafKernel, ours::mem::current_node());
+}
+
+
 auto operator delete(void *ptr) -> void {
     return ours::mem::kfree(ptr);
 }

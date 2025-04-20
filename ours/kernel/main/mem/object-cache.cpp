@@ -30,7 +30,7 @@ namespace ours::mem {
 
     auto Slab::init(ObjectCache *oc, usize order, usize obj_size) -> Status {
         num_inuse = 0;
-        num_objects = BIT(order) / obj_size;
+        num_objects = BIT(order) * PAGE_SIZE / obj_size;
 
         auto object = frame_to_virt<Object>(to_pmm());
         for (auto i = 0; i < num_objects; ++i) {
@@ -98,6 +98,10 @@ namespace ours::mem {
     auto ObjectCache::init_cache_node_boot() -> Status {
         auto const &node = node_possible_mask();
         for (auto nid = 0; nid < node.size(); ++nid) {
+            if (!node.test(nid)) {
+                continue;
+            }
+
             auto slab = alloc_slab(0);
             if (!slab) {
                 return Status::OutOfMem;
@@ -140,6 +144,7 @@ namespace ours::mem {
         objects_ = (BIT(order_) * PAGE_SIZE) / object_size_;
         object_align_ = align;
         ocflags_ = flags;
+        gaf_ = kGafKernel;
         return parse_ocflags(flags);
     }
 

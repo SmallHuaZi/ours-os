@@ -132,7 +132,10 @@ namespace ours::mem {
 
     auto free_frame(PmFrame *frame, usize order = 0) -> void;
 
-    auto free_frame(VirtAddr virt_addr, usize order = 0) -> void;
+    FORCE_INLINE
+    auto free_frame(VirtAddr virt_addr, usize order = 0) -> void {
+        return free_frame(virt_to_frame(virt_addr), order);
+    }
 
     /// Allocate `n` frames of memory and store them in the given list.
     auto alloc_frames(Gaf gaf, ai_out FrameList<> *list, usize n) -> Status;

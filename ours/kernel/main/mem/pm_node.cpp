@@ -172,7 +172,7 @@ namespace ours::mem {
           zone_queues_(nid)
     {
         DEBUG_ASSERT(!s_node_list[nid]);
-        s_node_list[nid] = this;
+        s_node_list[id_] = this;
         s_num_nodes += 1;
     }
 

@@ -40,10 +40,10 @@ namespace ours {
     auto start_kernel(PhysAddr handoff) -> void {
         gktl::init_static_objects();
 
+        setup_handoff(handoff);
+
         // Install early cpu local data. The dynamic cpu local allocator for BP will be installed. 
         CpuLocal::init_early();
-
-        setup_handoff(handoff);
 
         init_arch_early();
         set_init_level(gktl::InitLevel::ArchEarly);

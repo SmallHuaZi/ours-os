@@ -17,41 +17,43 @@
 #include <ustl/util/enum_bits.hpp>
 
 namespace ours::mem {
+    enum class GafBit: usize {
+        ZoneDmaBit,
+        ZoneDma32Bit,
+        ZoneNormalBit,
+        RequiredBit,
+        OnlyThisNodeBit,
+        NeverFailBit,
+        ZeroBit,
+        ReclaimBit,
+        DirectlyReclaimBit,
+        FolioBit,
+    };
+
     /// `Gaf` is a shordhand of getting available frame.
     ///
     enum class Gaf: usize {
-        __ZoneDmaBit,
-        __ZoneDma32Bit,
-        __ZoneNormalBit,
-        __RequiredBit,
-        __OnlyThisNodeBit,
-        __NeverFailBit,
-        __ZeroBit,
-        __ReclaimBit,
-        __DirectlyReclaimBit,
-        __FolioBit,
-
-        ZoneDma         = BIT(__ZoneDmaBit),
-        ZoneDma32       = BIT(__ZoneDma32Bit),
-        ZoneNormal      = BIT(__ZoneNormalBit),
-        Required        = BIT(__RequiredBit),
-        OnlyThisNode    = BIT(__OnlyThisNodeBit),
+        ZoneDma         = BIT(usize(GafBit::ZoneDmaBit)),
+        ZoneDma32       = BIT(usize(GafBit::ZoneDma32Bit)),
+        ZoneNormal      = BIT(usize(GafBit::ZoneNormalBit)),
+        Required        = BIT(usize(GafBit::RequiredBit)),
+        OnlyThisNode    = BIT(usize(GafBit::OnlyThisNodeBit)),
 
         /// `PMM` will retry infinitely until it get an available frame.
-        NeverFail       = BIT(__NeverFailBit),
-        Zero            = BIT(__ZeroBit),
+        NeverFail       = BIT(usize(GafBit::NeverFailBit)),
+        Zero            = BIT(usize(GafBit::ZeroBit)),
 
         /// In process of an allocation, it indicates `PMM` under memory pressure
         /// that it could enable the back-side thread to reclaim frames and sleep
         /// applicant's thread to avoid wasting CPU time.
-        Reclaim         = BIT(__ReclaimBit),
+        Reclaim         = BIT(usize(GafBit::ReclaimBit)),
 
         /// Allow `PMM` to directly reclaim frames under certain memory pressure,
         /// meaning that the process of reclaim is linear so the applicant does not
         /// wait through sleeping.
-        DirectlyReclaim = BIT(__DirectlyReclaimBit),
+        DirectlyReclaim = BIT(usize(GafBit::DirectlyReclaimBit)),
 
-        Folio           = BIT(__FolioBit),
+        Folio           = BIT(usize(GafBit::FolioBit)),
     };
     USTL_ENABLE_ENUM_BITMASK(Gaf);
 
@@ -80,13 +82,13 @@ namespace ours::mem {
     static_assert(gaf_zone_type(Gaf::ZoneNormal) == ZoneType::Normal);
 
     CXX11_CONSTEXPR
-    static auto const kGafBoot = Gaf::OnlyThisNode;
-
-    CXX11_CONSTEXPR
-    static auto const kGafUser= Gaf::OnlyThisNode;
+    static auto const kGafBoot = Gaf::OnlyThisNode | Gaf::ZoneNormal;
 
     CXX11_CONSTEXPR
     static auto const kGafKernel = Gaf::OnlyThisNode | Gaf::Reclaim | Gaf::ZoneNormal;
+
+    CXX11_CONSTEXPR
+    static auto const kGafUser= Gaf::OnlyThisNode;
 
 } // namespace ours::mem
 

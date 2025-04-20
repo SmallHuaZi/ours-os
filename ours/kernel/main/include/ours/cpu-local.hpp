@@ -147,7 +147,10 @@ namespace ours {
         template <typename T>
         FORCE_INLINE
         static auto free(PerCpu<T> object) -> void {
-            return free(object.object);
+            if (object.object) {
+                do_free(object.object);
+                object.object = nullptr;
+            }
         }
 
         template <typename T, typename F>
@@ -170,7 +173,7 @@ namespace ours {
     private:
         static auto init(usize dyn_size, usize unit_align) -> Status;
         static auto allocate(usize size, AlignVal val, mem::Gaf gaf) -> void *;
-        static auto free(void *) -> void;
+        static auto do_free(void *) -> void;
 
         FORCE_INLINE
         static auto install(usize offset) -> void {
@@ -183,39 +186,58 @@ namespace ours {
         static inline ustl::Array<isize, MAX_CPU>   s_cpu_offset;
     };
 
-    /// A wrapper to prevent directly using the pointer.
+    /// A wrapper to prevent directly using the pointer and atomatically manage the
+    /// lifetime for a cpu local variable.
     template <typename T>
     struct PerCpu {
         friend CpuLocal;
+        typedef PerCpu  Self;
 
         PerCpu() = default;
 
         FORCE_INLINE CXX11_CONSTEXPR
         explicit PerCpu(T *object)
-            : object_(object)
+            : object(object)
         {}
 
-        ~PerCpu();
+        PerCpu(Self &&other) 
+            : object(other.object) {
+            other.object = 0;
+        }
+
+        ~PerCpu() {
+            DEBUG_ASSERT(object == nullptr, 
+                         "A per cpu variable must be free explicitly and manually.");
+        }
 
         template <typename F>
             requires ustl::traits::Invocable<F, T &>
+        FORCE_INLINE
         auto with_current(F &&f) -> ustl::traits::InvokeResultT<F, T &> {
-            return ustl::function::invoke(f, *CpuLocal::access(object_));
+            return ustl::function::invoke(f, *CpuLocal::access(object));
         }
 
         template <typename F>
             requires ustl::traits::Invocable<F, T const &>
+        FORCE_INLINE
         auto with_current(F &&f) const -> ustl::traits::InvokeResultT<F, T const &> {
-            return ustl::function::invoke(f, *CpuLocal::access(object_));
+            return ustl::function::invoke(f, *CpuLocal::access(object));
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
         operator bool() {
-            return object_ != nullptr;
+            return object != nullptr;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto operator=(Self &&other) -> Self & {
+            object = other.object;
+            other.object = 0;
+            return *this;
         }
 
     private:
-        T *object_;
+        T *object;
     };
 
 } // namespace ours

@@ -19,11 +19,9 @@ namespace ours {
         if (!s_numa_enabled) {
             return;
         }
-
         if (Status::Ok == acpi_init_numa()) {
             return;
         }
-
         if (Status::Ok == pci_init_numa()) {
             return;
         }

@@ -409,7 +409,7 @@ namespace ours::mem {
     template <typename T>
     FORCE_INLINE
     static auto frame_to_virt(PmFrame *frame) -> T * {
-        DEBUG_ASSERT(frame->phys_size() > sizeof(T), "T is too large");
+        DEBUG_ASSERT(frame->phys_size() < sizeof(T), "T is too large");
         return PhysMap::phys_to_virt<T>(frame_to_phys(frame));
     }
 

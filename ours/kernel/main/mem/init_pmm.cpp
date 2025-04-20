@@ -87,6 +87,7 @@ namespace ours::mem {
         if (!node) {
             panic("Fail to allocate for PmNode[{}]", id);
         }
+        ustl::mem::construct_at(node, id);
 
         return node;
     }
@@ -95,7 +96,6 @@ namespace ours::mem {
     static auto create_nodes(NodeMask const &nodes) -> void {
         nodes.for_each([] (NodeId nid) {
             auto node = alloc_node(nid);
-            std::construct_at(node, nid);
         });
     }
 

@@ -121,7 +121,8 @@ namespace ours::mem {
         auto hole_start_pfn = 0, start_pfn = 0, end_pfn = 0;
         EarlyMem::IterationContext context(bootmem::RegionType::Normal, MAX_NODE);
         while (auto region = EarlyMem::iterate(context)) {
-            auto node = PmNode::node(region->nid());
+            auto nid = region->nid();
+            auto node = PmNode::node(nid);
             DEBUG_ASSERT(node != nullptr, "");
 
             start_pfn = phys_to_pfn(region->base);
