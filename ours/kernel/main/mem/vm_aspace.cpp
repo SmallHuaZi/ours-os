@@ -8,26 +8,21 @@
 #include <heap/scope.hpp>
 
 namespace ours::mem {
-    VmAspace *VmAspace::KERNEL_ASPACE_;
-    VmAspace::AspaceList VmAspace::ALL_ASPACE_LIST_;
-    ustl::sync::Mutex VmAspace::ALL_ASPACE_LIST_MUTEX_;
-
     /// Manage the lifetime manually.
     /// The global-unique address sapce.
-    static ustl::LazyInit<VmAspace>       S_KERNEL_ASPACE;
+    static ustl::LazyInit<VmAspace>       s_kernel_aspace;
 
     INIT_CODE
-    auto VmAspace::init_kernel_aspace() -> void
-    {
+    auto VmAspace::init_kernel_aspace() -> void {
         CXX11_CONSTEXPR 
         auto const flags = VmasFlags::Kernel;
 
         // The tow following placement new is to call the constructor of VmAspace and VmRootArea.
-        auto kernel_aspace = S_KERNEL_ASPACE.data();
-        new (kernel_aspace) Self(KERNEL_ASPACE_BASE, KERNEL_ASPACE_SIZE, flags, "Kernel Aspace");
+        auto kernel_aspace = s_kernel_aspace.data();
+        new (kernel_aspace) Self(KERNEL_ASPACE_BASE, KERNEL_ASPACE_SIZE, flags, "K:Aspace");
         kernel_aspace->init();
 
-        Self::KERNEL_ASPACE_ = kernel_aspace;
+        Self::kernel_aspace_ = kernel_aspace;
     }
 
     auto VmAspace::sync_kernel_aspace() -> void
@@ -59,8 +54,8 @@ namespace ours::mem {
         aspace->init();
         {
             // Entrollment into the global list.
-            ustl::sync::LockGuard guard(Self::ALL_ASPACE_LIST_MUTEX_);
-            Self::ALL_ASPACE_LIST_.push_back(*aspace);
+            ustl::sync::LockGuard guard(Self::all_aspace_list_mutex_);
+            Self::all_aspace_list_.push_back(*aspace);
         }
         return ustl::make_rc<VmAspace>(aspace);
     }

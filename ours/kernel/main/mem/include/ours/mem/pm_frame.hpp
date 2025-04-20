@@ -71,12 +71,17 @@ namespace ours::mem {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto reserve() -> void {
+        auto mark_pinned() -> void {
+            flags_.set_states(PfStates::Pinned);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto mark_reserved() -> void {
             flags_.set_states(PfStates::Reserved);
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto activate() -> void {
+        auto mark_active() -> void {
             flags_.set_states(PfStates::Active);
         }
 
@@ -167,18 +172,6 @@ namespace ours::mem {
     struct RoleViewDispatcher<PfRole::Pmm> {
         typedef PmFrame    Type;
     };
-
-    struct MmuFrame: public PmFrameBase {
-        ustl::collections::intrusive::ListMemberHook<> managed_hook;
-        mutable ustl::sync::AtomicU16 num_mappings;
-    };
-    static_assert(sizeof(MmuFrame) <= kFrameDescSize, "");
-
-    template <>
-    struct RoleViewDispatcher<PfRole::Mmu> {
-        typedef MmuFrame    Type;
-    };
-
 
     struct PmFolio: public PmFrame {
         PmFrameBase second_metadata;

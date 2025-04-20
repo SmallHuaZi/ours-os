@@ -118,15 +118,14 @@ namespace ours::mem {
         Inner first;
         Inner last;
         NodeMask const *nodes;
-        ZoneType lower_zone_type;
+        ZoneType lower_zone_type;   // Reserved and not used now.
         ZoneType upper_zone_type;
     };
 
     auto ZoneIterator::move_next() -> ZoneRef {
         while (first != last) {
             auto zref = (*first);
-            if (zref->zone_type() < lower_zone_type ||
-                zref->zone_type() > upper_zone_type) {
+            if (zref->zone_type() > upper_zone_type) {
                 ++first;
             }
 

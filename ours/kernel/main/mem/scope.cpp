@@ -9,37 +9,30 @@
 
 namespace ours::mem {
     CXX11_CONSTEXPR
-    static auto const kMallocMaxIndex = 10;
+    static auto const kNumMallocCaches = 10;
 
     CXX11_CONSTEXPR
-    static auto const kMallocMinOrder = 10;
+    static auto const kMallocMinOrder = 3;
 
     CXX11_CONSTEXPR
-    static auto const kMinMallocSize= 10;
+    static auto const kMinMallocSize= sizeof(usize);
 
     CXX11_CONSTEXPR
-    static auto const kMaxMallocSize= 10;
+    static auto const kMaxMallocSize= BIT(kNumMallocCaches + kMallocMinOrder);
 
     static auto get_allocation_index(usize size) -> usize {
         if (!size) {
             return 0;
         }
     
-        // Very usual case.
-        if (kMinMallocSize <= 32 && size > 64 && size <= 96) {
-            return 1;
-        }
-        if (kMinMallocSize <= 64 && size > 128 && size <= 192) {
-            return 2;
-        }
         if (size <= kMaxMallocSize) {
-            return ustl::bit_width<usize>(size - 1);
+            return ustl::bit_width<usize>(size - 1) - kMallocMinOrder;
         }
 
         panic("Unreachable");
     }
 
-    static ustl::Array<ObjectCache, kMallocMaxIndex>  s_kmalloc_cache;
+    static ustl::Array<ObjectCache, kNumMallocCaches>  s_kmalloc_cache;
 
     auto kmalloc(usize size, Gaf gaf, NodeId nid) -> void * {
         if (size > kMaxMallocSize) {
@@ -70,6 +63,7 @@ namespace ours::mem {
         slab->object_cache->do_deallocate(slab, object);
     }
 
+    INIT_CODE
     static auto init_kmalloc() -> void {
         char name[16];
         for (auto i = 0; i < s_kmalloc_cache.size(); ++i) {
@@ -84,6 +78,7 @@ namespace ours::mem {
 
 } // namespace ours::mem
 
+/// The following standard operator new/delete was temporarily placed.
 auto operator new(usize size) -> void * {
     return ours::mem::kmalloc(size, ours::mem::kGafKernel, ours::mem::current_node());
 }
@@ -98,7 +93,6 @@ auto operator new[](usize size) -> void * {
 auto operator new[](usize size, std::align_val_t align) -> void * {
     return ours::mem::kmalloc(size, ours::mem::kGafKernel, ours::mem::current_node());
 }
-
 
 auto operator delete(void *ptr) -> void {
     return ours::mem::kfree(ptr);

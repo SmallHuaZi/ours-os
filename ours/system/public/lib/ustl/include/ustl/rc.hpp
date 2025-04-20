@@ -114,16 +114,26 @@ namespace ustl {
         }
 
         USTL_FORCEINLINE
-        ~Rc() USTL_NOEXCEPT
-        {
+        ~Rc() USTL_NOEXCEPT {
+            destory();
+        }
+
+        USTL_FORCEINLINE
+        auto operator=(Self const &other) USTL_NOEXCEPT -> Self & {
+            destory();
+            pointer_ = other.pointer_;
+            counter_ = other.counter_;
             if (counter_) {
-                if (counter_->strong_count() == 1) {
-                    ThisWeak weak(pointer_, counter_);
-                    counter_->disposer()(pointer_);
-                } else {
-                    counter_->dec_strong_ref();
-                }
+                counter_->inc_strong_ref();
             }
+        }
+
+        USTL_FORCEINLINE
+        auto operator=(Self &&other) USTL_NOEXCEPT -> Self & {
+            destory();
+            pointer_ = other.pointer_;
+            counter_ = other.counter_;
+            other.destory();
         }
 
         template <typename Ptr>
@@ -172,6 +182,21 @@ namespace ustl {
         USTL_FORCEINLINE USTL_CONSTEXPR
         operator bool() USTL_NOEXCEPT 
         {  return pointer_ == nullptr;  }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto destory() -> void {
+            if (counter_) {
+                if (counter_->strong_count() == 1) {
+                    ThisWeak weak(pointer_, counter_);
+                    counter_->disposer()(pointer_);
+                } else {
+                    counter_->dec_strong_ref();
+                }
+
+                counter_ = 0;
+                pointer_ = 0;
+            }
+        }
 
     private:
         template <typename, typename, typename, typename>

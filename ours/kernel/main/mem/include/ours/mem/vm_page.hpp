@@ -12,23 +12,30 @@
 #define OURS_MEM_VM_PAGE_HPP 1
 
 #include <ours/mem/types.hpp>
+#include <ours/mem/pm_frame.hpp>
+#include <ours/mem/vm_area.hpp>
 
-#include <ustl/collections/intrusive/set.hpp>
+#include <ustl/collections/intrusive/list.hpp>
 
 namespace ours::mem {
-    /// `VmPage` is the implementation of the COW page
-    class VmPage
-    {
+    /// When a or group of frame was used in VMM, it shows the following layout.
+    struct VmPage: public PmFrameBase {
         typedef VmPage  Self;
 
-    protected:
-        PmFrame *frame_;
-        ustl::collections::intrusive::SetMemberHook<> managed_hook_;
-
-    public:
-        USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOptions);
+        VmaList vmas; // For reverse mapping.
+        mutable ustl::sync::AtomicU16 num_mappings;
+        mutable ustl::sync::AtomicU16 num_users;
+        // Here are still a u32-sized space available.
+        ustl::collections::intrusive::ListMemberHook<> managed_hook;
+        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedOptions);
     };
-    USTL_DECLARE_MULTISET(VmPage, VmPageSet, VmPage::ManagedOptions);
+    static_assert(sizeof(VmPage) <= kFrameDescSize, "");
+    USTL_DECLARE_LIST(VmPage, VmPageList, VmPage::ManagedOptions);
+
+    template <>
+    struct RoleViewDispatcher<PfRole::Vmm> {
+        typedef VmPage    Type;
+    };
 
 } // namespace ours::mem
 

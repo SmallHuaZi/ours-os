@@ -26,7 +26,7 @@ namespace ours {
     };
     static PhysToVirt s_p2v;
 
-    FORCE_USED
+    FORCE_USED INIT_CODE
     static auto platform_init_acpi(PhysAddr rsdp) -> void {
         DEBUG_ASSERT(!g_acpi_parser, "Duplicated calls");
         if (auto acpi_parser = acpi::AcpiParser::from_rsdp(&s_p2v, rsdp)) {
@@ -35,7 +35,7 @@ namespace ours {
         }
     }
 
-    FORCE_USED
+    FORCE_USED INIT_CODE
     static auto platform_init_acpi() -> void {
         platform_init_acpi(global_handoff().acpi_rsdp);
     }

@@ -66,6 +66,7 @@ namespace ours::mem {
         if (!self) {
             return nullptr;
         }
+        ustl::mem::construct_at(self);
 
         return self;
     }
@@ -102,11 +103,12 @@ namespace ours::mem {
                 continue;
             }
 
-            auto slab = alloc_slab(0);
+            auto slab = alloc_slab(nid);
             if (!slab) {
                 return Status::OutOfMem;
             }
             cache_node_[nid] = slab->get_object<ObjectCachePerNode>();
+            ustl::mem::construct_at(cache_node_[nid]);
             cache_node_[nid]->add_slab(slab);
         }
 
@@ -115,19 +117,19 @@ namespace ours::mem {
 
     auto ObjectCache::init_cache_node() -> Status {
         auto const &node = node_possible_mask();
-        for (auto i = 0; i < node.size(); ++i) {
-            if (!node.test(i)) {
+        for (auto nid = 0; nid < node.size(); ++nid) {
+            if (!node.test(nid)) {
                 continue;
             }
 
-            auto node = ObjectCachePerNode::create(current_node());
+            auto node = ObjectCachePerNode::create(nid);
             if (!node) {
                 // Release all holding and report error.
                 free_cache_node();
                 return Status::OutOfMem;
             }
 
-            cache_node_[i] = node;
+            cache_node_[nid] = node;
         }
 
         return Status::Ok;
@@ -209,9 +211,12 @@ namespace ours::mem {
 
     FORCE_INLINE
     auto ObjectCache::get_slab(NodeId nid) -> Slab * {
-        if (node_is_state(nid, NodeStates::Online)) {
-            if (auto slab = cache_node_[nid]->get_slab()) {
-                return slab;
+        // Firstly, try on target node.
+        if (nid != MAX_NODE && node_is_state(nid, NodeStates::Online)) {
+            if (cache_node_[nid]->has_slab()) {
+                if (auto slab = cache_node_[nid]->get_slab()) {
+                    return slab;
+                }
             }
         }
 
@@ -233,15 +238,21 @@ namespace ours::mem {
     }
 
     auto ObjectCache::do_allocate(Gaf gaf, NodeId nid) -> Object * {
+        if (!node_is_state(nid, NodeStates::Online)) {
+            // The prefered node is offline, so the second predicate is invalid.
+            nid = MAX_NODE;
+        }
+
         // Alwasy look up the cache per cpu firstly.
         auto *slab = cache_cpu_.with_current([] (CacheOnCpu &cache) {
             return cache.slab;
         });
-        if (!slab || nid != slab->nid() || !node_is_state(nid, NodeStates::Online)) {
-            // A mismatched node, let us go girst to discard it and then attempt to in get_slab
-            // re-search a slab whose'nid matched.
-            slab = nullptr;
-            nid = MAX_NODE;
+        if (slab) {
+            if (nid != slab->nid() || nid != MAX_NODE) {
+                // Mismatch node. We should let it then try to get slab on target node 
+                // in another ways.
+                slab = nullptr;
+            }
         }
 
         if (!slab) {
@@ -250,8 +261,8 @@ namespace ours::mem {
         }
 
         if (!slab) {
-            // CPU and NODE cache is all empty, to allocate a slab.
-            slab = alloc_slab(nid, gaf);
+            // CPU and NODE cache have no available slabs, to allocate a new slab.
+            slab = create_slab(nid, gaf);
         }
 
         if (!slab) {
@@ -291,8 +302,8 @@ namespace ours::mem {
     auto init_object_cache() -> void {
         s_object_cache_self = s_bootstrap_object_cache.data();
         s_object_cache_node = s_bootstrap_object_cache_node.data();
-        ObjectCache::create_boot(*s_object_cache_self, "self-cache", sizeof(ObjectCache), alignof(ObjectCache), {});
         ObjectCache::create_boot(*s_object_cache_node, "node-cache", sizeof(ObjectCachePerNode), alignof(ObjectCachePerNode), {});
+        ObjectCache::create_boot(*s_object_cache_self, "self-cache", sizeof(ObjectCache), alignof(ObjectCache), {});
     }
 
 } // namespace ours::mem

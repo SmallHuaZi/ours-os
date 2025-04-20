@@ -13,7 +13,6 @@
 
 #include <ours/mem/gaf.hpp>
 #include <ours/mem/pm_frame.hpp>
-#include <ours/mem/frame_cache.hpp>
 #include <ours/cpu-local.hpp>
 
 #include <ustl/sync/atomic.hpp>
@@ -26,6 +25,11 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
+    template <usize MaxOrder>
+    class FramePcpuCache {
+        ustl::Array<FrameList<>, MaxOrder> lists_;
+    };
+
     class FrameSet {
         typedef FrameSet   Self;
     public:
@@ -162,7 +166,8 @@ namespace ours::mem {
 
         ustl::sync::AtomicUsize reserved_frames_;
 
-        PerCpu<FrameCache> frame_cache_;
+        typedef FramePcpuCache<kMaxPcpuCacheOrder>  PcpuCache;
+        PerCpu<PcpuCache> frame_cache_;
 
         FrameSet fset_;
     };

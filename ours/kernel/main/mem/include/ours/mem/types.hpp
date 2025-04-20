@@ -113,6 +113,7 @@ namespace ours::mem {
     class VmAspace;
     class VmArea;
     class VmRootArea;
+    class VmPage;
     class VmObject;
     class VmObjectPaged;
     class VmObjectPhysical;

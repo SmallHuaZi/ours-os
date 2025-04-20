@@ -34,6 +34,11 @@ add_subdirectory(irq)
 add_subdirectory(mem)
 add_subdirectory(task)
 add_subdirectory(sched)
+add_subdirectory(tests)
+
+set(KernelMainTestFileSet 
+    "cpu-local-tests.cpp"
+)
 
 target_compile_definitions(kernel_main
 PRIVATE
@@ -48,6 +53,8 @@ PRIVATE
     "start.cpp"
     "handoff.cpp"
     "cpu-local.cpp"
+
+    "${KernelMainTestFileSet}"
 
     "main.ld"
 )

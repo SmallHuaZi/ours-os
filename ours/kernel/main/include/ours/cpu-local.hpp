@@ -32,6 +32,8 @@
 #include <ustl/traits/invoke_result.hpp>
 #include <ustl/algorithms/minmax.hpp>
 
+#include <logz4/log.hpp>
+
 #ifndef DEBUG_ASSERT
 #   define DEBUG_ASSERT(...)
 #endif
@@ -79,8 +81,12 @@ namespace ours {
         static auto init_early() -> void;
 
         INIT_CODE FORCE_INLINE
-        static auto init() -> Status {
-            return init(ArchCpuLocal::kDynFirstChunkSize, ArchCpuLocal::kUnitAlign);
+        static auto init() -> void {
+            auto status = init(ArchCpuLocal::kDynFirstChunkSize, ArchCpuLocal::kUnitAlign);
+            if (status != Status::Ok) {
+                panic("Failed to initialize CpuLocal with given reason: {}", to_string(status));
+            }
+            dump();
         }
 
         INIT_CODE FORCE_INLINE
@@ -91,6 +97,9 @@ namespace ours {
         }
 
         static auto dump() -> void;
+
+        /// Check if a given virtual address `|va|` is valid in cpu local address range on `|cpu|`
+        static auto check_addr(VirtAddr va, CpuNum cpu) -> bool;
 
         template <typename Integral>
         FORCE_INLINE
@@ -158,7 +167,7 @@ namespace ours {
         static auto for_each(F &&f) -> void {
             for_each_possible_cpu([f] (CpuNum cpunum) {
                 auto local_object = Self::access<T>(cpunum);
-                ustl::function::invoke(f, local_object);
+                ustl::function::invoke(f, *local_object, cpunum);
             });
         }
 
@@ -167,7 +176,7 @@ namespace ours {
         static auto for_each(T *object, F &&f) -> void {
             for_each_possible_cpu([object, f] (CpuNum cpunum) {
                 auto local_object = Self::access(object, cpunum);
-                ustl::function::invoke(f, local_object);
+                ustl::function::invoke(f, *local_object, cpunum);
             });
         }
     private:
@@ -206,8 +215,10 @@ namespace ours {
         }
 
         ~PerCpu() {
-            DEBUG_ASSERT(object == nullptr, 
-                         "A per cpu variable must be free explicitly and manually.");
+            DEBUG_ASSERT(
+                object == nullptr, 
+                "A per cpu variable must be free explicitly and manually."
+            );
         }
 
         template <typename F>

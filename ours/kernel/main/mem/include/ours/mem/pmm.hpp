@@ -53,9 +53,11 @@ namespace ours::mem {
         return phys_to_pfn(g_min_phys_addr);
     }
 
+    /// Using constexpr to make those pre-culcalate requests able to 
+    /// convert the order of frames requested at compiling time.
     FORCE_INLINE CXX11_CONSTEXPR
     static auto num_to_order(usize nr_frames) -> usize {
-        return ustl::bit_ceil(nr_frames);
+        return ustl::countr_zero(ustl::bit_ceil(nr_frames));
     }
 
     /// Prefer to allocate a frame on the local node.

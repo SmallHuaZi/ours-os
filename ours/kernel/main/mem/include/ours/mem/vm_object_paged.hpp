@@ -13,14 +13,33 @@
 #define OURS_MEM_VM_OBJECT_PAGED_HPP 1
 
 #include <ours/mem/vm_object.hpp>
+#include <ours/mem/vm_page.hpp>
 
 namespace ours::mem {
-    class VmObjectPaged
-        : public VmObject
-    {
+    class VmObjectPaged: public VmObject {
     public:
         static auto create() -> ustl::Rc<VmObjectPaged>;
         static auto create_contiguous() -> ustl::Rc<VmObjectPaged>;
+
+        /// 
+        virtual auto acquire_pages(usize n) -> PhysAddr override;
+
+        ///
+        virtual auto release_pages(PhysAddr, usize) -> Status override;
+
+        ///
+        virtual auto commit(usize offset, usize len) -> Status override;
+
+        ///
+        virtual auto decommit(usize offset, usize len) -> Status override;
+
+        ///
+        virtual auto take_pages(gktl::Range<VirtAddr> range) -> Status override;
+
+        ///
+        virtual auto supply_pages(gktl::Range<VirtAddr> range) -> Status override;
+    private:
+        VmPageList page_list_;
     };
 
 } // namespace ours::mem

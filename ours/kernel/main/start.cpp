@@ -51,12 +51,11 @@ namespace ours {
         init_platform_early();
         set_init_level(gktl::InitLevel::PlatformEarly);
 
-        // Before here, the PMM should be fully initialied.
-        CpuLocal::init();
-        set_init_level(gktl::InitLevel::CpuLocal);
-
         mem::init_vmm();
         set_init_level(gktl::InitLevel::Vmm);
+
+        CpuLocal::init();
+        set_init_level(gktl::InitLevel::CpuLocal);
 
         irq::init_irq();
         set_init_level(gktl::InitLevel::Irq);

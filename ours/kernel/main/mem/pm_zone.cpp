@@ -153,7 +153,7 @@ namespace ours::mem {
         spanned_frames_ = end_pfn - start_pfn;
         present_frames_ = present_frames;
 
-        frame_cache_ = CpuLocal::allocate<FrameCache>();
+        frame_cache_ = CpuLocal::allocate<PcpuCache>();
     }
 
     auto PmZone::finish_allocation(PmFrame *frame, Gaf gaf, usize order) -> void {
@@ -163,8 +163,8 @@ namespace ours::mem {
     auto PmZone::alloc_frame(Gaf gaf, usize order) -> PmFrame * {
         PmFrame *result = nullptr;
         if (is_order_within_pcpu_cache_limit(order)) {
-            result = frame_cache_.with_current([order] (FrameCache &cache) {
-                return cache.take_object();
+            result = frame_cache_.with_current([order] (PcpuCache &cache) {
+                return nullptr;
             });
         }
 
@@ -180,8 +180,8 @@ namespace ours::mem {
 
     auto PmZone::free_frame(PmFrame *frame, usize order) -> void {
         if (is_order_within_pcpu_cache_limit(order)) {
-            frame_cache_.with_current([frame] (FrameCache &cache) {
-                cache.return_object(frame);
+            frame_cache_.with_current([frame] (PcpuCache &cache) {
+                // Here no pcpu cache.
             });
         } else {
             fset_.release_frame(frame, order);

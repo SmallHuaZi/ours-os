@@ -4,8 +4,5 @@
 
 struct PageAllocator;
 
-template <int NumBytes>
-using ObjectCache = ktl::ObjectCache<u8, PageAllocator, NumBytes>;
-
 auto operator new(usize size, usize align, ours::mem::Gaf gaf) CXX11_NOEXCEPT -> void *
 { ours::panic(__func__); }

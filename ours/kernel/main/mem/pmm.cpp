@@ -12,28 +12,6 @@ namespace ours::mem {
     PhysAddr g_max_phys_addr;
     PhysAddr g_min_phys_addr;
 
-    CXX20_CONSTINIT 
-    static ustl::Array<NodeId, MAX_CPU> s_cpu_to_node = [] () {
-        decltype(s_cpu_to_node) value;
-        for (auto &i: value) {
-            i = MAX_NODE;
-        }
-        return value;
-    } ();
-
-    auto bind_cpu_to_node(CpuNum cpunum, NodeId nid) -> void {
-        DEBUG_ASSERT(cpunum < MAX_CPU);
-        DEBUG_ASSERT(nid < MAX_NODE);
-
-        s_cpu_to_node[cpunum] = nid;
-        PmNode::node(nid)->native_cpus().set(cpunum);
-    }
-
-    auto cpu_to_node(CpuNum cpunum) -> NodeId {
-        DEBUG_ASSERT(cpunum < MAX_CPU);
-        return s_cpu_to_node[cpunum];
-    }
-
     auto num_nodes() -> usize {
         return PmNode::num_nodes();
     }

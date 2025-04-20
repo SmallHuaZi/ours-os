@@ -120,7 +120,7 @@ namespace ours::mem {
 
         FORCE_INLINE
         auto has_slab() const -> bool {
-            return !slabs_partial.empty();
+            return num_partial != 0;
         }
 
         /// Slabs which contains partial available objects.
@@ -152,6 +152,16 @@ namespace ours::mem {
         FORCE_INLINE
         auto do_allocate(NodeId nid) -> Object * {
             return do_allocate(gaf_, nid);
+        }
+
+        template <typename T, typename... Args> 
+        auto allocate(Args &&...args) -> T * {
+            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
+            auto const object = do_allocate(current_node());
+            if (!object) {
+                return nullptr;
+            }
+            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
         }
 
         template <typename T, typename... Args> 
@@ -209,11 +219,21 @@ namespace ours::mem {
         }
 
         FORCE_INLINE
+        auto create_slab(NodeId nid, Gaf gaf = {}) -> Slab * {
+            auto slab = alloc_slab(nid, gaf);
+            if (slab) {
+                cache_node_[nid]->add_slab(slab);
+            }
+
+            return slab;
+        }
+
+        FORCE_INLINE
         auto free_slab(Slab *slab) -> void {
             return slab->destory();
         }
 
-        GKTL_CANARY(MemCache, canary_);
+        GKTL_CANARY(ObjectCache, canary_);
         OcFlags ocflags_;
 	    Gaf gaf_;
         u16 order_;
@@ -236,6 +256,11 @@ namespace ours::mem {
         static inline InitState s_state;
         static inline ustl::collections::intrusive::List<Self, ManagedHook>  s_oclist_;
     };
+
+    template <typename Object>
+    auto make_object_cache(char const *name, OcFlags ocflags) -> ustl::Rc<ObjectCache> {
+        return ObjectCache::create(name, sizeof(Object), alignof(Object), ocflags) ;
+    }
 
 } // namespace ours::mem
 

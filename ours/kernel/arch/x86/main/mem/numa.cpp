@@ -15,6 +15,7 @@ namespace ours {
         return Status::Unsupported;
     }
 
+    INIT_CODE
     static auto x86_init_numa() -> void {
         if (!s_numa_enabled) {
             return;

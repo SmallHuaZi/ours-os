@@ -107,6 +107,7 @@ namespace ours::mem {
 
         auto zone_queues = node->zone_queues();
 
+        /// Create zone queues.
         auto nr_zones = 0;
         for (auto i = 0; i < NR_ZONES_PER_NODE; ++i) {
             auto const ztype = ZoneType(i);
@@ -128,6 +129,15 @@ namespace ours::mem {
             zone->init(nid, ztype, zone_start_pfn, zone_end_pfn, nr_presents);
             zone_queues->insert_local_zone(zone, ztype);
             set_node_state(nid, NodeStates::Type(i), true);
+        }
+
+        // Because of in early stage no actual nodes existing,
+        // we need to rebind cpus onto this node.
+        for (auto cpunum = 0; cpunum < MAX_CPU; ++cpunum) {
+            auto c2n = cpu_to_node(cpunum);
+            if (c2n == nid) {
+                node->native_cpus().set(cpunum);
+            }
         }
 
         return nr_zones;

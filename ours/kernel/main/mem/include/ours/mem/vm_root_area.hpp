@@ -16,14 +16,14 @@
 
 namespace ours::mem {
     /// This class is used to manage the sub-area in a virtual address space.
-    class VmRootArea
-    {
+    class VmRootArea {
         typedef VmRootArea    Self;
     public:
         static auto create(ustl::Rc<VmAspace>, VmaFlags) -> ustl::Rc<VmRootArea>;
 
         /// Create a mapping area from `range`.
-        auto create_subvma(VirtAddr base, usize size, usize align, MmuFlags flags, ustl::Rc<VmObject> * = 0) -> ustl::Rc<VmArea>;
+        auto create_subvma(VirtAddr base, usize size, usize align, MmuFlags flags, ustl::Rc<VmObject> * = 0) 
+            -> ustl::Rc<VmArea>;
 
         auto destory_subvma(VirtAddr base, usize size) -> Status;
 
@@ -32,7 +32,6 @@ namespace ours::mem {
         auto protect_subvma(VirtAddr base, usize size, MmuFlags flags) -> Status;
 
         auto find_subvma(VirtAddr va) -> ustl::Rc<VmArea>;
-    
     private:
         auto create_subvma_inner(VirtAddr base, usize size, usize align, MmuFlags flags) -> ustl::Rc<VmArea>;
     

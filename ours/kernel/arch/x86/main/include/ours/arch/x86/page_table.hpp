@@ -13,6 +13,7 @@
 
 #include <ours/mem/mod.hpp>
 #include <ours/mem/gaf.hpp>
+#include <ours/mem/vm_page.hpp>
 #include <ours/mem/memory_model.hpp>
 #include <ours/mutex.hpp>
 
@@ -22,17 +23,19 @@ namespace ours::mem::details {
     struct PageAllocator {
         static auto alloc_page() -> PhysAddr {
             PhysAddr phys_addr;
-            if (auto frame = alloc_frame(kGafKernel, &phys_addr, 0)) {
-                auto mmu_frame = role_cast<PfRole::Mmu>(frame);
-                return phys_addr;
+            auto frame = alloc_frame(kGafKernel, &phys_addr, 0); 
+            if (!frame) {
+                panic("no memory");
             }
 
-            panic("no memory");
+            auto mmu_frame = role_cast<PfRole::Vmm>(frame);
+            mmu_frame->num_mappings += 1;
+            return phys_addr;
         }
 
         static auto free_page(PhysAddr phys_addr) -> void {
             if (auto frame = phys_to_frame(phys_addr)) {
-                auto mmu_frame = role_cast<PfRole::Mmu>(frame);
+                auto mmu_frame = role_cast<PfRole::Vmm>(frame);
                 mmu_frame->num_mappings -= 1;
                 if (0 == mmu_frame->num_mappings) {
                     free_frame(frame, 0);

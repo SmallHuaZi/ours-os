@@ -35,9 +35,7 @@
 namespace ours::mem {
     static_assert(ArchVmAspaceConstraints<ArchVmAspace>());
 
-    class VmAspace
-        : public ustl::RefCounter<VmAspace>
-    {
+    class VmAspace: public ustl::RefCounter<VmAspace> {
         typedef VmAspace       Self;
         typedef ustl::RefCounter<VmAspace>  Base;
     public:
@@ -56,29 +54,37 @@ namespace ours::mem {
 
         static auto switch_aspace(Self *, Self *) -> void;
 
-        static auto kernel_aspace() -> ustl::Rc<VmAspace>
-        {  return ustl::make_rc<VmAspace>(KERNEL_ASPACE_);  }
-
-        auto is_user() const -> bool
-        {  return static_cast<bool>(flags_ & VmasFlags::User);  }
-
-        auto arch_aspace() -> ArchVmAspace & 
-        {  return this->arch_;  }
-
-        auto root_area() -> VmRootArea &
-        {  return this->root_area_;  }
+        static auto kernel_aspace() -> ustl::Rc<VmAspace> {
+            return ustl::make_rc<VmAspace>(kernel_aspace_);
+        }
 
         auto init() -> Status;
 
         auto fault(VirtAddr addr, VmfCause flags) -> void;
 
+        auto alloc_contiguous() -> void;
+
+        FORCE_INLINE
+        auto is_user() const -> bool {
+            return static_cast<bool>(flags_ & VmasFlags::User);
+        }
+
+        FORCE_INLINE
+        auto arch_aspace() -> ArchVmAspace &  {
+            return this->arch_;
+        }
+
+        FORCE_INLINE
+        auto root_area() -> VmRootArea & {
+            return this->root_area_;
+        }
+
         ~VmAspace();
 
     protected:
         auto map_object(ustl::Rc<VmObject> *, gktl::Range<VirtAddr>);
-    
-        VmAspace(VirtAddr, usize, VmasFlags, char const *);
 
+        VmAspace(VirtAddr, usize, VmasFlags, char const *);
     private:
         friend class VmArea;
         GKTL_CANARY(VmAspace, canary_);
@@ -98,15 +104,15 @@ namespace ours::mem {
         VmRootArea          root_area_;
         ustl::Rc<VmArea>    fault_cache_;
 
-        static VmAspace *KERNEL_ASPACE_;
-        static ustl::sync::Mutex KERNEL_ASPACE_MUTEX_;
+        static inline VmAspace *kernel_aspace_;
+        static inline ustl::sync::Mutex kernel_aspace_mutex_;
 
         /// The list which strungs all existing VmAspace.
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOptions);
         USTL_DECLARE_LIST(Self, AspaceList, ManagedOptions);
-        static AspaceList ALL_ASPACE_LIST_;
-        static ustl::sync::Mutex ALL_ASPACE_LIST_MUTEX_;
+        static inline AspaceList all_aspace_list_;
+        static inline Mutex all_aspace_list_mutex_;
     };
 
 } // namespace ours::mem

@@ -195,6 +195,7 @@ namespace ours {
     }
 
     auto DynChunk::allocate(usize size, AlignVal align) -> VirtAddr {
+        log::info("CPU-local allocation action: {}, {}", size, align);
         auto result = find(size, align);
         if (!result) {
             return 0;
@@ -203,6 +204,8 @@ namespace ours {
         for (auto i = 0; i < num_bits; ++i) {
             allocation_maps[(bit_offset + i) / kBlockBits].inner.set((bit_offset + i) % kBlockBits);
         }
+
+        dump();
         return base;
     }
 
@@ -243,8 +246,8 @@ namespace ours {
                     continue;
                 }
 
-                map.first_free = iblock * kBlockBits + ibit + bits_test;
-                return ustl::some(map.first_free - alloc_bits);
+                map.first_free = ibit + bits_test;
+                return ustl::some(iblock * kBlockBits + ibit + bits_test - alloc_bits);
             }
         }
 
@@ -273,33 +276,125 @@ namespace ours {
 
         auto init(usize nr_groups, usize nr_units, AlignVal unit_align, usize dyn_size) -> Status;
 
+        auto build_map_info() -> Status;
+
+        auto build_area_info() -> Status;
+
+        auto dump() const -> void;
+
         FORCE_INLINE
         auto add_dyn(DynChunk &dyn_chunk) -> void {
-            dyn_chunks.push_back(dyn_chunk);
+            dyn_chunks_.push_back(dyn_chunk);
         }
 
         auto create_dyn(VirtAddr base, VirtAddr size) -> Status;
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto cpu_to_unit(CpuNum cpu) -> usize {
+            return c2u_map_[cpu];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto unit_to_cpu(usize unit) -> CpuNum {
+            return u2c_map_[unit];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto node_to_group(NodeId nid) -> usize {
+            return n2g_map_[nid];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto group_to_node(usize group) -> NodeId {
+            return g2n_map_[group];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto num_units_on_group(usize group) const -> usize {
+            return group_num_units_[group];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
         auto num_units() const -> usize {
-            return unit_offset.size();
+            return unit_offset_.size();
         }
 
+        FORCE_INLINE CXX11_CONSTEXPR
         auto num_groups() const -> usize {
-            return group_offset.size();
+            return group_offset_.size();
         }
 
-        VirtAddr base;
-        usize unit_size;
-        ustl::views::Span<isize> c2u_map;  // CPU -> Unit
-        ustl::views::Span<isize> n2g_map;  // Node -> Group 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto group_base(usize group) const -> VirtAddr {
+            return base_ + group_offset_[group];
+        }
 
-        ustl::views::Span<isize> unit_offset;
-        ustl::views::Span<isize> group_offset;
-        ustl::views::Span<u32> group_num_units;
-        ustl::views::Span<u32> group_consume; // UNIT(Kib)
-        ustl::views::Span<mem::FrameList<>> group_frames;
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto unit_base(usize unit) const -> VirtAddr {
+            return base_ + unit_offset_[unit];
+        }
 
-        DynChunkList dyn_chunks;
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto cpu_offset(CpuNum cpu) const -> VirtAddr {
+            return unit_offset_[c2u_map_[cpu]];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto cpu_base(CpuNum cpu) const -> VirtAddr {
+            return base_ + unit_offset_[c2u_map_[cpu]];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto node_base(NodeId nid) const -> VirtAddr {
+            return base_ + group_offset_[n2g_map_[nid]];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto node_offset(NodeId nid) const -> VirtAddr {
+            return group_offset_[n2g_map_[nid]];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto unit_size() const -> VirtAddr {
+            return unit_size_;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto unit_offset(usize unit) const -> VirtAddr {
+            return unit_offset_[unit];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto base() const -> VirtAddr {
+            return base_;
+        }
+
+        template <typename T>
+        FORCE_INLINE
+        auto fix_addr(T addr) -> VirtAddr {
+            return reinterpret_cast<VirtAddr>(addr) - (calc_offset(base_));
+        }
+
+        template <typename T, typename U>
+        FORCE_INLINE
+        auto fix_addr(U addr) -> T * {
+            return reinterpret_cast<T *>(fix_addr(addr));
+        }
+
+        VirtAddr base_;
+        usize unit_size_;
+        ustl::views::Span<isize> c2u_map_;  // CPU -> Unit
+        ustl::views::Span<isize> u2c_map_;  // Unit -> CPU 
+        ustl::views::Span<isize> n2g_map_;  // Node -> Group
+        ustl::views::Span<isize> g2n_map_;  // Group -> Node
+
+        ustl::views::Span<isize> unit_offset_;
+        ustl::views::Span<isize> group_offset_;
+        ustl::views::Span<u32> group_num_units_;
+        ustl::views::Span<u32> group_consume_; // UNIT(Kib)
+        ustl::views::Span<mem::FrameList<>> group_frames_;
+
+        DynChunkList dyn_chunks_;
         static inline CpuLocalAreaInfo *s_clai;
     };
 
@@ -313,7 +408,7 @@ namespace ours {
             }
         };
     
-#define MEMBER_INIT_IF_ERROR_THEN_RETURN(Member, Number) \
+    #define MEMBER_INIT_IF_ERROR_THEN_RETURN(Member, Number) \
         auto raw_##Member = new ustl::traits::RemoveCvRefT<decltype(CpuLocalAreaInfo::Member[0])>[Number];\
         if (!raw_##Member) {\
             log::trace("Failed to allocate map for "#Member);\
@@ -323,17 +418,111 @@ namespace ours {
         num_allocated += 1;\
         Member = ustl::views::make_span(raw_##Member, Number);
 
-        MEMBER_INIT_IF_ERROR_THEN_RETURN(n2g_map, MAX_NODE);
-        MEMBER_INIT_IF_ERROR_THEN_RETURN(c2u_map, MAX_CPU);
-        MEMBER_INIT_IF_ERROR_THEN_RETURN(unit_offset, nr_units);
-        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_offset, nr_groups);
-        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_num_units, nr_groups);
-        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_consume, nr_groups);
-        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_frames, nr_groups);
-#undef MEMBER_INIT_IF_ERROR_THEN_RETURN
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(n2g_map_, MAX_NODE);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(g2n_map_, nr_groups);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(c2u_map_, MAX_CPU);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(u2c_map_, nr_units);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(unit_offset_, nr_units);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_offset_, nr_groups);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_num_units_, nr_groups);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_consume_, nr_groups);
+        MEMBER_INIT_IF_ERROR_THEN_RETURN(group_frames_, nr_groups);
+    #undef MEMBER_INIT_IF_ERROR_THEN_RETURN
 
-        unit_size = ustl::mem::align_up(static_cpu_local_area_size() + dyn_size, unit_align);
+        unit_size_ = ustl::mem::align_up(static_cpu_local_area_size() + dyn_size, unit_align);
         return Status::Ok;
+    }
+
+    auto CpuLocalAreaInfo::build_map_info() -> Status {
+        auto &nodes = mem::node_possible_mask();
+        for (auto group = 0, unit = 0, nid = 0; nid < nodes.size(); ++nid) {
+            if (!nodes.test(nid)) {
+                continue;
+            }
+
+            // FIXME(SmallHuaZi) If units per group is not aligned to each other. the size bytes of padding
+            // 
+            auto &cpus = mem::node_cpumask(nid);
+            n2g_map_[nid] = group;   // nid->group
+            g2n_map_[group] = nid;   // group->nid
+            group_num_units_[group] = cpus.count();
+
+            for (auto cpu = 0; cpu < cpus.size(); ++cpu) {
+                if (!cpus.test(cpu)) {
+                    continue;
+                }
+
+                c2u_map_[cpu] = unit;
+                u2c_map_[unit] = cpu;
+                unit += 1;
+            }
+
+            group += 1;
+        }
+
+        return Status::Ok;
+    }
+
+    auto CpuLocalAreaInfo::build_area_info() -> Status {
+        auto const nr_groups = num_groups();
+
+        mem::FrameList<> frame_tracker;
+        base_ = ustl::NumericLimits<VirtAddr>::max();
+        for (auto group = 0; group < nr_groups; ++group) {
+            auto const nid = g2n_map_[group];
+            auto const nr_units = group_num_units_[group];
+
+            auto const num_frames = align_up(unit_size_ * nr_units, PAGE_SIZE) / PAGE_SIZE;
+            auto const order = mem::num_to_order(num_frames);
+            auto const padding = (PAGE_SIZE * (1 << order) - unit_size_) / nr_units;
+
+            auto frame = alloc_frame(nid, mem::kGafBoot, order);
+            if (!frame) {
+                mem::free_frames(&frame_tracker);
+                return Status::OutOfMem;
+            }
+
+            group_frames_[group].push_back(*frame);
+            group_consume_[group] = BIT(order);
+
+            base_ = ustl::algorithms::min(base_, mem::frame_to_virt(frame));
+        }
+
+        for (auto group = 0, unit = 0; group < nr_groups; ++group) {
+            auto const addr = frame_to_virt(&group_frames_[group].front());
+            group_offset_[group] = addr - base_;
+
+            for (auto i = 0; i < group_num_units_[group]; ++i, ++unit) {
+                unit_offset_[unit] = addr + unit_size_ * i - base_;
+            }
+        }
+
+        return Status::Ok;
+    }
+
+    auto CpuLocalAreaInfo::dump() const -> void {
+        log::info("CpuLocal internal area information: ");
+        log::info("  Base of static area : {:X}", VirtAddr(kStaticCpuLocalStart));
+        log::info("  Size of static area: {:X}", static_cpu_local_area_size());
+        log::info("  Base address: {:X}", base_);
+        log::info("  Unit size: {:X}", unit_size_);
+        log::info("  Information per CPU : ");
+        for (auto i = 0; i < MAX_CPU; ++i) {
+            if (cpu_possible_mask().test(i)) {
+                log::info("    CPU[{}]: At 0x{:X}, offset=", i, cpu_base(i), cpu_offset(i));
+            }
+        }
+        log::info("  Information per NODE:");
+        for (auto i = 0; i < MAX_NODE; ++i) {
+            if (mem::node_possible_mask().test(i)) {
+                log::info("    NODE[{}]: At 0x{:X}, offset=", i, node_base(i), node_offset(i));
+            }
+        }
+        log::info("Information for first frame in group:");
+        for (auto i = 0; i < num_groups(); ++i) {
+            auto &first_frame = group_frames_[i].front();
+            log::info("  NODE[{}]: At 0x{:0X}, order={}", i, frame_to_virt(&first_frame), first_frame.order());
+        }
     }
 
     auto CpuLocal::init_early() -> void {
@@ -351,12 +540,14 @@ namespace ours {
         }
         log::trace("Early cpu-local area start at 0x{:X}", VirtAddr(replica));
 
-        auto const dyn_base = VirtAddr(replica) + static_cpu_local_area_size();
-        auto first_chunk = DynChunk::create_first(dyn_base, dyn_size);
+        auto dyn_base = replica + static_cpu_local_area_size();
+        ustl::algorithms::fill_n(dyn_base, dyn_size, 0);
+
+        auto first_chunk = DynChunk::create_first(VirtAddr(dyn_base), dyn_size);
         if (!first_chunk) {
             panic("Failed to allaote first dynamic cpu local chunk");
         }
-        log::trace("Early first chunk start at 0x{:X}", dyn_base);
+        log::trace("Early first chunk start at 0x{:X}", VirtAddr(dyn_base));
         clai->add_dyn(*first_chunk);
         CpuLocalAreaInfo::set_global(clai);
 
@@ -366,100 +557,55 @@ namespace ours {
     }
 
     auto CpuLocal::init(usize dyn_size, usize unit_align) -> Status {
-        unit_align = ustl::algorithms::max<usize>(unit_align, PAGE_SIZE);
-
-        auto const unit_size = align_up(static_cpu_local_area_size() + dyn_size, unit_align);
-
         auto &nodes = mem::node_possible_mask();
-        auto const total_groups = nodes.count();
-        auto const total_units = num_possible_cpus();
-
         auto clai = CpuLocalAreaInfo::global();
-        if (!clai) {
-            panic("Failed to allocat CLAI");
+
+        auto status = clai->init(nodes.count(), num_possible_cpus(), unit_align, dyn_size) ;
+        if (Status::Ok != status) {
+            log::error("Failed to initialize cpu local internal area info with given reason: {}", to_string(status));
+            return status; 
         }
-        clai->init(total_groups, total_units, unit_align, dyn_size);
 
-        mem::FrameList<> frames;
-        ustl::views::Span<CpuNum> u2c_map = ustl::views::make_span(new CpuNum[total_units], total_units);
-        VirtAddr base = ustl::NumericLimits<VirtAddr>::max();
-        auto const total_nodes = nodes.size();
-        for (auto group = 0, unit = 0, nid = 0; nid < total_nodes; ++nid) {
-            if (!nodes.test(nid)) {
-                continue;
-            }
-
-            // FIXME(SmallHuaZi) If units per group is not aligned to each other. the size bytes of padding
-            // 
-            auto &cpus = mem::node_cpumask(nid);
-            auto const num_units = cpus.count();
-            auto const num_frames = align_up(unit_size * num_units, PAGE_SIZE) / PAGE_SIZE;
-            auto const order = mem::num_to_order(num_frames);
-            auto const padding = ((1 << order) - unit_size) / num_units;
-
-            auto frame = alloc_frame(nid, mem::kGafBoot, order);
-            if (!frame) {
-                mem::free_frames(&frames);
-                return Status::OutOfMem;
-            }
-
-            clai->n2g_map[nid] = group;
-            clai->group_frames[group].push_back(*frame);
-            clai->group_consume[group] = BIT(order);
-            clai->group_num_units[group] = num_units;
-
-            for (auto cpu = 0; cpu < cpus.size(); ++cpu) {
-                if (!cpus.test(cpu)) {
-                    continue;
-                }
-
-                clai->c2u_map[cpu] = unit;
-                u2c_map[unit] = cpu;
-                unit += 1;
-            }
-
-            group += 1;
-            base = ustl::algorithms::min(base, frame_to_virt(frame));
+        status = clai->build_map_info();
+        if (Status::Ok != status) {
+            log::error("Failed to initialize map tables with given reason: {}", to_string(status));
+            return status; 
         }
-        clai->base = base;
-        clai->unit_size = unit_size;
 
-        // Skip first unit.
-        for (auto group = 0, unit = 1; group < total_groups; ++group) {
-            auto const addr = frame_to_virt(&clai->group_frames[group].front());
-            clai->group_offset[group] = addr - base;
-            for (auto i = 0; i < clai->group_num_units[group]; ++i, ++unit) {
-                auto const this_base = addr + clai->unit_size * i;
-                auto const offset = this_base - base;
-                clai->unit_offset[unit] = offset;
-                s_cpu_offset[u2c_map[unit]] = offset + calc_offset(base);
+        status = clai->build_area_info();
+        if (Status::Ok != status) {
+            log::error("Failed to initialize area infos with given reason: {}", to_string(status));
+            return status; 
+        }
 
-                ustl::algorithms::copy(kStaticCpuLocalStart, kStaticCpuLocalEnd, reinterpret_cast<u8 *>(this_base));
+        auto const delta = calc_offset(clai->base());
+        for (usize i = 0, n = clai->num_units(); i < n; ++i) {
+            auto cpu = clai->unit_to_cpu(i);
+            s_cpu_offset[cpu] = clai->unit_offset(i) + delta;
+
+            auto const unit_base = reinterpret_cast<u8 *>(clai->unit_base(i));
+            if (cpu == 0) {
+                auto base = kStaticCpuLocalStart + CpuLocal::read(s_current_cpu_offset);
+                ustl::algorithms::copy_n(base, early_cpu_local_area_size(), unit_base);
+                mem::free_frame(VirtAddr(base), mem::num_to_order(early_cpu_local_area_size()));
+            } else [[likely]] {
+                ustl::algorithms::copy(kStaticCpuLocalStart, kStaticCpuLocalEnd, unit_base);
             }
         }
 
-        // Handle first unit
-        auto const addr = frame_to_virt(&clai->group_frames[0].front());
-        clai->unit_offset[0] = addr - base;
-        s_cpu_offset[u2c_map[0]] = addr - VirtAddr(kStaticCpuLocalStart);
-
-        auto early_base = kStaticCpuLocalStart + CpuLocal::read(s_current_cpu_offset);
-        ustl::algorithms::copy_n(early_base ,  early_cpu_local_area_size(), reinterpret_cast<u8 *>(addr));
-        mem::free_frame(VirtAddr(early_base), mem::num_to_order(early_cpu_local_area_size()));
-
-        delete[] u2c_map.data();
         init_percpu();
         return Status::Ok;
     }
 
     auto CpuLocal::allocate(usize size, AlignVal align, mem::Gaf gaf) -> void * {
         auto clai = CpuLocalAreaInfo::global();
-        for (auto chunk : clai->dyn_chunks) {
+        for (auto chunk : clai->dyn_chunks_) {
             auto base = chunk.allocate(size, align);
             if (!base) {
                 continue;
             }
 
+            // return clai->fix_addr<void>(base);
             return reinterpret_cast<void *>(base);
         }
 
@@ -469,7 +615,26 @@ namespace ours {
     }
 
     auto CpuLocal::do_free(void *ptr) -> void {
+        panic("Not support");
+    }
 
+    auto CpuLocal::check_addr(VirtAddr va, CpuNum cpu) -> bool {
+        auto clai = CpuLocalAreaInfo::global();
+        auto start = clai->unit_base(clai->cpu_to_unit(cpu));
+        return va >= start && va < start + clai->unit_size();
+    }
+
+    auto CpuLocal::dump() -> void {
+        DEBUG_ASSERT(CpuLocalAreaInfo::global());
+        CpuLocalAreaInfo::global()->dump();
+
+        auto &cpu = cpu_online_mask();
+        log::info("CpuLocal public offset information: ");
+        for (auto i = 0 ; i < std::size(s_cpu_offset); ++i) {
+            if (cpu.test(i)) {
+                log::info("  CPU[{}]={}", i, s_cpu_offset[i]);
+            }
+        }
     }
 
 } // namespace gktl

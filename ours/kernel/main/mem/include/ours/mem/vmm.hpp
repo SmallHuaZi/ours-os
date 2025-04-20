@@ -38,6 +38,8 @@ namespace ours::mem {
         return  kImageEnd - kImageStart; 
     }
 
+    NO_MANGLE VmPage *g_zero_page;
+
     NO_MANGLE PhysAddr g_kernel_phys_base;
     NO_MANGLE VirtAddr g_kernel_virt_base;
 

@@ -84,7 +84,7 @@ namespace ours::mem {
 
             auto frame = pfn_to_frame(pfn);
             frame->init(ztype, pfn_to_secnum(pfn), nid);
-            frame->reserve();
+            frame->mark_reserved();
         }
     }
 

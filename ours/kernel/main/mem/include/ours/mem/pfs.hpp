@@ -58,7 +58,7 @@ namespace pfns {
         None,
         Io,
         Lru,
-        Mmu,
+        Vmm,
         Pmm,
         Slab,
         Heap,
@@ -71,7 +71,7 @@ namespace pfns {
             case PfRole::None:  return "None";
             case PfRole::Io:    return "Io";
             case PfRole::Lru:   return "Lru";
-            case PfRole::Mmu:   return "MMU";
+            case PfRole::Vmm:   return "VMM";
             case PfRole::Pmm:   return "PMM";
             case PfRole::Slab:  return "Slab";
             case PfRole::Heap:  return "Heap";

@@ -33,14 +33,30 @@ namespace gktl {
 
     /// Trace the the initialization level of system during boot.
     enum class InitLevel: u32 {
-        ArchEarly,
-        PlatformEarly = ArchEarly + kDeltaBetweenLevels,
-        CpuLocal = PlatformEarly + kDeltaBetweenLevels,
-        Heap = CpuLocal + kDeltaBetweenLevels,
-        Vmm = Heap + kDeltaBetweenLevels,
-        Irq = Vmm + kDeltaBetweenLevels,
-        Arch = Irq + kDeltaBetweenLevels,
-        Platform = Arch + kDeltaBetweenLevels,
+        ArchEarlyInternal,
+        ArchEarly = ArchEarlyInternal + kDeltaBetweenLevels,
+
+        PlatformEarlyInternal = ArchEarly + kDeltaBetweenLevels,
+        PlatformEarly = PlatformEarlyInternal + kDeltaBetweenLevels,
+
+        CpuLocalInternal = PlatformEarly + kDeltaBetweenLevels,
+        CpuLocal = CpuLocalInternal + kDeltaBetweenLevels,
+
+        HeapInternal = CpuLocal + kDeltaBetweenLevels,
+        Heap = HeapInternal + kDeltaBetweenLevels,
+
+        VmmInternal = Heap + kDeltaBetweenLevels,
+        Vmm = VmmInternal + kDeltaBetweenLevels,
+
+        IrqInternal = Vmm + kDeltaBetweenLevels,
+        Irq = IrqInternal + kDeltaBetweenLevels,
+
+        ArchInternal = Irq + kDeltaBetweenLevels,
+        Arch = ArchInternal + kDeltaBetweenLevels,
+
+        PlatformInternal = Arch + kDeltaBetweenLevels,
+        Platform = PlatformInternal + kDeltaBetweenLevels,
+
         MaxInitLevel = Platform + kDeltaBetweenLevels,
     };
 
