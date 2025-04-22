@@ -34,19 +34,19 @@ namespace arch::paging {
     FORCE_INLINE CXX11_CONSTEXPR
     auto mmuflags_cast(MmuFlags const flags) -> X86MmuFlags {
         X86MmuFlags target{};
-        if (bool(flags & MmuFlags::Present)) {
+        if (!!(flags & MmuFlags::Present)) {
             target |= X86MmuFlags::Present;
         }
-        if (!bool(flags & MmuFlags::Executable)) {
+        if (!(flags & MmuFlags::Executable)) {
             target |= X86MmuFlags::NoExecutable;
         }
-        if (bool(flags & MmuFlags::Writable)) {
+        if (!!(flags & MmuFlags::Writable)) {
             target |= X86MmuFlags::Writable;
         }
-        if (bool(flags & MmuFlags::User)) {
+        if (!!(flags & MmuFlags::User)) {
             target |= X86MmuFlags::User;
         }
-        if (bool(flags & MmuFlags::Discache)) {
+        if (!!(flags & MmuFlags::Discache)) {
             target |= X86MmuFlags::Discache;
         }
 
@@ -57,19 +57,19 @@ namespace arch::paging {
     FORCE_INLINE CXX11_CONSTEXPR
     auto mmuflags_cast(X86MmuFlags const flags) -> MmuFlags {
         MmuFlags target{};
-        if (bool(flags & X86MmuFlags::Present)) {
+        if (!!(flags & X86MmuFlags::Present)) {
             target |= MmuFlags::Present;
         }
-        if (!bool(flags & X86MmuFlags::NoExecutable)) {
+        if (!(flags & X86MmuFlags::NoExecutable)) {
             target |= MmuFlags::Executable;
         }
-        if (bool(flags & X86MmuFlags::Writable)) {
+        if (!!(flags & X86MmuFlags::Writable)) {
             target |= MmuFlags::Writable;
         }
-        if (bool(flags & X86MmuFlags::User)) {
+        if (!!(flags & X86MmuFlags::User)) {
             target |= MmuFlags::User;
         }
-        if (bool(flags & X86MmuFlags::Discache)) {
+        if (!!(flags & X86MmuFlags::Discache)) {
             target |= MmuFlags::Discache;
         }
         target |= MmuFlags::Readable;

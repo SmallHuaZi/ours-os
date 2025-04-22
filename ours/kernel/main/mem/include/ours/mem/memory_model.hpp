@@ -290,7 +290,7 @@ namespace ours::mem {
 
     private:
         template <typename F>
-        auto dispatch_range_by_hierarchy(SecNum start, SecNum end, F &&f) -> Status;
+        auto descend(SecNum start, SecNum end, F &&f) -> Status;
 
         auto init_index(usize level, SecNum begin, NodeId nid) -> ustl::Result<PmSection *, Status>;
 

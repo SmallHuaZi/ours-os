@@ -11,19 +11,36 @@
 #ifndef OURS_MEM_VM_COW_PAGES_HPP
 #define OURS_MEM_VM_COW_PAGES_HPP 1
 
+#include <ours/mem/vm_page_list.hpp>
+#include <ours/mem/gaf.hpp>
+#include <ours/mutex.hpp>
+
+#include <ustl/sync/lockguard.hpp>
+
 namespace ours::mem {
-    /// A group of the copy on write page .
-    class VmCowPages
-    {
+    /// A group of the copy on write page.
+    class VmCowPages {
     public:
         class LookupCursor;
+
+        auto commit_range_locked(PgOff pgoff, usize n, ai_out usize *nr_commited) -> Status;
+
+        FORCE_INLINE
+        auto num_pages_locked() const -> usize {
+            return num_pages_;
+        }
+
+    private:
+        Gaf gaf_;
+        usize num_pages_;
     };
 
-    class VmCowPages::LookupCursor
-    {
+    class VmCowPages::LookupCursor {
     public:
         auto require_owned_page() -> void;
         auto require_readonly_page() -> void;
+    private:
+        VmPageList pages_;
     };
 
 } // namespace ours::mem

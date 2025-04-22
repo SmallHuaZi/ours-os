@@ -20,10 +20,10 @@
 #include <ustl/traits/declval.hpp>
 
 #define USTL_ENABLE_ENUM_BITMASK(T)    \
-static auto ustl_enable_enum_bitmask(T) -> ustl::traits::TrueType;\
+    static auto ustl_enable_enum_bitmask(T) -> ustl::traits::TrueType;\
 
-#define USTL_ENABLE_ENUM_BITMASK_FRIEND(T)    \
-friend auto ustl_enable_enum_bitmask(T) -> ustl::traits::TrueType;\
+#define USTL_ENABLE_INNER_ENUM_BITMASK(T)    \
+    friend auto ustl_enable_enum_bitmask(T) -> ustl::traits::TrueType;\
 
 template <typename Enum>
 USTL_CONSTEXPR
@@ -83,6 +83,15 @@ auto operator&=(Enum& lhs, Enum rhs)
     typedef ustl::traits::UnderlyingTypeT<Enum>     Underlying;
     lhs = lhs & rhs;
     return lhs;
+}
+
+template<typename Enum>
+USTL_FORCEINLINE USTL_CONSTEXPR
+auto operator!(Enum lhs) 
+    -> ustl::traits::EnableIfT<UstlEnumBitMaskEnabledV<Enum>, bool>
+{
+    typedef ustl::traits::UnderlyingTypeT<Enum>     Underlying;
+    return !Underlying(lhs);
 }
 
 #endif // #ifndef USTL_UTIL_ENUM_BITS_HPP

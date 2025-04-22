@@ -11,14 +11,12 @@
 #ifndef OURS_MEM_VM_ASPACE_HPP
 #define OURS_MEM_VM_ASPACE_HPP 1
 
-#include <ours/config.hpp>
 #if !__has_include(<ours/arch/vm_aspace.hpp>)
 #   error "The header <ours/arch/vm_aspace.hpp> is required by [protocol.module.mem]"
 #endif
 #include <ours/arch/vm_aspace.hpp>
 
 #include <ours/mem/vm_area.hpp>
-#include <ours/mem/vm_root_area.hpp>
 #include <ours/mem/vm_fault.hpp>
 #include <ours/mem/arch_vm_aspace.hpp>
 
@@ -58,15 +56,11 @@ namespace ours::mem {
             return ustl::make_rc<VmAspace>(kernel_aspace_);
         }
 
-        auto init() -> Status;
-
         auto fault(VirtAddr addr, VmfCause flags) -> void;
-
-        auto alloc_contiguous() -> void;
 
         FORCE_INLINE
         auto is_user() const -> bool {
-            return static_cast<bool>(flags_ & VmasFlags::User);
+            return !!(flags_ & VmasFlags::User);
         }
 
         FORCE_INLINE
@@ -75,18 +69,18 @@ namespace ours::mem {
         }
 
         FORCE_INLINE
-        auto root_area() -> VmRootArea & {
-            return this->root_area_;
+        auto root_vma() -> ustl::Rc<VmArea> {
+            return root_vma_;
         }
 
-        ~VmAspace();
-
-    protected:
-        auto map_object(ustl::Rc<VmObject> *, gktl::Range<VirtAddr>);
-
         VmAspace(VirtAddr, usize, VmasFlags, char const *);
+        ~VmAspace();
     private:
         friend class VmArea;
+        friend class VmMapping;
+
+        auto init() -> Status;
+
         GKTL_CANARY(VmAspace, canary_);
 
         VirtAddr    base_;
@@ -101,8 +95,8 @@ namespace ours::mem {
         ustl::sync::AtomicU32  refcnt_;
 
         /// The only root region.
-        VmRootArea          root_area_;
-        ustl::Rc<VmArea>    fault_cache_;
+        ustl::Rc<VmArea> root_vma_;
+        ustl::Rc<VmMapping> fault_cache_;
 
         static inline VmAspace *kernel_aspace_;
         static inline ustl::sync::Mutex kernel_aspace_mutex_;

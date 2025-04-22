@@ -25,6 +25,9 @@ namespace ustl {
     template <typename, typename, typename, typename>
     class Weak;
 
+    template <typename T>
+    struct RcEvictr;
+
     template <typename T,
               typename Disposer = NullDisposer,
               typename Allocator = mem::Allocator<T>,
@@ -140,6 +143,14 @@ namespace ustl {
         auto reset(Ptr ptr) -> void;
 
         USTL_FORCEINLINE
+        auto take() USTL_NOEXCEPT -> T * {
+            auto t = pointer_;
+            pointer_ = 0;
+            counter_ = 0;
+            return t;
+        }
+
+        USTL_FORCEINLINE
         auto is_unique() USTL_NOEXCEPT -> bool
         {  return counter_->strong_count() == 1;  }
 
@@ -156,8 +167,9 @@ namespace ustl {
         {  return *pointer_;  }
 
         USTL_FORCEINLINE
-        auto as_ptr() USTL_NOEXCEPT -> T const *
-        {  return pointer_;  }
+        auto as_ptr() USTL_NOEXCEPT -> T const * {  
+            return pointer_;
+        }
 
         USTL_FORCEINLINE
         auto as_ref() USTL_NOEXCEPT -> T const &
@@ -327,12 +339,15 @@ namespace ustl {
         Counter *counter_;
     };
 
-    template <typename Base, typename Derived = Base, typename... Args>
-        requires traits::IsBaseOfV<RefCounter<Base, Args...>, Derived>
+    template <typename Derived, typename Base,
+              typename Disposer = NullDisposer,
+              template <typename> typename Allocator,
+              typename Size>
+        requires traits::IsBaseOfV<RefCounter<Base, Disposer, Allocator<Base>, Size>, Derived>
     USTL_FORCEINLINE
-    auto make_rc(Derived *object) -> Rc<Base, Args...>
-    {
-        return Rc<Base, Args...>(object, object);
+    auto make_rc(RefCounter<Base, Disposer, Allocator<Base>, Size> *object) 
+        -> Rc<Derived, Disposer, Allocator<Derived>, Size> {
+        return Rc<Derived, Disposer, Allocator<Derived>, Size>(object, object);
     }
 
 } // namespace ustl

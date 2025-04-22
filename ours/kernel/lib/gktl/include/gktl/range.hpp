@@ -8,32 +8,39 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef GKTL_RANGE_HPP
 #define GKTL_RANGE_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/config.hpp>
 #include <ustl/algorithms/minmax.hpp>
 
 namespace gktl {
     /// A range is a half-open interval [start, end).
     template <typename T>
-    struct Range
-    {
-        constexpr auto length() const -> ours::usize 
-        {  return end - start;  }
+    struct Range {
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto length() const -> ours::usize  {
+            return end - start;
+        }
 
-        constexpr auto is_empty() const -> bool
-        {  return start == end;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto is_empty() const -> bool {
+            return start == end;
+        }
 
-        constexpr auto contains(T t) const -> bool
-        {  return t >= start && t < end;  }
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto contains(T t) const -> bool {
+            return t >= start && t < end;
+        }
 
-        constexpr auto overlaps(T other_start, T other_end) const -> bool
-        {  return (start < other_end) && (end > other_start); } 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto overlaps(T other_start, T other_end) const -> bool {
+            return (start < other_end) && (end > other_start);
+        }
 
-        constexpr auto left_difference_with(Range<T> const &other) const -> Range<T>
-        {
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto left_difference_with(Range<T> const &other) const -> Range<T> {
             if (overlaps(other) && start < other.start) {
                 return Range<T> { start, other.start };
             }
@@ -42,8 +49,8 @@ namespace gktl {
             return Range<T> { start, start };
         }
 
-        constexpr auto right_difference_with(Range<T> const &other) const -> Range<T>
-        {
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto right_difference_with(Range<T> const &other) const -> Range<T> {
             if (overlaps(other) && end > other.end) {
                 return Range<T> { other.end, end };
             }
@@ -52,8 +59,8 @@ namespace gktl {
             return Range<T> { end, end };
         }
 
-        constexpr auto intersection_with(Range<T> const &other) const -> Range<T>
-        {
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto intersection_with(Range<T> const &other) const -> Range<T> {
             if (overlaps(other)) {
                 return Range<T> {
                     ustl::algorithms::max(start, other.start),
@@ -65,8 +72,8 @@ namespace gktl {
             return Range<T> { end, end };
         }
 
-        constexpr auto union_with(Range<T> const &other) const -> Range<T>
-        {
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto union_with(Range<T> const &other) const -> Range<T> {
             if (overlaps(other)) {
                 return Range<T> {
                     ustl::algorithms::min(start, other.start),
@@ -78,14 +85,23 @@ namespace gktl {
             return Range<T> { end, end };
         }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto roundup(T b) -> void {
+        }
+
         T start;
         T end;
     };
 
     template <typename T>
-    constexpr auto make_range(T start, T end) -> Range<T>
-    {  return Range<T> { start, end };  }
+    Range(T start, T end) -> Range<T>;
 
-} // namespace ours 
+    template <typename T>
+    CXX11_CONSTEXPR
+    auto make_range(T start, T end) -> Range<T> {
+        return Range<T> { start, end };
+    }
+
+} // namespace ours
 
 #endif // #ifndef KTL_RANGE_HPP

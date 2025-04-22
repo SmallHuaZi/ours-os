@@ -36,24 +36,12 @@ namespace arch::paging {
         /// Maps `n` frames starting from `|pa|` to the `|va|`, and the mapping is done with the specified `|flags|`.
         /// During the mapping process, those existing entries will be handled through `|control|`.
         /// Return the number of page mappped if success.
-        auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status> {
-            return this->map_pages_with_altmap(va, pa, 1, flags, control, 0);
-        }
-
-        /// Sees IX86PageTable::map_pages.
-        virtual auto map_pages_with_altmap(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, Altmap *altmap)
+        virtual auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags, MapControl)
             -> ustl::Result<usize, Status> = 0;
 
         /// Maps `n` frames of physical memory starting from `phys_addr` to the virtual address `virt_addr`,
         /// and the mapping is done with the specified `flags`.
-        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control)
-            -> ustl::Result<usize, Status> {
-            return this->map_pages_bulk_with_altmap(va, pa, len, flags, control, 0);
-        }
-
-        /// Maps `n` frames of physical memory starting from `phys_addr` to the virtual address `virt_addr`,
-        /// and the mapping is done with the specified `flags`.
-        virtual auto map_pages_bulk_with_altmap(VirtAddr, PhysAddr *, usize len, MmuFlags flags, MapControl control, Altmap *)
+        virtual auto map_pages_bulk(VirtAddr, PhysAddr *, usize len, MmuFlags flags, MapControl control)
             -> ustl::Result<usize, Status> = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
@@ -130,7 +118,6 @@ namespace arch::paging {
 
         MappingContext(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
             : Base(va, pa, n, flags, page_size),
-              altmap_(0),
               nr_mapped_(),
               synchroniser_() {}
 
@@ -150,7 +137,6 @@ namespace arch::paging {
             return synchroniser_;
         }
 
-        Altmap *altmap_;
         usize nr_mapped_;
         Synchroniser synchroniser_;
     };
@@ -187,10 +173,10 @@ namespace arch::paging {
         virtual ~X86PageTableImpl() override = default;
 
         /// Sees IX86PageTable::map_pages.
-        auto map_pages_with_altmap(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, Altmap *altmap)
+        auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags, MapControl)
             -> ustl::Result<usize, Status> override;
 
-        auto map_pages_bulk_with_altmap(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control, Altmap *altmap)
+        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control)
             -> ustl::Result<usize, Status> override;
 
         /// Sees IX86PageTable::unmap_pages.

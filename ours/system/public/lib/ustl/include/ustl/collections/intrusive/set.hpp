@@ -43,4 +43,11 @@ namespace ustl::collections::intrusive {
             ALIAS;
 #endif
 
+#ifndef USTL_DECLARE_MULTISET_TEMPLATE
+#   define USTL_DECLARE_MULTISET_TEMPLATE(OWNER, ALIAS, ...)                                    \
+        template <typename... Options>                                                      \
+        using ALIAS = ustl::collections::intrusive::MultiSet<OWNER, Options..., __VA_ARGS__>;
+#endif
+
+
 #endif // #ifndef USTL_COLLECTIONS_INTRUSIVE_SET_HPP

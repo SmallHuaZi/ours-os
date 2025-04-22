@@ -16,7 +16,6 @@ set(source_set
     "vm_area.cpp"
     "vm_aspace.cpp"
     "vm_object.cpp"
-    "vm_root_area.cpp"
 )
 
 add_library(kernel_mem INTERFACE)

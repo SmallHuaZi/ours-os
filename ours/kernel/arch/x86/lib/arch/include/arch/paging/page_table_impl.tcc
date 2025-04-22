@@ -16,16 +16,16 @@ namespace arch::paging {
     using ustl::mem::is_aligned;
 
     TEMPLATE FORCE_INLINE
-    auto X86_PAGE_TABLE::make_mapping_context(MappingContext *context, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags) -> Status
-    {
+    auto X86_PAGE_TABLE::make_mapping_context(MappingContext *context, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags) 
+        -> Status {
         auto const derived = static_cast<Derived *>(this);
         ustl::mem::construct_at(context, va, pa, n, flags, 4096);
         return Status::Ok;
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::prepare_map_pages(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MappingContext *context) -> Status
-    {
+    auto X86_PAGE_TABLE::prepare_map_pages(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MappingContext *context) 
+        -> Status {
         auto const derived = static_cast<Derived *>(this);
         if (derived->check_virt_addr(va)) {
             return Status::InvalidArguments;
@@ -43,9 +43,8 @@ namespace arch::paging {
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::map_pages_with_altmap(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control, Altmap *altmap) 
-        -> ustl::Result<usize, Status>
-    {
+    auto X86_PAGE_TABLE::map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) 
+        -> ustl::Result<usize, Status> {
         canary_.verify();
 
         MappingContext context;
@@ -68,7 +67,7 @@ namespace arch::paging {
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::map_pages_bulk_with_altmap(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control, Altmap *altmap)
+    auto X86_PAGE_TABLE::map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control)
         -> ustl::Result<usize, Status>
     {
         canary_.verify();

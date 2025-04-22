@@ -27,6 +27,9 @@ namespace ustl::collections::intrusive {
     template <typename HeaderHolder>
     using HeaderHolderType = boost::intrusive::header_holder_type<HeaderHolder>;
 
+    template <typename Comp>
+    using Compare = boost::intrusive::compare<Comp>;
+
 } // namespace ustl::collections::intrusive
 
 #endif // #ifndef USTL_COLLECTIONS_INTRUSIVE_OPTIONS_HPP

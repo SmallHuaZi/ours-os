@@ -12,6 +12,7 @@
 #define ARCH_PAGING_CONTROLS_HPP 1
 
 #include <arch/types.hpp>
+#include <ustl/util/enum_bits.hpp>
 
 namespace arch::paging {
     enum class MapControl {

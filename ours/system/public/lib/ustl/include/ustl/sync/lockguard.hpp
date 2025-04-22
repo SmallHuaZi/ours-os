@@ -39,7 +39,7 @@ namespace ustl::sync {
     };
 
     template <typename Lock>
-    LockGuard(Lock) -> LockGuard<Lock>;
+    LockGuard(Lock &) -> LockGuard<Lock>;
 
 } // namespace ustl::sync
 

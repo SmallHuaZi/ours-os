@@ -13,7 +13,10 @@
 #define OURS_MEM_VM_OBJECT_PAGED_HPP 1
 
 #include <ours/mem/vm_object.hpp>
-#include <ours/mem/vm_page.hpp>
+#include <ours/mem/vm_cow_pages.hpp>
+#include <ours/mutex.hpp>
+
+#include <logz4/log.hpp>
 
 namespace ours::mem {
     class VmObjectPaged: public VmObject {
@@ -28,7 +31,7 @@ namespace ours::mem {
         virtual auto release_pages(PhysAddr, usize) -> Status override;
 
         ///
-        virtual auto commit(usize offset, usize len) -> Status override;
+        virtual auto commit_range(PgOff offset, usize n, CommitOptions option) -> Status override;
 
         ///
         virtual auto decommit(usize offset, usize len) -> Status override;
@@ -39,7 +42,10 @@ namespace ours::mem {
         ///
         virtual auto supply_pages(gktl::Range<VirtAddr> range) -> Status override;
     private:
-        VmPageList page_list_;
+        auto commit_range_internal(PgOff offset, usize n, CommitOptions option) -> Status;
+
+        VmCowPages cow_pages_;
+        Mutex mutex_;
     };
 
 } // namespace ours::mem

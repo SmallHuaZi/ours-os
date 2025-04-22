@@ -28,6 +28,7 @@ namespace ours {
 
     typedef usize     VirtAddr;
     typedef usize     PhysAddr;
+    typedef usize     PgOff;
 
     typedef u32   CpuNum;
     typedef u32   HIrqNum;

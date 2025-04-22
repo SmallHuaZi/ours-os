@@ -14,7 +14,7 @@
 #include <ours/assert.hpp>
 #include <ours/status.hpp>
 #include <ours/macro_abi.hpp>
-#include <ours/mem/types.hpp>
+#include <ours/types.hpp>
 
 namespace arch {
     /// The follwoing types which was defined in subnamespaces of `ours`
@@ -29,7 +29,6 @@ namespace arch {
     using ours::Status;
     using ours::PhysAddr;
     using ours::VirtAddr;
-    using ours::mem::Altmap;
     using ours::HIrqNum;
     using ours::VIrqNum;
     typedef ours::usize   PteVal;

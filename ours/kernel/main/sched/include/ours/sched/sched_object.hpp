@@ -21,8 +21,7 @@ namespace ours::sched {
     class Scheduler;
 
     // Classes `Process`, `Thread` and `SchedGroup` Derived from this class.
-    class SchedObject 
-    {
+    class SchedObject {
         typedef SchedObject         Self;
     public:
         // auto state() -> State

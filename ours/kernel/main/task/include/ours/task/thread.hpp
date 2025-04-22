@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_TASK_THREAD_HPP
 #define OURS_TASK_THREAD_HPP 1
 
@@ -26,7 +25,6 @@
 #include <ustl/collections/intrusive/list.hpp>
 #include <ustl/rc.hpp>
 
-
 namespace ours::task {
     class Process;
 
@@ -41,8 +39,7 @@ namespace ours::task {
         };
     };
 
-    class Thread
-        : public sched::SchedObject {
+    class Thread: public sched::SchedObject {
         typedef Thread Self;
 
         SCHED_OBJECT_INTERFACE;
@@ -83,7 +80,7 @@ namespace ours::task {
         CpuNum this_cpu_;
         CpuMask cpu_mask_;
         ArchThread arch_thread_;
-        ustl::Rc<mem::VmAspace> aspace_;
+        ustl::Weak<mem::VmAspace> aspace_;
         ustl::Rc<object::ThreadDispatcher> user_thread_;
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
         ustl::collections::intrusive::ListMemberHook<> proclist_hook_; // Used by process

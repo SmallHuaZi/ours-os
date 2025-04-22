@@ -34,7 +34,7 @@
 #   define CXX20_REQUIRES(...)
 #endif // #if __cplusplus > 202003ull
 
-#if __cplusplus > 202302ull
+#if __cplusplus >= 202302ull
 #   define CXX23_STATIC     static
 #else
 #   define CXX23_STATIC

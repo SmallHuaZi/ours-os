@@ -204,7 +204,7 @@ namespace ours::mem {
     }
 
     template <typename F>
-    auto MemoryModel::dispatch_range_by_hierarchy(SecNum begin, SecNum end, F &&f) -> Status {
+    auto MemoryModel::descend(SecNum begin, SecNum end, F &&f) -> Status {
         for (auto level = kMappingLevel; level > 0; --level) {
             for (auto this_end = begin + kLeavesPerLevel[level - 1]; this_end <= end; this_end += kLeavesPerLevel[level - 1]) {
                 auto status = ustl::function::invoke(ustl::forward<F>(f), level - 1, begin);
@@ -239,7 +239,7 @@ namespace ours::mem {
 
         auto const secnum_beg = phys_to_secnum(start);
         auto const secnum_end = phys_to_secnum(end) + 1;
-        return dispatch_range_by_hierarchy(secnum_beg, secnum_end, process_range);
+        return descend(secnum_beg, secnum_end, process_range);
     }
 
     auto MemoryModel::mark_section(SecNum begin, SecNum end, PmSection::State state) 

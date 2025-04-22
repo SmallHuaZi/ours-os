@@ -37,7 +37,7 @@ namespace ours::mem {
     USTL_ENABLE_ENUM_BITMASK(OcFlags);
 
     /// When a frame is being used in `ObjectCache`, it's descriptor has the following layout.
-    struct Slab: public PmFrameBase {
+    struct Slab: public PageFrameBase {
         typedef Slab   Self;
 
         /// Dummy object that provides a way convenient to build the list organizing free objects.
@@ -144,6 +144,12 @@ namespace ours::mem {
 
         static auto create(char const *name, usize obj_size, AlignVal align, OcFlags flags) -> ustl::Rc<Self>;
 
+        template <typename Object>
+        FORCE_INLINE
+        static auto create(char const *name, OcFlags flags) -> ustl::Rc<Self> {
+            return create(name, sizeof(Object), alignof(Object), flags);
+        }
+
         INIT_CODE
         static auto create_boot(Self &self, char const *name, usize obj_size, AlignVal align, OcFlags flags) -> Status;
 
@@ -168,6 +174,16 @@ namespace ours::mem {
         auto allocate(NodeId nid, Args &&...args) -> T * {
             DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
             auto const object = do_allocate(nid);
+            if (!object) {
+                return nullptr;
+            }
+            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
+        }
+
+        template <typename T, typename... Args> 
+        auto allocate(Gaf gaf, Args &&...args) -> T * {
+            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
+            auto const object = do_allocate(gaf, current_node());
             if (!object) {
                 return nullptr;
             }

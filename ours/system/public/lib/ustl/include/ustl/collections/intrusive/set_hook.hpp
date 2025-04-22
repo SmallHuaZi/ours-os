@@ -14,6 +14,7 @@
 
 #include <boost/intrusive/options.hpp>
 #include <boost/intrusive/set_hook.hpp>
+#include <ustl/collections/intrusive/options.hpp>
 
 namespace ustl::collections::intrusive {
     using namespace boost::intrusive;

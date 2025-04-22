@@ -14,11 +14,10 @@
 #include <ours/status.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/vm_fault.hpp>
+#include <ours/mem/vm_mapping.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/result.hpp>
-#include <ustl/function/fn.hpp>
-#include <ustl/util/enum_bits.hpp>
 #include <ustl/collections/intrusive/set.hpp>
 #include <ustl/collections/intrusive/list.hpp>
 
@@ -26,50 +25,25 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
-    enum class VmaFlags: u64 {
-        // Status.
-        Inactive = 0,
-        Active   = 1,
-
-        // Features.
-        Anonymous = 0x40000,
-        Mergeable = 0x80000,
-        Sharable = 0x111,
-
-        // Categories
-        Normal   = 0x10000,
-        Mapped   = 0x20000,
-    };
-    USTL_ENABLE_ENUM_BITMASK(VmaFlags);
-
-    /// Specific handler for various regions, to avoid the use of virtual function, 
-    /// which would lead many meaningless derived classes.
-    struct VmAreaHandler {
-        mutable ustl::function::Fn<auto () -> void>  open;
-        mutable ustl::function::Fn<auto () -> void>  close;
-
-        //! @page_fault_: Addresses a page fault happened in `VmRootArea' which is holding this.
-        typedef ustl::function::Fn<auto (VmFault *) -> void>   PageFaultFn;
-        mutable PageFaultFn  fault;
-    };
-
     /// `VmArea` is a representation of a contiguous range of virtual memory space.
-    class VmArea: public ustl::RefCounter<VmArea> {
-        typedef VmArea    Self;
-        typedef ustl::RefCounter<VmArea>    Base;
+    class VmArea: public VmAreaBase {
+        typedef VmArea      Self;
+        typedef VmAreaBase  Base;
     public:
-        static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, MmuFlags, VmaFlags, char const *) 
+        static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *) 
             -> ustl::Result<ustl::Rc<Self>, Status>;
 
         auto activate() -> void;
 
         auto destroy() -> void;
 
-        auto map(ustl::Rc<VmObject> vmo) -> Status;
+        /// Create a mapping unit in page range [vma_off, vma_off + nr_pages).
+        auto create_mapping(PgOff vma_off, usize nr_pages, VmaFlags, PgOff vmo_off, MmuFlags, ustl::Rc<VmObject>, char const *name) 
+            -> ustl::Result<ustl::Rc<VmMapping>, Status>;
 
-        /// Let start = range_.start() + offset, end = start + len.
-        /// Map [start, end) to physical memory.
-        auto map_range(usize offset, usize len, MmuFlags flags) -> void;
+        /// Create a sub-VMA in page range [vma_off, vma_off + nr_pages).
+        auto create_subvma(PgOff vma_off, usize nr_pages, VmaFlags, char const *name) 
+            -> ustl::Result<ustl::Rc<VmArea>, Status>;
 
         auto unmap(usize base, usize size) -> void;
 
@@ -79,43 +53,39 @@ namespace ours::mem {
 
         auto address_range() const -> gktl::Range<VirtAddr>;
 
-        auto is_anony() const -> bool {  
-            return static_cast<bool>(this->flags_ & VmaFlags::Anonymous);  
+        FORCE_INLINE
+        auto num_pages() const -> usize {
+            return size_ / PAGE_SIZE;
         }
 
-        auto fault(VmFault *vmf) const -> void {  
-            return handler_->fault(vmf);  
+        FORCE_INLINE
+        auto start_vpn() const -> Vpn {
+            return base_ / PAGE_SIZE;
+        }
+
+        FORCE_INLINE
+        auto end_vpn() const -> Vpn {
+            return (base_ + size_) / PAGE_SIZE;
         }
 
         // On logic, it should be protected to avoid the incorrect use. But 
-        VmArea(ustl::Rc<VmAspace>, VirtAddr, usize, MmuFlags, VmaFlags, char const *);
+        VmArea(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *);
     protected:
-        auto split() -> ustl::Rc<VmArea>;
+        auto prepare_create_subvma(PgOff vma_off, usize nr_pages, VmaFlags &, 
+                                   VirtAddr ai_out &base, VirtAddr ai_out &size) const -> bool;
+
+        /// Check whether a given `|mmflags|` is valid. If valid return a set of permission in VmaFlags,
+        /// otherwise a `VmaFlags::None`
+        auto check_mmuflags(MmuFlags mmflags) const -> VmaFlags;
 
     private:
         friend class VmObject;
         friend class VmAspace;
-        friend class VmAreaHandler;
         friend class VmRootArea;
+        friend class VmMappingHandler;
 
-        GKTL_CANARY(VmArea, canary_);
-        char const *name_;
-        VirtAddr  base_;
-        usize     size_;
-        VmaFlags  flags_;
-        MmuFlags  rights_;
-        VmAreaHandler       *handler_;
-        ustl::Rc<VmAspace>   aspace_;
-        ustl::Rc<VmObject>   vmo_;
-        usize object_pgoff_;
-        ustl::collections::intrusive::SetMemberHook<>   set_hook_;
-        ustl::collections::intrusive::ListMemberHook<>  list_hook_;
-    public:
-        USTL_DECLARE_HOOK_OPTION(Self, set_hook_, ManagedSetOptions);
-        USTL_DECLARE_HOOK_OPTION(Self, list_hook_, ManagedListOptions);
+        VmAreaSet subvmas_;
     };
-    USTL_DECLARE_MULTISET(VmArea, VmaSet, VmArea::ManagedSetOptions);
-    USTL_DECLARE_LIST(VmArea, VmaList, VmArea::ManagedListOptions);
 
 } // namespace ours::mem
 

@@ -18,19 +18,16 @@
 #include <ustl/collections/intrusive/list.hpp>
 
 namespace ours::mem {
-    /// When a or group of frame was used in VMM, it shows the following layout.
-    struct VmPage: public PmFrameBase {
+    /// When a or a group of frame was used in VMM, it shows the following layout.
+    struct VmPage: public PageFrameBase {
         typedef VmPage  Self;
 
-        VmaList vmas; // For reverse mapping.
-        mutable ustl::sync::AtomicU16 num_mappings;
-        mutable ustl::sync::AtomicU16 num_users;
-        // Here are still a u32-sized space available.
-        ustl::collections::intrusive::ListMemberHook<> managed_hook;
-        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedOptions);
+        VmObject *vmo; // For reverse mapping.
+        ustl::sync::AtomicU32 vmo_index;    // Index in VMO's page list
+        ustl::sync::AtomicU16 num_mappings;
+        ustl::sync::AtomicU16 num_users;
     };
     static_assert(sizeof(VmPage) <= kFrameDescSize, "");
-    USTL_DECLARE_LIST(VmPage, VmPageList, VmPage::ManagedOptions);
 
     template <>
     struct RoleViewDispatcher<PfRole::Vmm> {

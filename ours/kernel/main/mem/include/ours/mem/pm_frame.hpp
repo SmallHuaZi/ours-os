@@ -27,14 +27,14 @@ namespace ours::mem {
     static auto const kFrameDescSize = sizeof(usize) << 3;
 
     /// Limit of usage is double word.
-    struct PmFrameBase {
-        typedef PmFrameBase     Self;
+    struct PageFrameBase {
+        typedef PageFrameBase     Self;
 
-        PmFrameBase() = default;
+        PageFrameBase() = default;
 
         /// A frame can not be moved and copied in any way.
-        PmFrameBase(Self &&) = delete;
-        PmFrameBase(Self const &) = delete;
+        PageFrameBase(Self &&) = delete;
+        PageFrameBase(Self const &) = delete;
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto init(ZoneType ztype, SecNum secnum, NodeId nid) -> void {
@@ -125,12 +125,12 @@ namespace ours::mem {
     };
 
     FORCE_INLINE
-    auto operator==(PmFrameBase const &x, PmFrameBase const &y) -> bool {
+    auto operator==(PageFrameBase const &x, PageFrameBase const &y) -> bool {
         return &x == &y;
     }
 
     FORCE_INLINE
-    auto operator!=(PmFrameBase const &x, PmFrameBase const &y) -> bool {
+    auto operator!=(PageFrameBase const &x, PageFrameBase const &y) -> bool {
         return &x != &y;
     }
 
@@ -140,9 +140,9 @@ namespace ours::mem {
     /// Set the role for frame and return the expected role view. 
     template <PfRole Role>
     FORCE_INLINE
-    auto role_cast(PmFrameBase &frame) -> RoleViewDispatcher<Role>::Type * {
+    auto role_cast(PageFrameBase &frame) -> RoleViewDispatcher<Role>::Type * {
         typedef typename RoleViewDispatcher<Role>::Type View;
-        static_assert(ustl::traits::IsBaseOfV<PmFrameBase, View>);
+        static_assert(ustl::traits::IsBaseOfV<PageFrameBase, View>);
         static_assert(kFrameDescSize >= sizeof(View));
 
         frame.set_role(Role);
@@ -151,14 +151,14 @@ namespace ours::mem {
 
     template <PfRole Role>
     FORCE_INLINE
-    auto role_cast(PmFrameBase *frame) -> RoleViewDispatcher<Role>::Type * {
+    auto role_cast(PageFrameBase *frame) -> RoleViewDispatcher<Role>::Type * {
         return role_cast<Role>(*frame);
     }
 
     /// This is a standard layout frame mainly used by PMM.
-    struct alignas(64) PmFrame: public PmFrameBase {
+    struct alignas(64) PmFrame: public PageFrameBase {
         typedef PmFrame     Self;
-        typedef PmFrameBase Base;
+        typedef PageFrameBase Base;
         using Base::Base;
 
         /// Used by PMM
@@ -174,7 +174,7 @@ namespace ours::mem {
     };
 
     struct PmFolio: public PmFrame {
-        PmFrameBase second_metadata;
+        PageFrameBase second_metadata;
     };
 
     template <PfRole Role>
@@ -184,7 +184,7 @@ namespace ours::mem {
     }
 
     FORCE_INLINE
-    auto frame_to_folio(PmFrameBase *frame) -> PmFolio * {
+    auto frame_to_folio(PageFrameBase *frame) -> PmFolio * {
         return static_cast<PmFolio *>(
             &static_cast<PmFrame *>(frame)[-static_cast<PmFrame *>(frame)->index_compouned_]
         );

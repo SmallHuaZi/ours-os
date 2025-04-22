@@ -19,10 +19,15 @@
 #include <ustl/views/span.hpp>
 #include <ustl/util/type-map.hpp>
 #include <ustl/util/type-list.hpp>
+
 #include <arch/paging/mmu_flags.hpp>
+#include <arch/paging/controls.hpp>
 
 namespace ours::mem {
     using arch::paging::MmuFlags;
+    using arch::paging::MapControl;
+    using arch::paging::UnMapControl;
+    using arch::paging::HarvestControl;
 
     enum class ZoneType {
         Dma OURS_IF_NOT_CFG(ZONE_DMA, = -1),
@@ -56,6 +61,7 @@ namespace ours::mem {
     /// A address has been seen like the following layout:
     ///     | Top section index | ... | leaf section index | Control flags |
     typedef usize   Pfn;
+    typedef usize   Vpn;
     typedef usize   SecNum;
 
     FORCE_INLINE CXX11_CONSTEXPR 
@@ -69,7 +75,6 @@ namespace ours::mem {
         static_assert(sizeof(T) == sizeof(PhysAddr));
         return Pfn(phys_addr >> PAGE_SHIFT);  
     }
-
 
     /// A pre-allocated storage reserve designed for scenarios requiring specialized physical page management. 
     /// It serves two core purposes:
@@ -112,7 +117,6 @@ namespace ours::mem {
     class ArchVmAspace;
     class VmAspace;
     class VmArea;
-    class VmRootArea;
     class VmPage;
     class VmObject;
     class VmObjectPaged;
