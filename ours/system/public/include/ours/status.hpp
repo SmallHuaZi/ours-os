@@ -23,11 +23,12 @@ namespace ours {
         Unreachable,
         Error,
         InternalError,
+        BadState,
         TimeOut,
         NotFound,
         ShouldWait,
+        MisAligned,
         MaxCount,
-        MisAlgined,
     };
 
     inline auto to_string(Status error) -> char const * {

@@ -52,10 +52,10 @@ namespace ours::mem {
         virtual auto release_pages(PhysAddr, usize) -> Status = 0;
 
         /// 
-        virtual auto commit_range(usize offset, usize len, CommitOptions commit) -> Status = 0;
+        virtual auto commit_range(PgOff pgoff, usize n, CommitOptions commit) -> Status = 0;
 
         ///
-        virtual auto decommit(usize offset, usize len) -> Status = 0;
+        virtual auto decommit(PgOff pgoff, usize n) -> Status = 0;
 
         ///
         virtual auto take_pages(gktl::Range<VirtAddr> range) -> Status = 0;

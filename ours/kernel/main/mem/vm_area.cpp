@@ -12,7 +12,10 @@ namespace ours::mem {
     CXX11_CONSTEXPR
     static VmaFlags const kVmaFlagsInitAllowed = VmaFlags::Mergeable | 
                                                  VmaFlags::Anonymous |
-                                                 VmaFlags::Normal;
+                                                 VmaFlags::MayExec |
+                                                 VmaFlags::MayRead |
+                                                 VmaFlags::MayWrite |
+                                                 VmaFlags::MayShare;
 
     VmArea::VmArea(ustl::Rc<VmAspace> aspace, 
                    VirtAddr base, 
@@ -74,7 +77,7 @@ namespace ours::mem {
     }
 
     FORCE_INLINE
-    auto VmArea::check_mmuflags(MmuFlags mmuf) const -> VmaFlags {
+    auto VmArea::validate_mmuflags(MmuFlags mmuf) const -> VmaFlags {
         VmaFlags vmaf{};
         if (!!(mmuf & MmuFlags::Readable)) {
             vmaf |= VmaFlags::MayRead | VmaFlags::Read;
@@ -113,15 +116,12 @@ namespace ours::mem {
                                 PgOff vmo_off, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
                                 char const *name) 
         -> ustl::Result<ustl::Rc<VmMapping>, Status> {
-        if (!!(mmuf & MmuFlags::Readable)) {
-            vmaf |= VmaFlags::MayRead | VmaFlags::Read;
+        auto const perms = validate_mmuflags(mmuf);
+        if (perms == VmaFlags::None) {
+            return ustl::err(Status::InvalidArguments);
         }
-        if (!!(mmuf & MmuFlags::Writable)) {
-            vmaf |= VmaFlags::MayWrite | VmaFlags::Write;
-        }
-        if (!!(mmuf & MmuFlags::Executable)) {
-            vmaf |= VmaFlags::MayExec | VmaFlags::Exec;
-        }
+        vmaf |= perms;
+
         VirtAddr base, size;
         if (!prepare_create_subvma(vma_off, nr_pages, vmaf, base, size)) {
             return ustl::err(Status::InvalidArguments);

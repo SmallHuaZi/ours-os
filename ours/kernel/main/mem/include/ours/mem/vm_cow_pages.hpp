@@ -31,6 +31,7 @@ namespace ours::mem {
         }
 
     private:
+        /// When no page sources exists, it will be used in frame allocation request.
         Gaf gaf_;
         usize num_pages_;
     };

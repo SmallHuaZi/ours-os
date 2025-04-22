@@ -76,7 +76,7 @@ namespace ours::mem {
 
         /// Check whether a given `|mmflags|` is valid. If valid return a set of permission in VmaFlags,
         /// otherwise a `VmaFlags::None`
-        auto check_mmuflags(MmuFlags mmflags) const -> VmaFlags;
+        auto validate_mmuflags(MmuFlags mmflags) const -> VmaFlags;
 
     private:
         friend class VmObject;

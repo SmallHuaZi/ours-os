@@ -34,7 +34,7 @@ namespace ours::mem {
         virtual auto commit_range(PgOff offset, usize n, CommitOptions option) -> Status override;
 
         ///
-        virtual auto decommit(usize offset, usize len) -> Status override;
+        virtual auto decommit(PgOff pgoff, usize n) -> Status override;
 
         ///
         virtual auto take_pages(gktl::Range<VirtAddr> range) -> Status override;

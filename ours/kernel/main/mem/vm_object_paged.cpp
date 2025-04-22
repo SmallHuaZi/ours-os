@@ -37,13 +37,10 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmObjectPaged::commit_range(usize offset, usize len, CommitOptions option) -> Status {
+    auto VmObjectPaged::commit_range(PgOff pgoff, usize n, CommitOptions option) -> Status {
         canary_.verify();
-        log::trace("VMO Commit Action: [pgoff: {:X}, n: {:X}]", offset, len);
-
-        PgOff const pgoff = align_down(offset, PAGE_SIZE) / PAGE_SIZE;
-        usize const nr_pages = align_up(offset + len, PAGE_SIZE) / PAGE_SIZE - pgoff;
-        return commit_range_internal(pgoff, nr_pages, option);
+        log::trace("VMO Commit Action: [pgoff: {:X}, n: {:X}]", pgoff, n);
+        return commit_range_internal(pgoff, n, option);
     }
 
 } // namespace ours::mem

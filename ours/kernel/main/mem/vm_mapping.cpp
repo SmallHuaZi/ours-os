@@ -1,4 +1,5 @@
 #include <ours/mem/vm_mapping.hpp>
+#include <ours/mem/vm_object.hpp>
 #include <ours/mem/object-cache.hpp>
 
 namespace ours::mem {
@@ -30,8 +31,21 @@ namespace ours::mem {
         return ustl::ok(ustl::make_rc<Self>(mapping));
     }
 
-    auto VmMapping::map_range(PgOff pgoff, usize size, bool commit, MapControl control) -> Status {
+    auto VmMapping::map_range(PgOff pgoff, usize nr_pages, bool commit, MapControl control) -> Status {
+        if (!nr_pages) {
+            return Status::InvalidArguments;
+        }
 
+        if (!is_active()) {
+            return Status::BadState;
+        }
+
+        // According to pgoff take pages from VmObject.
+        while (nr_pages-- > 0) {
+            vmo_->commit_range(pgoff, nr_pages, VmObject::CommitOptions::Write);
+        }
+
+        return Status::Ok;
     }
 
 

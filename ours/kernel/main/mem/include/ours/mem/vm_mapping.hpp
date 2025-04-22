@@ -43,9 +43,9 @@ namespace ours::mem {
         static auto create(VirtAddr, usize, VmArea *, VmaFlags, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *name) 
             -> ustl::Result<ustl::Rc<Self>, Status>;
         
-        auto map_range(PgOff pgoff, usize size, bool commit, MapControl control) -> Status;
+        auto map_range(PgOff pgoff, usize nr_pages, bool commit, MapControl control) -> Status;
 
-        auto unmap_range(PgOff pgoff, usize size, UnMapControl control) -> Status;
+        auto unmap_range(PgOff pgoff, usize nr_pages, UnMapControl control) -> Status;
 
         FORCE_INLINE
         auto fault(VmFault *vmf) -> void {
@@ -57,6 +57,8 @@ namespace ours::mem {
     private:
         friend class VmArea;
         friend class VmObject;
+
+        virtual auto activate() -> void override;
 
         GKTL_CANARY(VmMapping, canary_);
         MmuFlags mmuf_;

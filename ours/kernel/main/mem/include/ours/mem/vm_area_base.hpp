@@ -39,16 +39,12 @@ namespace ours::mem {
         MayShare = BIT(8),
         PermMask = MayWrite | MayRead | MayExec,
 
+        // States 
+        Active   = 0x10000,
+
         // Features.
         Anonymous = 0x40000,
         Mergeable = 0x80000,
-
-        // Categories
-        Inactive = 0,
-        Active   = 1,
-
-        Normal   = 0x10000,
-        Mapped   = 0x20000,
     };
     USTL_ENABLE_ENUM_BITMASK(VmaFlags);
 
@@ -59,6 +55,11 @@ namespace ours::mem {
         FORCE_INLINE
         auto contains(VirtAddr va) const -> bool {
             return base_ <= va && va < base_ + size_;
+        }
+
+        FORCE_INLINE
+        auto is_active() const -> bool {
+            return !!(vmaf_ & VmaFlags::Active);
         }
 
         FORCE_INLINE
@@ -87,13 +88,13 @@ namespace ours::mem {
         auto end_vpn() const -> VirtAddr {
             return (base_ + size_) >> PAGE_SHIFT;
         }
-
-        virtual auto activate() -> void = 0;
-        
     protected:
         VmAreaBase(VirtAddr base, usize size, VmaFlags vmaf, char const *name)
             : base_(base), size_(size), vmaf_(vmaf), name_(name)
         {}
+
+        /// Activate this VMA or Mapping, and modifies state of the to VmaFlags::Active.
+        virtual auto activate() -> void = 0;
 
         GKTL_CANARY(VmAreaBase, canary_);
         char const *name_;
