@@ -13,13 +13,14 @@ namespace ours::mem {
     template <usize MaxNumPages>
     class MappingCoalescer {
     public:
-        MappingCoalescer(VmMapping *mapping, VirtAddr va, MmuFlags mmuf)
+        MappingCoalescer(VmMapping *mapping, PgOff pgoff, MmuFlags mmuf, MapControl ctrl)
             : mapping_(mapping),
-              va_(va),
-              mmuf_(mmuf)
+              va_(mapping->base() + (pgoff << PAGE_SHIFT)),
+              mmuf_(mmuf),
+              map_ctrl_(ctrl)
         {}
 
-        auto append(PhysAddr pa) -> Status;
+        auto append(VmPage *page) -> Status;
         auto commit() -> Status;
 
     private:
@@ -33,8 +34,8 @@ namespace ours::mem {
 
     template <usize MaxNumPages>
     FORCE_INLINE
-    auto MappingCoalescer<MaxNumPages>::append(PhysAddr pa) -> Status {
-        pa_[nr_pages_++] = pa;
+    auto MappingCoalescer<MaxNumPages>::append(VmPage *page) -> Status {
+        pa_[nr_pages_++] = frame_to_phys(page);
         if (nr_pages_ == MaxNumPages) {
             return commit();
         }
@@ -48,20 +49,18 @@ namespace ours::mem {
             return Status::Ok;
         }
 
-        auto status = mapping_->aspace()
+        auto result = mapping_->aspace()
                               ->arch_aspace()
                               .map_bulk(va_, pa_, nr_pages_, mmuf_, MapControl::TryLargePage);
-        if (Status::Ok != status) {
+        if (!result) {
             log::error("Failed to map {} pages at {}", nr_pages_, va_);
-            return status;
+            return result.unwrap_err();
         }
 
         va_ += nr_pages_ * PAGE_SIZE;
         nr_pages_ = 0;
+        return Status::Ok;
     }
-
-    static VmMappingHandler s_normal_vma_handler;
-    static VmMappingHandler s_mapping_vma_handler;
 
     static ustl::Rc<ObjectCache> s_vm_mapping_cache;
 
@@ -91,22 +90,40 @@ namespace ours::mem {
     auto VmMapping::activate() -> void {}
 
     FORCE_INLINE
-    auto VmMapping::map_range_paged(usize offset, usize size, bool commit, MapControl control, VmObjectPaged *vmo) -> Status {
+    auto VmMapping::map_paged(PgOff pgoff, usize nr_pages, bool commit, MapControl control, VmObjectPaged *vmo) -> Status {
         CXX11_CONSTEXPR
         static auto const kMaxBatchPages = 32;
-        MappingCoalescer<kMaxBatchPages> coalescer(this, base() + offset, mmuf_);
+        MappingCoalescer<kMaxBatchPages> coalescer(this, pgoff, mmuf_, control);
+
+        auto cursor = vmo->make_cursor(pgoff, nr_pages);
+        if (!cursor) {
+            return cursor.unwrap_err();
+        }
 
         PageRequest page_request;
+        for (auto i = 0; i < nr_pages; ++i) {
+            auto result = cursor->require_owned_page(1, &page_request);
+            if (!result) {
+                return result.unwrap_err();
+            }
+
+            coalescer.append(*result);
+        }
+        // Commit those uncovered units in loop above.
+        coalescer.commit();
+
+        return Status::Ok;
     }
 
     /// Do check arguments and dispatch the request to correct sub-routine for different VmObjects.
-    auto VmMapping::map_range(usize offset, usize size, bool commit, MapControl control) -> Status {
-        if (!size) {
+    auto VmMapping::map(PgOff pgoff, usize nr_pages, bool commit, MapControl control) -> Status {
+        canary_.verify();
+
+        if (!nr_pages) {
             return Status::InvalidArguments;
         }
 
-        size = ustl::mem::align_up(size, PAGE_SIZE);
-        if (!contains(base_ + offset, size)) {
+        if (!is_valid_vpn_range(pgoff, nr_pages)) {
             return Status::InvalidArguments;
         }
 
@@ -115,14 +132,16 @@ namespace ours::mem {
         }
 
         if (auto vmo = downcast<VmObjectPaged>(vmo_.as_ptr_mut())) {
-            return map_range_paged(offset, size, commit, control, vmo);
+            return map_paged(pgoff, nr_pages, commit, control, vmo);
+        } else {
+            DEBUG_ASSERT(false, "Unreachable");
         }
 
         return Status::Ok;
     }
 
 
-    auto VmMapping::unmap_range(PgOff pgoff, usize size, UnMapControl control) -> Status {
+    auto VmMapping::unmap(PgOff pgoff, usize size, UnMapControl control) -> Status {
 
     }
 

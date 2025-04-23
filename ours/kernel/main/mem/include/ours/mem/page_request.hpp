@@ -12,12 +12,22 @@
 #define OURS_MEM_PAGE_REQUEST_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/status.hpp>
+
+#include <ustl/rc.hpp>
+#include <gktl/xarray.hpp>
 
 namespace ours::mem {
     class PageRequest {
     public:
+        auto wait() -> Status;
+
     private:
         PgOff vmo_off;
+        usize num_pages;
+    };
+
+    class PageSource: public ustl::RefCounter<PageSource> {
     };
 
 } // namespace ours::mem

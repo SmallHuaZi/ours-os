@@ -25,17 +25,10 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
-    /// Specific handler for various regions, to avoid the use of virtual function, 
-    /// which would lead many meaningless derived classes.
-    struct VmMappingHandler {
-        mutable ustl::function::Fn<auto () -> void>  open;
-        mutable ustl::function::Fn<auto () -> void>  close;
-
-        //! @page_fault_: Addresses a page fault happened in `VmRootArea' which is holding this.
-        typedef ustl::function::Fn<auto (VmFault *) -> void>   PageFaultFn;
-        mutable PageFaultFn  fault;
-    };
-
+    /// VmMapping is the representation of a or a group of area which has been mapped in 
+    /// virtual memory address space.
+    /// 
+    /// It was usually created by VmArea out of some mapping request.
     class VmMapping: public VmAreaBase {
         typedef VmMapping   Self;
         typedef VmAreaBase  Base;
@@ -43,15 +36,14 @@ namespace ours::mem {
         static auto create(VirtAddr, usize, VmArea *, VmaFlags, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *name) 
             -> ustl::Result<ustl::Rc<Self>, Status>;
         
-        auto map_range(usize offset, usize size, bool commit, MapControl control) -> Status;
+        auto map(PgOff, usize nr_pages, bool commit, MapControl control) -> Status;
 
-        auto unmap_range(usize offset, usize size, UnMapControl control) -> Status;
+        auto protect(PgOff, usize nr_pages, usize size, MmuFlags mmuf) -> Status;
+
+        auto unmap(PgOff, usize nr_pages, UnMapControl control) -> Status;
 
         FORCE_INLINE
-        auto fault(VmFault *vmf) -> void {
-            DEBUG_ASSERT(handler_ && handler_->fault);
-            handler_->fault(vmf);
-        }
+        auto fault(VmFault *vmf) -> void;
 
         FORCE_INLINE
         auto aspace() -> ustl::Rc<VmAspace> {
@@ -64,13 +56,11 @@ namespace ours::mem {
         friend class VmArea;
         friend class VmObject;
         
-        auto map_range_paged(usize offset, usize size, bool commit, MapControl control, VmObjectPaged *vmo) -> Status;
+        auto map_paged(PgOff pgoff, usize nr_pages, bool commit, MapControl control, VmObjectPaged *vmo) -> Status;
 
         virtual auto activate() -> void override;
 
-        GKTL_CANARY(VmMapping, canary_);
         MmuFlags mmuf_;
-        VmMappingHandler *handler_;
         ustl::Rc<VmArea> vma_;
         ustl::Rc<VmObject> vmo_;
         PgOff vmo_pgoff_;

@@ -30,6 +30,16 @@ namespace ours::mem {
             return ustl::err(Status::OutOfMem);
         }
 
+        /// A non-lazy VMO need we directly request pages it demands.
+        if (!(vmof & VmoFLags::Lazy)) {
+            CommitOptions options{};
+            if (!!(vmof & VmoFLags::Pinned)) {
+                options |= CommitOptions::Pin;
+            }
+
+            vmo->commit_range(0, nr_pages, options);
+        }
+
         return ustl::ok(ustl::make_rc<Self>(vmo));
     }
 

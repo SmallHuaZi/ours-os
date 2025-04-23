@@ -44,7 +44,7 @@ namespace ours::mem {
             template <typename T>
             FORCE_INLINE
             static auto allocate() -> T * {
-                return kmalloc(sizeof(T), kGafKernel);
+                return static_cast<T *>(kmalloc(sizeof(T), kGafKernel));
             }
 
             template <typename T>

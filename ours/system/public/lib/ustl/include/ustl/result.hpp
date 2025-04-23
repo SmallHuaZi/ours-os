@@ -22,6 +22,7 @@
 #include <ustl/traits/ptr.hpp>
 #include <ustl/traits/invoke_result.hpp>
 #include <ustl/traits/enable_if.hpp>
+#include <ustl/traits/is_convertible.hpp>
 
 #include <ustl/function/invoke.hpp>
 #include <ustl/util/move.hpp>
@@ -52,8 +53,7 @@ namespace ustl {
     };
 
     template <typename T, typename E = void, typename Policy = void>
-    class Result
-    {
+    class Result {
         typedef Result     Self;
         typedef result::StorageTrivial<T, E>    Storage;
     public:
@@ -66,6 +66,14 @@ namespace ustl {
 
         USTL_FORCEINLINE USTL_CONSTEXPR
         Result(Ok<T> &&ok) USTL_NOEXCEPT
+            : storage_(Inplace<Element>(), ustl::forward<Element>(ok.value_))
+        {}
+
+        /// This case was used mainly for nullptr
+        template <typename U>
+            requires traits::IsConvertibleV<T, T>
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        Result(Ok<U> &&ok) USTL_NOEXCEPT
             : storage_(Inplace<Element>(), ustl::forward<Element>(ok.value_))
         {}
 

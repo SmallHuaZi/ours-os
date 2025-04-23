@@ -64,6 +64,11 @@ namespace ours::mem {
         }
 
         FORCE_INLINE
+        auto is_valid_vpn_range(PgOff pgoff, usize nr_pages) const -> bool {
+            return (size_ >> PAGE_SHIFT) > pgoff + nr_pages;
+        }
+
+        FORCE_INLINE
         auto is_active() const -> bool {
             return !!(vmaf_ & VmaFlags::Active);
         }
@@ -86,13 +91,18 @@ namespace ours::mem {
         }
 
         FORCE_INLINE
-        auto start_vpn() const -> VirtAddr {
+        auto num_pages() const -> usize {
+            return size_ >> PAGE_SHIFT;
+        }
+
+        FORCE_INLINE
+        auto start_vpn() const -> Vpn {
             return base_ >> PAGE_SHIFT;
         }
 
         FORCE_INLINE
-        auto end_vpn() const -> VirtAddr {
-            return ustl::mem::align_up(base_ + size_, PAGE_SIZE) >> PAGE_SHIFT;
+        auto end_vpn() const -> Vpn {
+            return (base_ + size_) >> PAGE_SHIFT;
         }
 
     protected:

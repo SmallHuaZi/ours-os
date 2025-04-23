@@ -33,7 +33,7 @@ namespace ours::mem {
         static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *) 
             -> ustl::Result<ustl::Rc<Self>, Status>;
 
-        auto activate() -> void;
+        virtual auto activate() -> void override;
 
         auto destroy() -> void;
 
@@ -45,28 +45,14 @@ namespace ours::mem {
         auto create_subvma(PgOff vma_off, usize nr_pages, VmaFlags, char const *name) 
             -> ustl::Result<ustl::Rc<VmArea>, Status>;
 
-        auto unmap(usize base, usize size) -> void;
+        auto unmap(PgOff vma_off, usize nr_pages) -> void;
 
-        auto protect(usize base, usize size, MmuFlags flags) -> void;
+        /// Update rights of the subset of the area. 
+        auto protect(PgOff vma_off, usize nr_pages, MmuFlags flags) -> void;
 
         auto contains(VirtAddr addr) const -> bool;
 
         auto address_range() const -> gktl::Range<VirtAddr>;
-
-        FORCE_INLINE
-        auto num_pages() const -> usize {
-            return size_ / PAGE_SIZE;
-        }
-
-        FORCE_INLINE
-        auto start_vpn() const -> Vpn {
-            return base_ / PAGE_SIZE;
-        }
-
-        FORCE_INLINE
-        auto end_vpn() const -> Vpn {
-            return (base_ + size_) / PAGE_SIZE;
-        }
 
         // On logic, it should be protected to avoid the incorrect use. But 
         VmArea(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *);

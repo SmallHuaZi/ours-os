@@ -30,7 +30,7 @@ namespace ours::mem {
         static auto create_contiguous(Gaf gaf, usize nr_pages, VmoFLags vmof)
             -> ustl::Result<ustl::Rc<VmObjectPaged>, Status>;
 
-        ///
+        /// 
         virtual auto commit_range(PgOff offset, usize n, CommitOptions option) -> Status override;
 
         ///
@@ -47,6 +47,8 @@ namespace ours::mem {
 
         ///
         virtual auto write(void *out, PgOff pgoff, usize size) -> Status override;
+
+        auto make_cursor(PgOff pgoff, usize n) -> ustl::Result<VmCowPages::Cursor, Status>;
 
         /// Priviate on logic, please go to use the facotry member like VmObjectPaged::create*.
         VmObjectPaged(VmoFLags vmof, ustl::Rc<VmCowPages>);

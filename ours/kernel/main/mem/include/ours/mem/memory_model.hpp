@@ -392,8 +392,8 @@ namespace ours::mem {
     }
 
     FORCE_INLINE
-    static auto frame_to_phys(PmFrame const *frame) -> PhysAddr {
-        return pfn_to_phys(frame_to_pfn(frame));
+    static auto frame_to_phys(PageFrameBase const *frame) -> PhysAddr {
+        return pfn_to_phys(frame_to_pfn(frame->to_pmm()));
     }
 
     template <typename T>

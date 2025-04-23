@@ -118,11 +118,17 @@ namespace ours::mem {
             return *this;
         }
 
-        auto dump() const -> void;
-
+        FORCE_INLINE CXX11_CONSTEXPR
         auto to_pmm() -> PmFrame * {
             return reinterpret_cast<PmFrame *>(this);
         }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto to_pmm() const -> PmFrame const * {
+            return reinterpret_cast<PmFrame const *>(this);
+        }
+
+        auto dump() const -> void;
 
         FrameFlags flags_;
         // The size of following fields type should be hanf of a word.

@@ -15,7 +15,7 @@ namespace ours::mem {
             to_string(zone()),
             secnum(),
             nid(),
-            frame_to_phys(static_cast<PmFrame const *>(this))
+            frame_to_phys(this)
         );
     }
 

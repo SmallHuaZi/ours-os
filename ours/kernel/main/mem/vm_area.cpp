@@ -136,6 +136,13 @@ namespace ours::mem {
         return ustl::ok(mapping);
     } 
 
+    auto VmArea::unmap(PgOff vma_off, usize nr_pages) -> void {
+    }
+
+
+    auto VmArea::protect(PgOff vma_off, usize nr_pages, MmuFlags flags) -> void {
+    }
+
     INIT_CODE
     static auto init_vma_cache() -> void {
         s_vma_cache = ObjectCache::create<VmArea>("vma-cache", OcFlags::Folio);

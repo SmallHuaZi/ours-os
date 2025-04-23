@@ -23,7 +23,20 @@ namespace ours::mem {
     }
 
     auto VmCowPages::commit_range_locked(PgOff pgoff, usize n, ai_out usize *nr_commited) -> Status {
+        if (!n) {
+            return Status::InvalidArguments;
+        }
+
+        if (pgoff + n > num_pages_) {
+            return Status::InvalidArguments;
+        }
+
         return Status::Ok;
+    }
+
+    auto VmCowPages::Cursor::require_owned_page(usize nr_pages, PageRequest *page_request)
+        -> ustl::Result<VmPage *, Status> {
+        return ustl::ok(nullptr);
     }
 
     INIT_CODE

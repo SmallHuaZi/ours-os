@@ -94,25 +94,19 @@ namespace ours::mem {
         auto kaspace = VmAspace::kernel_aspace();
         auto rvma = kaspace->root_vma();
 
-        auto const rvma_base = rvma->base();
         auto kvmo = VmObjectPaged::create(kGafKernel, get_kernel_size() / PAGE_SIZE, VmoFLags::Pinned);
         if (!kvmo) {
             panic("Failed to create VMO for kernel image.");
         }
 
-        PgOff pgoff = 0;
+        PgOff vmo_off = 0;
         for (auto i = 0; i < std::size(s_phys_vmos); ++i) {
             auto const &region = s_phys_vmos[i];
-            VirtAddr base = align_down(region.base, PAGE_SIZE);
-            VirtAddr nr_pages = (align_up(region.base + region.size, PAGE_SIZE) - base) / PAGE_SIZE;
+            PgOff vma_off = (region.base - KERNEL_ASPACE_BASE)>> PAGE_SHIFT;
+            usize nr_pages = align_up(region.size, PAGE_SIZE) >> PAGE_SHIFT;
 
-            auto may_mapping = rvma->create_mapping(base / PAGE_SIZE, nr_pages, region.flags, pgoff, region.rights, *kvmo, "k:vmo");
-            if (!may_mapping) {
-                panic("[{}]: Failed to create VmMapping object for region[name: {} | base: 0x{:X} | size: 0x{:X}]",
-                      to_string(may_mapping.unwrap_err()), region.name, region.base, region.size);
-            }
-
-            pgoff += base / PAGE_SIZE;
+            rvma->protect(vma_off, nr_pages, region.rights);
+            vmo_off += vma_off;
         }
 
         auto frame = alloc_frame(kGafKernel, usize(0));

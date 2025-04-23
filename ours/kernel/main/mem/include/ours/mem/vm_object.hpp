@@ -27,7 +27,7 @@ namespace ours::mem {
         /// Can not be swaped out.
         Pinned = BIT(0),
 
-        /// Never pre-allocate pages, only when the page access fault occurs.
+        /// Never pre-commit pages, only when the page access fault occurs.
         Lazy = BIT(1),
     };
     USTL_ENABLE_ENUM_BITMASK(VmoFLags);
@@ -41,6 +41,9 @@ namespace ours::mem {
         };
 
         enum class CommitOptions {
+            /// No any effect, just for semantics.
+            None,
+
             /// The pages mapped will not be swaped out.
             Pin = BIT(0),
 
@@ -49,23 +52,32 @@ namespace ours::mem {
         };
         USTL_ENABLE_INNER_ENUM_BITMASK(CommitOptions);
 
-        /// 
-        virtual auto commit_range(PgOff pgoff, usize n, CommitOptions commit) -> Status = 0;
+        /// Actively request pages for fulfilling range [pgoff, pgoff + n).
+        virtual auto commit_range(PgOff pgoff, usize n, CommitOptions commit = CommitOptions::None) -> Status = 0;
 
         ///
         virtual auto decommit(PgOff pgoff, usize n) -> Status = 0;
 
         /// Remove all pages in range [ `|pgoff|`, `|pgoff + n|`) to `|page_list|`.
-        virtual auto take_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status = 0;
+        virtual auto take_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status {
+            return Status::Unsupported;
+        } 
+
+        /// Supplies this VMO a group of page for range [pgoff, pgoff + n).
+        /// Typically it should be invoked by PageProvider.
+        virtual auto supply_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status {
+            return Status::Unsupported;
+        } 
 
         ///
-        virtual auto supply_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status = 0;
+        virtual auto read(void *out, PgOff pgoff, usize n) -> Status {
+            return Status::Unsupported;
+        }
 
         ///
-        virtual auto read(void *out, PgOff pgoff, usize n) -> Status = 0;
-
-        ///
-        virtual auto write(void *out, PgOff pgoff, usize n) -> Status = 0;
+        virtual auto write(void *out, PgOff pgoff, usize n) -> Status {
+            return Status::Unsupported;
+        }
 
         FORCE_INLINE
         auto commit_range_pinned(usize offset, usize len, bool write) -> Status {

@@ -12,6 +12,7 @@
 #ifndef OURS_MEM_VM_FAULT_HPP
 #define OURS_MEM_VM_FAULT_HPP 1
 
+#include <ours/types.hpp>
 #include <ours/macro_abi.hpp>
 #include <ustl/util/enum_bits.hpp>
 
@@ -24,8 +25,11 @@ namespace ours::mem {
     };
     USTL_ENABLE_ENUM_BITMASK(VmfCause);
 
-    struct VmFault 
-    {};
+    struct VmFault {
+        VirtAddr va;
+        VirtAddr num_pages;
+        VmfCause cause;
+    };
 
 } // namespace ours::mem
 
