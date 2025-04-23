@@ -304,6 +304,7 @@ namespace ours::mem {
             return activate_section(section, nid);
         }
 
+        /// Allocate framemap for the given section and mark it active.
         auto activate_section(PmSection *section, NodeId nid) -> ustl::Result<FrameMap, Status>;
 
         /// Initialize the page frames in the overlapping regions between [ `|start_pfn|`, `|end_pfn|`) and 

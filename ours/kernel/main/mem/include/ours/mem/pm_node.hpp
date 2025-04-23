@@ -14,7 +14,7 @@
 #include <ours/mem/gaf.hpp>
 #include <ours/mem/node-mask.hpp>
 #include <ours/mem/node-states.hpp>
-#include <ours/mem/frame_queue.hpp>
+#include <ours/mem/page_queues.hpp>
 
 #include <ours/assert.hpp>
 #include <ours/cpu.hpp>
@@ -29,6 +29,7 @@
 #include <ustl/function/bind.hpp>
 #include <ustl/function/invoke.hpp>
 #include <ustl/collections/vec.hpp>
+#include <ustl/collections/static-vec.hpp>
 #include <ustl/collections/intrusive/slist.hpp>
 #include <ustl/traits/is_same.hpp>
 #include <ustl/traits/is_invocable.hpp>
@@ -41,8 +42,8 @@
 #include <kmrd/damon.hpp>
 
 namespace ours::mem {
-    struct NodePath {
-        NodePath()
+    struct NodeRoute {
+        NodeRoute()
             : count_(),
               path_()
         {}
@@ -254,7 +255,7 @@ namespace ours::mem {
             s_node_distance[x][y] = dis;
         }
 
-        static auto make_optimal_node_path(NodeId from, NodePath &path, NodeMask const &filter) -> void;
+        static auto build_optimal_node_route(NodeId from, NodeRoute &path, NodeMask const &filter) -> void;
     private:
         friend class ZoneQueues;
 
@@ -280,8 +281,7 @@ namespace ours::mem {
         ustl::sync::AtomicUsize reserved_frames_;
 
         ZoneQueues zone_queues_;
-
-        FrameQueue lru_queue_;
+        PageQueues page_queues_;
 
         using NodeList = ustl::Array<PmNode *, MAX_NODE>;
         static inline NodeList s_node_list;

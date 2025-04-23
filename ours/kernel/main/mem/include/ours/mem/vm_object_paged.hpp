@@ -17,18 +17,18 @@
 #include <ours/mutex.hpp>
 
 #include <logz4/log.hpp>
+#include <ustl/result.hpp>
 
 namespace ours::mem {
     class VmObjectPaged: public VmObject {
+        typedef VmObject        Base;
+        typedef VmObjectPaged   Self;
     public:
-        static auto create() -> ustl::Rc<VmObjectPaged>;
-        static auto create_contiguous() -> ustl::Rc<VmObjectPaged>;
+        static auto create(Gaf gaf, usize nr_pages, VmoFLags vmof)
+            -> ustl::Result<ustl::Rc<VmObjectPaged>, Status>;
 
-        /// 
-        virtual auto acquire_pages(usize n) -> PhysAddr override;
-
-        ///
-        virtual auto release_pages(PhysAddr, usize) -> Status override;
+        static auto create_contiguous(Gaf gaf, usize nr_pages, VmoFLags vmof)
+            -> ustl::Result<ustl::Rc<VmObjectPaged>, Status>;
 
         ///
         virtual auto commit_range(PgOff offset, usize n, CommitOptions option) -> Status override;
@@ -37,14 +37,24 @@ namespace ours::mem {
         virtual auto decommit(PgOff pgoff, usize n) -> Status override;
 
         ///
-        virtual auto take_pages(gktl::Range<VirtAddr> range) -> Status override;
+        virtual auto take_pages(PgOff pgoff, usize n, VmPageList *pagelist) -> Status override;
 
         ///
-        virtual auto supply_pages(gktl::Range<VirtAddr> range) -> Status override;
+        virtual auto supply_pages(PgOff pgoff, usize n, VmPageList *pagelist) -> Status override;
+
+        ///
+        virtual auto read(void *out, PgOff pgoff, usize size) -> Status override;
+
+        ///
+        virtual auto write(void *out, PgOff pgoff, usize size) -> Status override;
+
+        /// Priviate on logic, please go to use the facotry member like VmObjectPaged::create*.
+        VmObjectPaged(VmoFLags vmof, ustl::Rc<VmCowPages>);
+        virtual ~VmObjectPaged() = default;
     private:
         auto commit_range_internal(PgOff offset, usize n, CommitOptions option) -> Status;
 
-        VmCowPages cow_pages_;
+        ustl::Rc<VmCowPages> cow_pages_;
         Mutex mutex_;
     };
 

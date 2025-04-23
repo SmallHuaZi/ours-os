@@ -26,8 +26,15 @@ namespace ours::mem {
     CXX11_CONSTEXPR
     static auto const kFrameDescSize = sizeof(usize) << 3;
 
-    /// Limit of usage is double word.
-    struct PageFrameBase {
+    CXX11_CONSTEXPR
+    static auto const kFrameDescAlign = sizeof(usize) << 3;
+
+    /// Limit of usage is four of words.
+    struct PageFrameBase
+        : public ustl::collections::intrusive::ListBaseHook<
+                 ustl::collections::intrusive::LinkMode<
+                 ustl::collections::intrusive::LinkModeType::AutoUnlink>>
+    {
         typedef PageFrameBase     Self;
 
         PageFrameBase() = default;
@@ -156,17 +163,16 @@ namespace ours::mem {
     }
 
     /// This is a standard layout frame mainly used by PMM.
-    struct alignas(64) PmFrame: public PageFrameBase {
-        typedef PmFrame     Self;
-        typedef PageFrameBase Base;
+    struct alignas(kFrameDescAlign) PmFrame: public PageFrameBase {
+        typedef PmFrame         Self;
+        typedef PageFrameBase   Base;
         using Base::Base;
 
-        /// Used by PMM
         ustl::collections::intrusive::ListMemberHook<> managed_hook;
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedListOptions);
     };
-    USTL_DECLARE_LIST_TEMPLATE(PmFrame, FrameList, PmFrame::ManagedListOptions);
     static_assert(sizeof(PmFrame) == kFrameDescSize, "");
+    USTL_DECLARE_LIST_TEMPLATE(PmFrame, FrameList, PmFrame::ManagedListOptions);
 
     template <>
     struct RoleViewDispatcher<PfRole::Pmm> {

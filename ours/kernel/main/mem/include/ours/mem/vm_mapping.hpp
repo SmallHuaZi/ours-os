@@ -43,9 +43,9 @@ namespace ours::mem {
         static auto create(VirtAddr, usize, VmArea *, VmaFlags, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *name) 
             -> ustl::Result<ustl::Rc<Self>, Status>;
         
-        auto map_range(PgOff pgoff, usize nr_pages, bool commit, MapControl control) -> Status;
+        auto map_range(usize offset, usize size, bool commit, MapControl control) -> Status;
 
-        auto unmap_range(PgOff pgoff, usize nr_pages, UnMapControl control) -> Status;
+        auto unmap_range(usize offset, usize size, UnMapControl control) -> Status;
 
         FORCE_INLINE
         auto fault(VmFault *vmf) -> void {
@@ -53,10 +53,18 @@ namespace ours::mem {
             handler_->fault(vmf);
         }
 
+        FORCE_INLINE
+        auto aspace() -> ustl::Rc<VmAspace> {
+            return aspace_;
+        }
+
         VmMapping(VirtAddr base, usize, VmArea *, VmaFlags, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *name);
+        virtual ~VmMapping() = default;
     private:
         friend class VmArea;
         friend class VmObject;
+        
+        auto map_range_paged(usize offset, usize size, bool commit, MapControl control, VmObjectPaged *vmo) -> Status;
 
         virtual auto activate() -> void override;
 

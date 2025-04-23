@@ -51,10 +51,10 @@ namespace ours::mem {
     }
 
     auto ZoneQueues::connect(NodeMask const &nodemask) -> void {
-        NodePath node_path;
+        NodeRoute node_path;
         node_path.clear();
 
-        PmNode::make_optimal_node_path(nid_, node_path, connected_);
+        PmNode::build_optimal_node_route(nid_, node_path, connected_);
 
         for (auto next : node_path) {
             auto zq = PmNode::node(next)->zone_queues();
@@ -167,7 +167,7 @@ namespace ours::mem {
 
     PmNode::PmNode(NodeId nid)
         : id_(nid),
-          lru_queue_(),
+          page_queues_(),
           zone_queues_(nid)
     {
         DEBUG_ASSERT(!s_node_list[nid]);
@@ -190,7 +190,7 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto PmNode::make_optimal_node_path(NodeId from, NodePath &path, NodeMask const &filter) -> void {
+    auto PmNode::build_optimal_node_route(NodeId from, NodeRoute &path, NodeMask const &filter) -> void {
         NodeMask visited;
         visited.set(from, true);
 

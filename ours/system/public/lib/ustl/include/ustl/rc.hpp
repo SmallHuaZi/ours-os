@@ -8,30 +8,24 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_RC_HPP
 #define USTL_RC_HPP 1
 
 #include <ustl/ref_counter.hpp>
 #include <ustl/mem/address_of.hpp>
 #include <ustl/traits/is_base_of.hpp>
+#include <ustl/traits/is_same.hpp>
 
 #include <ustl/mem/allocator_traits.hpp>
 
 namespace ustl {
-    template <typename, typename, typename, typename>
+    template <typename, typename A = Monostate, typename S = usize>
     class Rc;
 
-    template <typename, typename, typename, typename>
+    template <typename, typename A = Monostate, typename S = usize>
     class Weak;
 
-    template <typename T>
-    struct RcEvictr;
-
-    template <typename T,
-              typename Disposer = NullDisposer,
-              typename Allocator = mem::Allocator<T>,
-              typename Size = usize>
+    template <typename T, typename A, typename S>
     class Rc {
         typedef Rc      Self;
     public:
@@ -41,9 +35,11 @@ namespace ustl {
         typedef T &         RefMut;
         typedef T           Element;
 
-        typedef RefCounter<T, Disposer, Allocator, Size>    Counter;
-        typedef Weak<T, Disposer, Allocator,  Size>         ThisWeak;
-        typedef mem::AllocatorTraits<Allocator>             AllocatorTraits;
+        typedef RefCounter<T, A, S>    Counter;
+        typedef Weak<T,  A, S>         ThisWeak;
+
+        template <typename, typename, typename>
+        friend class Rc;
 
         USTL_FORCEINLINE
         Rc() USTL_NOEXCEPT
@@ -57,12 +53,23 @@ namespace ustl {
               counter_(nullptr)
         {}
 
-        template <typename Ptr>
+        // Downcast is allowed but need to be give out explicitly.
+        template <typename U>
+            requires traits::IsBaseOfV<U, T>
         USTL_FORCEINLINE
-        Rc(Ptr ptr) USTL_NOEXCEPT
-            : pointer_(ptr),
-              counter_()
-        {
+        explicit Rc(U *ptr) USTL_NOEXCEPT
+            : pointer_(static_cast<T *>(ptr)),
+              counter_() {
+            counter_->enable_strong();
+        }
+
+        // Upcast is correct and there should not be any problem.
+        template <typename U>
+            requires traits::IsBaseOfV<T, U>
+        USTL_FORCEINLINE
+        Rc(U *ptr) USTL_NOEXCEPT
+            : pointer_(static_cast<T *>(ptr)),
+              counter_() {
             counter_->enable_strong();
         }
 
@@ -72,18 +79,22 @@ namespace ustl {
               counter_(counter)
         {}
 
+        template <typename U>
+            requires traits::IsBaseOfV<T, U>
         USTL_FORCEINLINE
-        Rc(Self const &other) USTL_NOEXCEPT
+        Rc(Rc<U, A, S> const &other) USTL_NOEXCEPT
             : pointer_(other.pointer_),
-              counter_(other.counter_)
+              counter_(reinterpret_cast<Counter *>(other.counter_))
         {
             if (counter_) {
                 counter_->inc_strong_ref();
             }
         }
 
+        template <typename U>
+            requires traits::IsBaseOfV<T, U>
         USTL_FORCEINLINE
-        Rc(Self &&other) USTL_NOEXCEPT
+        Rc(Rc<U, A, S> &&other) USTL_NOEXCEPT
             : pointer_(other.pointer_),
               counter_(other.counter_)
         {
@@ -93,7 +104,7 @@ namespace ustl {
 
         template <typename U>
         USTL_FORCEINLINE
-        Rc(Weak<U, Allocator, Disposer, Size> const &weak) USTL_NOEXCEPT
+        Rc(Weak<U, A, S> const &weak) USTL_NOEXCEPT
             : pointer_(weak.pointer_),
               counter_(weak.counter_)
         {
@@ -104,7 +115,7 @@ namespace ustl {
 
         template <typename U>
         USTL_FORCEINLINE
-        Rc(Weak<U, Allocator, Disposer, Size> &&weak) USTL_NOEXCEPT
+        Rc(Weak<U, A, S> &&weak) USTL_NOEXCEPT
             : pointer_(weak.pointer_),
               counter_(weak.counter_)
         {
@@ -129,14 +140,34 @@ namespace ustl {
             if (counter_) {
                 counter_->inc_strong_ref();
             }
+
+            return *this;
         }
 
+        /// Upcast
+        template <typename U>
+            requires traits::IsBaseOfV<T, U>
         USTL_FORCEINLINE
-        auto operator=(Self &&other) USTL_NOEXCEPT -> Self & {
+        auto operator=(Rc<U, A, S> const &other) USTL_NOEXCEPT -> Self & {
+            destory();
+            pointer_ = other.pointer_;
+            counter_ = other.counter_;
+            if (counter_) {
+                counter_->inc_strong_ref();
+            }
+            return *this;
+        }
+
+        /// Upcast
+        template <typename U>
+            requires traits::IsBaseOfV<T, U>
+        USTL_FORCEINLINE
+        auto operator=(Rc<U, A, S> &&other) USTL_NOEXCEPT -> Self & {
             destory();
             pointer_ = other.pointer_;
             counter_ = other.counter_;
             other.destory();
+            return *this;
         }
 
         template <typename Ptr>
@@ -193,14 +224,14 @@ namespace ustl {
 
         USTL_FORCEINLINE USTL_CONSTEXPR
         operator bool() USTL_NOEXCEPT 
-        {  return pointer_ == nullptr;  }
+        {  return pointer_ != nullptr;  }
 
         USTL_FORCEINLINE USTL_CONSTEXPR
         auto destory() -> void {
             if (counter_) {
                 if (counter_->strong_count() == 1) {
                     ThisWeak weak(pointer_, counter_);
-                    counter_->disposer()(pointer_);
+                    // counter_->disposer()(pointer_);
                 } else {
                     counter_->dec_strong_ref();
                 }
@@ -209,19 +240,15 @@ namespace ustl {
                 pointer_ = 0;
             }
         }
-
     private:
-        template <typename, typename, typename, typename>
+        template <typename, typename, typename>
         friend class Weak;
 
         PtrMut   pointer_;
         Counter *counter_;
     };
 
-    template <typename T,
-              typename Disposer  = NullDisposer,
-              typename Allocator = mem::Allocator<T>,
-              typename Size = usize>
+    template <typename T, typename A, typename S>
     class Weak {
         typedef Weak    Self;
     public:
@@ -231,9 +258,8 @@ namespace ustl {
         typedef T &         RefMut;
         typedef T           Element;
 
-        typedef Rc<T, Disposer, Allocator , Size>           ThisRc;
-        typedef RefCounter<T, Disposer, Allocator, Size>    Counter;
-        typedef mem::AllocatorTraits<Allocator>             AllocatorTraits;
+        typedef Rc<T, A, S>            ThisRc;
+        typedef RefCounter<T, A, S>    Counter;
 
         USTL_FORCEINLINE USTL_CONSTEXPR
         Weak(Self const &other) USTL_NOEXCEPT
@@ -259,7 +285,7 @@ namespace ustl {
         {
             if (counter_) {
                 if (counter_->weak_count() == 1) {
-                    AllocatorTraits::deallocate(counter_->allocator(), pointer_);
+                    // AllocatorTraits::deallocate(counter_->allocator(), pointer_);
                 } else {
                     counter_->dec_weak_ref();
                 }
@@ -310,8 +336,7 @@ namespace ustl {
         // It's all non-moveable and non-copyable constructors 
         // must be put under here. Because the first instance of 
         // Weak<T> is absolutely created via Rc<T>::degrade().
-
-        template <typename, typename, typename, typename>
+        template <typename, typename, typename>
         friend class Rc;
 
         USTL_FORCEINLINE
@@ -325,7 +350,7 @@ namespace ustl {
         }
 
         USTL_FORCEINLINE
-        Weak(Rc<T, Allocator, Disposer, Size> &rc) USTL_NOEXCEPT
+        Weak(Rc<T, S> &rc) USTL_NOEXCEPT
             : pointer_(rc.pointer_),
               counter_(rc.counter_)
         {
@@ -339,15 +364,17 @@ namespace ustl {
         Counter *counter_;
     };
 
-    template <typename Derived, typename Base,
-              typename Disposer = NullDisposer,
-              template <typename> typename Allocator,
-              typename Size>
-        requires traits::IsBaseOfV<RefCounter<Base, Disposer, Allocator<Base>, Size>, Derived>
+    template <typename Derived, typename Base, typename A, typename S>
+        requires traits::IsBaseOfV<RefCounter<Base, A, S>, Derived>
     USTL_FORCEINLINE
-    auto make_rc(RefCounter<Base, Disposer, Allocator<Base>, Size> *object) 
-        -> Rc<Derived, Disposer, Allocator<Derived>, Size> {
-        return Rc<Derived, Disposer, Allocator<Derived>, Size>(object, object);
+    auto make_rc(RefCounter<Base, A, S> *object)
+        -> Rc<Derived, A, S> {
+        /// There are still so many points need  we pay attention to:
+        ///     1. Security of downcast without RTTI.
+        return Rc<Derived, A, S>(
+            static_cast<Derived *>(object), 
+            reinterpret_cast<RefCounter<Derived, A, S> *>(object)
+        );
     }
 
 } // namespace ustl

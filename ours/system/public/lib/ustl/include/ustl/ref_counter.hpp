@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_REF_COUNTER_HPP
 #define USTL_REF_COUNTER_HPP 1
 
@@ -18,11 +17,39 @@
 #include <ustl/sync/atomic.hpp>
 #include <ustl/util/noncopyable.hpp>
 #include <ustl/util/ebo_optimizer.hpp>
+#include <ustl/traits/is_same.hpp>
+#include <ustl/traits/is_base_of.hpp>
 
 #include <ustl/mem/recycler.hpp>
 #include <ustl/mem/allocator.hpp>
 
 namespace ustl {
+    template <typename T>
+    struct RcEvictor;
+
+    template <typename T, typename A, bool = traits::IsSameV<A, Monostate>>
+    struct RcReclaimer;
+
+    template <typename T, typename A = Monostate, typename Size = usize>
+    class RefCounter;
+
+    template <typename T, typename A>
+    struct RcReclaimer<T, A, true> {
+        USTL_FORCEINLINE
+        static auto destory(T *object) -> void {
+            RcReclaimer<T, A>::reclaim(object);
+        }
+    };
+
+    template <typename T, typename A>
+    struct RcReclaimer<T, A, false> {
+        USTL_FORCEINLINE
+        static auto destory(T *object) -> void {
+            object->get_allocator().destory(object);
+            object->get_allocator().deallocate(object);
+        }
+    };
+
     /// This class defines a atomic reference counter designed to be adopted by 
     /// `Rc<T>` and `Weak<T>`. Additionally, user-defined classes can inherit from 
     /// it to implement an intrusive reference counting mechanism, enabling the use 
@@ -54,46 +81,29 @@ namespace ustl {
     ///     Rc<Window> rc = ustl::make_rc(window);
     /// }
     ///
-    template <typename T,
-              typename Disposer = NullDisposer,
-              typename Allocator = mem::Allocator<T>,
-              typename Size = usize>
-    class RefCounter
-        : public EboOptimizer<Disposer>,
-          public EboOptimizer<Allocator>
-    {
-        typedef RefCounter                      Self;
-        typedef EboOptimizer<Disposer>          Base1;
-        typedef EboOptimizer<Allocator>         Base2;
-        typedef ustl::sync::Atomic<Size>        AtomciSize;
-
+    template <typename T, typename A, typename Size>
+    class RefCounter: public EboOptimizer<A> {
+        typedef RefCounter                  Self;
+        typedef ustl::sync::Atomic<Size>    AtomciSize;
     protected:
         USTL_FORCEINLINE
-        RefCounter(Allocator allocator={}) USTL_NOEXCEPT
-            : Self(PRE_ENABLE_SENTINEL, Disposer(), allocator)
+        RefCounter() USTL_NOEXCEPT
+            : weak_counter_(0),
+              strong_counter_(1)
         {}
 
         USTL_FORCEINLINE
-        RefCounter(Size count, Disposer disposer, Allocator allocator) USTL_NOEXCEPT
-            : Base1(disposer),
-              Base2(allocator),
-              weak_counter_(count),
-              strong_counter_(count)
-        {}
-
-        USTL_FORCEINLINE
-        virtual ~RefCounter() USTL_NOEXCEPT
-        {
+        virtual ~RefCounter() USTL_NOEXCEPT {
             USTL_ASSERT(weak_counter_ == 0 || weak_counter_ == PRE_ENABLE_SENTINEL);
             USTL_ASSERT(strong_counter_ == 0 || strong_counter_  == PRE_ENABLE_SENTINEL);
         }
 
         USTL_NO_MOVEABLE_AND_COPYABLE(RefCounter);
     private:
-        template <typename, typename, typename, typename>
+        template <typename, typename, typename>
         friend class Rc;
 
-        template <typename, typename, typename, typename>
+        template <typename, typename, typename>
         friend class Weak;
 
         USTL_FORCEINLINE
@@ -129,20 +139,11 @@ namespace ustl {
         auto enable_weak() USTL_NOEXCEPT -> void
         {  weak_counter_  = 1;  }
 
-        USTL_FORCEINLINE
-        auto disposer() USTL_NOEXCEPT -> Disposer &
-        {  return this->Base1::as_ref();  }
-
-        USTL_FORCEINLINE
-        auto allocator() USTL_NOEXCEPT -> Allocator & 
-        {  return this->Base2::as_ref();  }
-
-    private:
         USTL_CONSTEXPR
-        static u32 const PRE_ENABLE_SENTINEL = 0xC0000000;
+        static u32 const kPreEnableSentinel = 0xC0000000;
 
-        AtomciSize weak_counter_;
-        AtomciSize strong_counter_;
+        mutable AtomciSize weak_counter_;
+        mutable AtomciSize strong_counter_;
     };
 
 } // namespace ustl

@@ -104,7 +104,7 @@ namespace ours::mem {
             return ustl::err(Status::InvalidArguments);
         }
 
-        auto result = VmArea::create(this, base, size, vmaf, name);
+        auto result = VmArea::create(aspace_, base, size, vmaf, name);
         if (!result) {
             return ustl::err(result.unwrap_err());
         }
@@ -127,7 +127,7 @@ namespace ours::mem {
             return ustl::err(Status::InvalidArguments);
         }
 
-        auto result = VmMapping::create(base, size, this, vmaf, vma_off, vmo_off, mmuf, name);
+        auto result = VmMapping::create(base, size, this, vmaf, vma_off, vmo, mmuf, name);
         if (!result) {
             return ustl::err(result.unwrap_err());
         }
@@ -142,6 +142,7 @@ namespace ours::mem {
         if (!s_vma_cache) {
             panic("Failed to create object cache for VmArea");
         }
+        log::trace("VmaCache has been created");
     }
     GKTL_INIT_HOOK(VmCacheInit, init_vma_cache, gktl::InitLevel::PlatformEarly);
 }

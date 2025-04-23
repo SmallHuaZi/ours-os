@@ -42,7 +42,7 @@ namespace ours::phys {
         });
 
         if (!result) {
-            return ustl::err(Status::MisAlgined);
+            return ustl::err(Status::MisAligned);
         }
 
         pa_load_ = phys_addr;

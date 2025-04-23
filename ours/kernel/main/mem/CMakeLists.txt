@@ -13,9 +13,14 @@ set(source_set
     "pm_frame.cpp"
     "pm_zone.cpp"
     "pm_node.cpp"
-    "vm_area.cpp"
+
+    # VMM
     "vm_aspace.cpp"
+    "vm_area.cpp"
+    "vm_object_paged.cpp"
     "vm_object.cpp"
+    "vm_mapping.cpp"
+    "vm_cow_pages.cpp"
 )
 
 add_library(kernel_mem INTERFACE)

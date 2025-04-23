@@ -74,6 +74,9 @@
 #   define OURS_CONFIG_KASLR  0 
 #endif
 
+#define FRAME_DESC_SIZE     OURS_TARGET_BITS
+#define FRAME_DESC_SHIFT   (OURS_TARGET_BITS == 64 ? 6 : 5)
+
 #define OM_API  [[nodiscard("OM-API: Ignoring the return value will lead to memory leaks.")]]
 
 #endif // #ifndef OURS_MEM_CFG_HPP

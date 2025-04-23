@@ -15,23 +15,38 @@
 #include <ours/config.hpp>
 
 #include <ustl/array.hpp>
+#include <ustl/bitset.hpp>
+#include <ustl/option.hpp>
 #include <ustl/bitfields.hpp>
+
+#include <ktl/result.hpp>
 
 namespace gktl {
     namespace ubf = ustl::bitfields;
 
-    template <typename Allocator, usize ChunkOrder = 6>
+    struct XarryDefaultConfig {
+        CXX11_CONSTEXPR
+        static auto const kSlotsBits = 6;
+
+        CXX11_CONSTEXPR
+        static auto const kNumBitTags = 4;
+    };
+
+    template <typename Allocator, typename Config = XarryDefaultConfig>
     struct Xarray {
         typedef Xarray   Self;
 
         CXX11_CONSTEXPR
-        static auto const kChunkBits = ChunkOrder;
+        static auto const kNumBitTags = Config::kNumBitTags;
 
         CXX11_CONSTEXPR
-        static auto const kChunkMask = (1 << ChunkOrder) - 1;
+        static auto const kSlotsBits = Config::kSlotsBits;
 
         CXX11_CONSTEXPR
-        static auto const kMaxSlots = (1 << ChunkOrder);
+        static auto const kSlotsMask = (1 << kSlotsBits) - 1;
+
+        CXX11_CONSTEXPR
+        static auto const kMaxSlots = (1 << kSlotsBits);
 
         struct Node;
         struct Entry {
@@ -48,10 +63,21 @@ namespace gktl {
             template <usize Id, typename Type, usize Bits>
             using Field = ustl::Field<ubf::Id<Id>, ubf::Type<Type>, ubf::Bits<Bits>>;
 
-            typedef ustl::BitFields<
-                Field<0, Type, ustl::bit_width(Type::MaxNumType)>,
-                Field<1, usize, ustl::NumericLimits<usize>::DIGITS - ustl::bit_width(Type::MaxNumType)>
-            > Inner;
+            CXX11_CONSTEXPR
+            static auto kTypeBits = ustl::bit_width(usize(Type::MaxNumType));
+
+            CXX11_CONSTEXPR
+            static auto kValueBits = ustl::NumericLimits<usize>::DIGITS - kTypeBits;
+
+            typedef ustl::BitFields<Field<0, Type, kTypeBits>, Field<1, usize, kValueBits>> Inner;
+
+            FORCE_INLINE CXX11_CONSTEXPR
+            auto max_index() const -> usize {
+                if (is_node()) {
+                    return value<Node>().max_index();
+                }
+                return 0;
+            }
 
             FORCE_INLINE CXX11_CONSTEXPR
             auto type() const -> Type {
@@ -74,16 +100,28 @@ namespace gktl {
                 return type() == Type::Internal;
             }
 
-            template <typename T>
             FORCE_INLINE CXX11_CONSTEXPR
-            auto value() -> T * {
-                return reinterpret_cast<T *>(inner.template get<1>());
+            auto is_null() const -> bool {
+                return reinterpret_cast<usize>(inner) == 0;
             }
 
             template <typename T>
             FORCE_INLINE CXX11_CONSTEXPR
-            auto value() const -> T const * {
-                return reinterpret_cast<T const *>(inner.template get<1>());
+            auto value() -> T & {
+                static_assert(sizeof(T) == sizeof(usize), "");
+                return reinterpret_cast<T &>(inner.template get<1>());
+            }
+
+            template <typename T>
+            FORCE_INLINE CXX11_CONSTEXPR
+            auto cast_to() -> ustl::Option<T> {
+                static_assert(sizeof(T) == sizeof(usize), "");
+                if (!is_value()) {
+                    return ustl::none();
+                }
+                return *reinterpret_cast<T *>(
+                    reinterpret_cast<usize>(inner.template get<1>())
+                );
             }
 
             FORCE_INLINE CXX11_CONSTEXPR
@@ -101,6 +139,18 @@ namespace gktl {
                 inner.template set<1>(value);
                 return *this;
             }
+
+            template <typename T>
+            FORCE_INLINE
+            static auto make(Type type, T *object) -> Entry {
+                return Entry().set_type(type).set_value(object);
+            }
+
+            template <typename T>
+            FORCE_INLINE
+            static auto make_node(T *object) -> Entry {
+                return make(Type::Internal, object);
+            }
             
             Inner inner;
         };
@@ -108,11 +158,20 @@ namespace gktl {
 
         struct Node {
             auto get_offset(usize index) const -> usize {
-                return (index >> shift) & kChunkMask;
+                return (index >> shift) & kSlotsMask;
             }
 
             auto get_entry(usize index) const -> Entry {
-                return entries[get_offset(index)];
+                return slots[get_offset(index)];
+            }
+
+            auto set_entry(usize index, Entry entry) const -> Self & {
+                slots[get_offset(index)] = entry;
+                return *this;
+            }
+
+            auto max_index() const -> usize {
+                return (kMaxSlots << shift) - 1;
             }
 
             u8 shift;   // The order of number of slots, if zero the slot is a leaf node.
@@ -121,43 +180,71 @@ namespace gktl {
             u8 nr_values;
             Node *parent;
             Xarray *owner;
-            Slots entries;
+            Slots slots;
         };
         typedef Node *          NodePtrMut;
         typedef Node const *    NodePtr;
 
         struct Cursor {
+            /// This dummy pointer was used to act as a tag which indicates that this cursor
+            /// is at the front of Xarray.
+            CXX11_CONSTEXPR
+            static auto const kRootTag = NodePtrMut(3);
+
             auto load() -> Entry;
 
-            auto store(Entry entry) -> Entry;
+            auto store(Entry entry) -> ustl::Result<Entry, ours::Status>;
 
             auto erase() -> Entry;
 
           private:
+            auto create_slots() -> ustl::Option<Entry>;
+
+            /// Adds nodes to the head of the tree until it has reached
+            /// sufficient height to be able to contain `index_`
+            auto expand(Entry head) -> ustl::Option<usize>;
+
             auto descend(NodePtrMut node) -> Entry;
+
+            // True if current `node_` is the root of owner, otherwise False.
+            FORCE_INLINE
+            auto at_root() const -> bool {
+                return node_ == kRootTag;
+            }
 
             Xarray *owner_;
 	        usize index_;
 	        usize shift_;
-	        usize sibs_;
 	        usize offset_;
-	        usize _padding_;
-	        NodePtrMut node_;
-	        NodePtrMut alloc_;
+	        NodePtrMut node_;   // Node we are operating on.
+            ustl::BitSet<kMaxSlots * kNumBitTags> tags_;
         };
+
+        auto make_cursor(usize index, usize shift) -> Cursor {
+            return Cursor(this, index, shift, 0, 0, Cursor::kRootTag, 0);
+        }
 
         auto load(usize index) -> Entry;
 
-        auto store(usize index, Entry entry) -> Entry;
+        auto store(usize index, Entry entry) -> ktl::Result<ustl::Option<Entry>>;
 
         auto erase(usize index) -> Entry;
-
-        auto make_cursor() -> Cursor;
 
         template <typename T>
         static auto make_entry(T *object) -> Entry;
       private:
-        Entry entry_;
+
+        auto alloc_node() -> NodePtrMut {
+            return payload_.get_allocator().template allocate<Node>();
+        }
+
+        struct Payload: public Allocator {
+            auto get_allocator() -> Allocator & {
+                return *this;
+            }
+
+            Entry entry;
+        } payload_;
     };
 
 } // namespace gktl

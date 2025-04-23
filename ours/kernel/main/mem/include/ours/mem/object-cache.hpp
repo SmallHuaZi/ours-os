@@ -51,7 +51,7 @@ namespace ours::mem {
         FORCE_INLINE
         auto destory() -> void {
             DEBUG_ASSERT(num_inuse == 0);
-            managed_hook.unlink();
+            unlink();
             mem::free_frame(to_pmm(), order());
         }
 
@@ -78,10 +78,8 @@ namespace ours::mem {
         ustl::sync::AtomicU16 num_objects;
         ObjectList free_list;
         ObjectCache *object_cache;
-        uci::ListMemberHook<uci::LinkMode<uci::LinkModeType::AutoUnlink>> managed_hook;
-        USTL_DECLARE_HOOK_OPTION(Self, managed_hook, ManagedListOptions);
     };
-    USTL_DECLARE_LIST_TEMPLATE(Slab, SlabList, Slab::ManagedListOptions, uci::ConstantTimeSize<false>);
+    USTL_DECLARE_LIST_TEMPLATE(Slab, SlabList, uci::ConstantTimeSize<false>);
     static_assert(sizeof(Slab) <= kFrameDescSize, "");
 
     template <>

@@ -11,6 +11,8 @@
 #ifndef OURS_ARCH_CPU_LOCAL_HPP
 #define OURS_ARCH_CPU_LOCAL_HPP 1
 
+#include <ours/mem/cfg.hpp>
+
 #include <arch/x86/msr.hpp>
 #include <arch/x86/fsgs.hpp>
 

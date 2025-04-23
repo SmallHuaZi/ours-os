@@ -11,17 +11,21 @@
 #ifndef OURS_MEM_VM_COW_PAGES_HPP
 #define OURS_MEM_VM_COW_PAGES_HPP 1
 
-#include <ours/mem/vm_page_list.hpp>
+#include <ours/mem/vm_page_map.hpp>
 #include <ours/mem/gaf.hpp>
 #include <ours/mutex.hpp>
 
+#include <ustl/rc.hpp>
 #include <ustl/sync/lockguard.hpp>
 
 namespace ours::mem {
     /// A group of the copy on write page.
-    class VmCowPages {
+    class VmCowPages: public ustl::RefCounter<VmCowPages> {
+        typedef VmCowPages  Self;
     public:
         class LookupCursor;
+
+        static auto create(Gaf gaf, usize num_page) -> ustl::Result<ustl::Rc<VmCowPages>, Status>;
 
         auto commit_range_locked(PgOff pgoff, usize n, ai_out usize *nr_commited) -> Status;
 
@@ -30,6 +34,7 @@ namespace ours::mem {
             return num_pages_;
         }
 
+        VmCowPages(Gaf gaf, usize num_pages);
     private:
         /// When no page sources exists, it will be used in frame allocation request.
         Gaf gaf_;
@@ -41,7 +46,7 @@ namespace ours::mem {
         auto require_owned_page() -> void;
         auto require_readonly_page() -> void;
     private:
-        VmPageList pages_;
+        VmPageMap pages_;
     };
 
 } // namespace ours::mem

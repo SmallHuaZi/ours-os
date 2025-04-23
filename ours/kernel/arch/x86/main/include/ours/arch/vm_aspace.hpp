@@ -30,7 +30,7 @@ namespace ours::mem {
 
         auto map(VirtAddr, PhysAddr, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>;
 
-        auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control) -> Status;
+        auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>;
 
         auto unmap(VirtAddr, usize n, UnMapControl control) -> Status;
 

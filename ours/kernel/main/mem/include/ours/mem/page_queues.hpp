@@ -8,24 +8,24 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_MEM_FRAME_QUEUE_HPP
-#define OURS_MEM_FRAME_QUEUE_HPP 1
+#ifndef OURS_MEM_PAGE_QUEUES_HPP
+#define OURS_MEM_PAGE_QUEUES_HPP 1
 
-#include <ours/mem/pm_frame.hpp>
+#include <ours/mem/vm_page.hpp>
 
-#include <ustl/collections/static-vec.hpp>
+#include <ustl/array.hpp>
 
 namespace ours::mem {
-    class FrameQueue {
+    class PageQueues {
     public:
         CXX11_CONSTEXPR
         static usize const kNumReclaimable = 8;
 
-        auto set_pinned(PmFrame *frame) -> void;
-        auto set_anonymous(PmFrame *frame) -> void;
-        auto set_reclaimable(PmFrame *frame) -> void;
+        auto set_pinned(VmPage *page) -> void;
+        auto set_anonymous(VmPage *page) -> void;
+        auto set_reclaimable(VmPage *page) -> void;
 
-        auto mark_accessed(PmFrame *frame) -> void;
+        auto mark_accessed(VmPage *page) -> void;
     private:
         enum QueueType {
             None,
@@ -36,13 +36,11 @@ namespace ours::mem {
             MaxNumQueues,
         };
 
-        using QueueImpl = FrameList<>;
-        ustl::collections::StaticVec<QueueImpl, MaxNumQueues> queues;
-
+        ustl::Array<VmPageList, MaxNumQueues> queues;
         ustl::sync::AtomicU32   lrugen;
         ustl::sync::AtomicU32   mrugen;
     };
 
 } // namespace ours::mem
 
-#endif // #ifndef OURS_MEM_FRAME_QUEUES_HPP
+#endif // #ifndef OURS_MEM_PAGE_QUEUES_HPP

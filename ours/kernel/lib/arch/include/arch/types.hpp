@@ -12,6 +12,7 @@
 #define ARCH_TYPES_HPP 1
 
 #include <ours/assert.hpp>
+#include <ours/mem/cfg.hpp>
 #include <ours/status.hpp>
 #include <ours/macro_abi.hpp>
 #include <ours/types.hpp>

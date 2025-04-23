@@ -17,6 +17,7 @@
 
 #include <ustl/rc.hpp>
 #include <ustl/util/enum_bits.hpp>
+#include <ustl/mem/align.hpp>
 #include <ustl/collections/intrusive/set.hpp>
 
 #include <gktl/canary.hpp>
@@ -58,6 +59,11 @@ namespace ours::mem {
         }
 
         FORCE_INLINE
+        auto contains(VirtAddr va, usize len) const -> bool {
+            return base_ <= va && va + len < base_ + size_;
+        }
+
+        FORCE_INLINE
         auto is_active() const -> bool {
             return !!(vmaf_ & VmaFlags::Active);
         }
@@ -86,8 +92,9 @@ namespace ours::mem {
 
         FORCE_INLINE
         auto end_vpn() const -> VirtAddr {
-            return (base_ + size_) >> PAGE_SHIFT;
+            return ustl::mem::align_up(base_ + size_, PAGE_SIZE) >> PAGE_SHIFT;
         }
+
     protected:
         VmAreaBase(VirtAddr base, usize size, VmaFlags vmaf, char const *name)
             : base_(base), size_(size), vmaf_(vmaf), name_(name)
@@ -111,7 +118,19 @@ namespace ours::mem {
 
     class VmAreaSet {
     public:
-        auto has_range(VirtAddr base, VirtAddr size) const -> bool;
+        FORCE_INLINE
+        auto has_range(VirtAddr base, VirtAddr size) const -> bool {
+            auto prev = vmaset_.upper_bound(base, AreaRangeComp());
+            if (prev == vmaset_.end()) {
+                return false;
+            }
+            auto next = prev--;
+            if (next->base() < base + size && prev->base() + prev->size() < base) {
+                return false;
+            }
+
+            return true;
+        }
 
     private:
         struct AreaRangeComp {
@@ -119,9 +138,16 @@ namespace ours::mem {
             auto operator()(VmAreaBase const &x, VmAreaBase const &y) -> bool {
                 return x.base() < y.base();
             }
+
+            FORCE_INLINE CXX23_STATIC
+            auto operator()(VirtAddr base, VmAreaBase const &x) -> bool {
+                return base < x.base();
+            }
         };
         USTL_DECLARE_MULTISET(VmAreaBase, VmaSet, VmAreaBase::ManagedOptions, 
             ustl::collections::intrusive::Compare<AreaRangeComp>);
+        
+        VmaSet vmaset_;
     };
 
 } // namespace ours::mem

@@ -12,6 +12,7 @@
 #define ARCH_PAGING_MAPPING_MAPPING_HPP 1
 
 #include <arch/types.hpp>
+#include <arch/paging/mmu_flags.hpp>
 #include <ustl/option.hpp>
 #include <ustl/result.hpp>
 #include <ustl/util/pair.hpp>

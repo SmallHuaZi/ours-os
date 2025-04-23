@@ -4,6 +4,7 @@
 #include <ours/mem/vm_aspace.hpp>
 #include <ours/mem/vm_page.hpp>
 #include <ours/mem/physmap.hpp>
+#include <ours/mem/vm_object_paged.hpp>
 
 #include <ours/assert.hpp>
 #include <ours/init.hpp>
@@ -21,8 +22,11 @@
 
 #include <arch/cache.hpp>
 
+using ustl::mem::align_up;
+using ustl::mem::align_down;
+
 namespace ours::mem {
-    struct PresetVmaInfo {
+    struct PhysVmo {
         char const *name;
         VirtAddr base;
         usize size;
@@ -30,23 +34,12 @@ namespace ours::mem {
         VmaFlags flags;
     };
 
-    enum PresetVmas {
-        KernelImageVma,
-        PhysMapVma,
-        VflatModelVma,
-        PaddingVma,
-        MaxNumPresetVmas,
-    };
-
-    CXX11_CONSTEXPR
-    static VmaFlags const kPresetVmaFlags = VmaFlags::Mapped;
-
     CXX11_CONSTEXPR
     static MmuFlags const kPresetVmaMmuFlags = MmuFlags::PermMask;
 
     /// Used in init_vmm_postheap
     INIT_CONST
-    static PresetVmaInfo const kPresetVmas[] = {
+    static PhysVmo s_phys_vmos[] = {
         {
             .name = "k:code",
             .base = VirtAddr(kKernelCodeStart),
@@ -69,13 +62,14 @@ namespace ours::mem {
             .name = "k:bss",
             .base = VirtAddr(kKernelBssStart),
             .size = usize(kKernelBssEnd - kKernelBssStart),
-            .rights = MmuFlags::Readable
+            .rights = MmuFlags::Readable | MmuFlags::Writable
         },
         {
             .name = "k:init",
             .base = VirtAddr(kKernelInitStart),
             .size = usize(kKernelInitEnd - kKernelInitStart),
-            .rights = MmuFlags::Readable | MmuFlags::Writable | MmuFlags::Executable
+            .rights = MmuFlags::Readable | MmuFlags::Writable | MmuFlags::Executable,
+            .flags = VmaFlags::Read | VmaFlags::Write | VmaFlags::Exec
         },
         {
             .name = "k:physmap",
@@ -83,7 +77,7 @@ namespace ours::mem {
             .base = PhysMap::kVirtBase,
             .size = PhysMap::kSize,
             .rights = kPresetVmaMmuFlags,
-            .flags = VmaFlags::Mapped,
+            .flags = VmaFlags::Read | VmaFlags::Write
         },
         {
             .name = "k:padding",
@@ -98,16 +92,27 @@ namespace ours::mem {
     static auto init_vmm_preheap() -> void {
         VmAspace::init_kernel_aspace();
         auto kaspace = VmAspace::kernel_aspace();
+        auto rvma = kaspace->root_vma();
 
-        // Initialize all of named vmas.
-        for (auto i = 0; i < MaxNumPresetVmas; ++i) {
-            auto const &region = kPresetVmas[i];
-            auto vma = VmArea::create(kaspace, region.base, region.size, region.rights, region.flags, region.name);
-            if (!vma) {
-                panic("[{}]: Failed to allocate vma for region[name: {} | base: 0x{:X} | size: 0x{:X}]",
-                      to_string(vma.unwrap_err()), region.name, region.base, region.size);
+        auto const rvma_base = rvma->base();
+        auto kvmo = VmObjectPaged::create(kGafKernel, get_kernel_size() / PAGE_SIZE, VmoFLags::Pinned);
+        if (!kvmo) {
+            panic("Failed to create VMO for kernel image.");
+        }
+
+        PgOff pgoff = 0;
+        for (auto i = 0; i < std::size(s_phys_vmos); ++i) {
+            auto const &region = s_phys_vmos[i];
+            VirtAddr base = align_down(region.base, PAGE_SIZE);
+            VirtAddr nr_pages = (align_up(region.base + region.size, PAGE_SIZE) - base) / PAGE_SIZE;
+
+            auto may_mapping = rvma->create_mapping(base / PAGE_SIZE, nr_pages, region.flags, pgoff, region.rights, *kvmo, "k:vmo");
+            if (!may_mapping) {
+                panic("[{}]: Failed to create VmMapping object for region[name: {} | base: 0x{:X} | size: 0x{:X}]",
+                      to_string(may_mapping.unwrap_err()), region.name, region.base, region.size);
             }
-            (*vma)->activate();
+
+            pgoff += base / PAGE_SIZE;
         }
 
         auto frame = alloc_frame(kGafKernel, usize(0));

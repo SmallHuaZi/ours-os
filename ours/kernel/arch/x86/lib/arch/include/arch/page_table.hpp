@@ -61,8 +61,16 @@ namespace paging {
 
         /// Sees IX86PageTable::map_pages.
         FORCE_INLINE
-        auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl action) -> ustl::Result<usize, Status> {
+        auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl action) 
+            -> ustl::Result<usize, Status> {
             return pimpl_->map_pages(va, pa, n, flags, action);
+        }
+
+        /// Sees IX86PageTable::map_pages.
+        FORCE_INLINE
+        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, MapControl action) 
+            -> ustl::Result<usize, Status> {
+            return pimpl_->map_pages_bulk(va, pa, n, flags, action);
         }
 
         /// Sees IX86PageTable::unmap_pages.

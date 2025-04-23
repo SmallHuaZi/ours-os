@@ -8,6 +8,7 @@
 
 #include <logz4/log.hpp>
 #include <heap/scope.hpp>
+#include <gktl/init_hook.hpp>
 
 namespace ours::mem {
     /// Manage the lifetime manually.
@@ -91,7 +92,11 @@ namespace ours::mem {
         if (status != Status::Ok) {
             return status;
         }
-        root_vma_ = VmArea::create(this, base_, size_, {}, {}, "RootVma");
+        auto may_vma = VmArea::create(this, base_, size_, {}, "RootVma");
+        if (!may_vma) {
+            return Status::OutOfMem;
+        }
+        root_vma_ = ustl::move(*may_vma);
 
         return Status::Ok;
     }
@@ -101,13 +106,23 @@ namespace ours::mem {
             if (fault_cache_->contains(virt_addr)) {
             }
         } else {
-            if (auto fault = root_vma_.find_subvma(virt_addr)) {
-                fault_cache_ = ustl::move(fault);
-            }
+            // if (auto fault = root_vma_.find_subvma(virt_addr)) {
+            //     fault_cache_ = ustl::move(fault);
+            // }
         }
         if (fault_cache_) {
             VmFault vmf;
             fault_cache_->fault(&vmf);
         }
     }
+
+    INIT_CODE
+    static auto init_aspace_cache() -> void {
+        s_aspace_cache = ObjectCache::create<VmAspace>("aspace-cache", OcFlags::Folio);
+        if (!s_aspace_cache) {
+            panic("Failed to create object cache for VmArea");
+        }
+        log::trace("AspaceCache has been created");
+    }
+    GKTL_INIT_HOOK(VmAspaceInit, init_aspace_cache, gktl::InitLevel::PlatformEarly);
 }

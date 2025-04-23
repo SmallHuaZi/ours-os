@@ -13,6 +13,7 @@
 
 #include <ours/mem/types.hpp>
 #include <ours/mem/vm_mapping.hpp>
+#include <ours/mem/vm_page.hpp>
 #include <ours/status.hpp>
 
 #include <ustl/option.hpp>
@@ -23,7 +24,11 @@
 
 namespace ours::mem {
     enum class VmoFLags {
+        /// Can not be swaped out.
+        Pinned = BIT(0),
 
+        /// Never pre-allocate pages, only when the page access fault occurs.
+        Lazy = BIT(1),
     };
     USTL_ENABLE_ENUM_BITMASK(VmoFLags);
 
@@ -36,20 +41,13 @@ namespace ours::mem {
         };
 
         enum class CommitOptions {
+            /// The pages mapped will not be swaped out.
             Pin = BIT(0),
+
+            /// Map imediately but wait a page access fault come.
             Write = BIT(1),
         };
         USTL_ENABLE_INNER_ENUM_BITMASK(CommitOptions);
-
-        VmObject();
-
-        virtual ~VmObject();
-
-        /// 
-        virtual auto acquire_pages(usize n) -> PhysAddr = 0;
-
-        ///
-        virtual auto release_pages(PhysAddr, usize) -> Status = 0;
 
         /// 
         virtual auto commit_range(PgOff pgoff, usize n, CommitOptions commit) -> Status = 0;
@@ -57,11 +55,17 @@ namespace ours::mem {
         ///
         virtual auto decommit(PgOff pgoff, usize n) -> Status = 0;
 
-        ///
-        virtual auto take_pages(gktl::Range<VirtAddr> range) -> Status = 0;
+        /// Remove all pages in range [ `|pgoff|`, `|pgoff + n|`) to `|page_list|`.
+        virtual auto take_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status = 0;
 
         ///
-        virtual auto supply_pages(gktl::Range<VirtAddr> range) -> Status = 0;
+        virtual auto supply_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status = 0;
+
+        ///
+        virtual auto read(void *out, PgOff pgoff, usize n) -> Status = 0;
+
+        ///
+        virtual auto write(void *out, PgOff pgoff, usize n) -> Status = 0;
 
         FORCE_INLINE
         auto commit_range_pinned(usize offset, usize len, bool write) -> Status {
@@ -72,17 +76,48 @@ namespace ours::mem {
             return commit_range(offset, len, options);
         }
 
+        FORCE_INLINE
+        auto type() const -> Type {
+            return type_;
+        }
+
         USTL_NO_MOVEABLE_AND_COPYABLE(VmObject);
     protected:
+        VmObject(Type type, VmoFLags vmoflags);
+
+        virtual ~VmObject() = default;
+
         GKTL_CANARY(VmObject, canary_);
         Type const type_;
-        VmoFLags flags_;
+        VmoFLags vmof_;
         VmMappingList mappings_;
     
         ustl::collections::intrusive::ListMemberHook<> children_hook_;
         USTL_DECLARE_HOOK_OPTION(Self, children_hook_, ChildrenOptions);
         ustl::collections::intrusive::List<Self, ChildrenOptions>  children_;
     };
+
+    template <typename VmObjectDerived>
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto downcast(ustl::Rc<VmObject> vmo) -> ustl::Rc<VmObjectDerived> {
+        if CXX17_CONSTEXPR (ustl::traits::IsSameV<VmObjectDerived, VmObjectPaged>) {
+            if (vmo->type() == VmObject::Type::Paged) {
+                return ustl::make_rc<VmObjectDerived>(vmo);
+            }
+        }
+        return nullptr;
+    }
+
+    template <typename VmObjectDerived>
+    FORCE_INLINE CXX11_CONSTEXPR
+    auto downcast(VmObject *vmo) -> VmObjectDerived * {
+        if CXX17_CONSTEXPR (ustl::traits::IsSameV<VmObjectDerived, VmObjectPaged>) {
+            if (vmo->type() == VmObject::Type::Paged) {
+                return static_cast<VmObjectDerived *>(vmo);
+            }
+        }
+        return nullptr;
+    }
 
 } // namespace ours::mem 
 

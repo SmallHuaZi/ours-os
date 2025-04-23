@@ -4,6 +4,8 @@
 
 #include <ours/init.hpp>
 
+#include <logz4/log.hpp>
+
 namespace ours::mem {
     /// Take out 2MB-size large page mapping as the following showed:
     /// +-------+---------+----------------+-------------------------+----------+-------+
@@ -22,7 +24,7 @@ namespace ours::mem {
     ///
     ///      (32GB) [0]--KERNEL_PDP[0]--KERNEL_PHYSMAP_PD[0..511]
     ///              |
-    ///              | 
+    ///              |
     /// KERNEL_PGD--[..]-(NULL)
     ///              |                [0]---KERNEL_PHYSMAP_PD[0][0..511]
     ///              |                 |
@@ -39,10 +41,9 @@ namespace ours::mem {
           flags_(flags)
     {}
 
-    auto ArchVmAspace::init() -> Status
-    {
+    auto ArchVmAspace::init() -> Status {
         if (bool(VmasFlags::Kernel & flags_)) [[unlikely]] {
-            // Kernel page table was provided by kernel.phys, so do not need to allocate memory. 
+            // Kernel page table was provided by kernel.phys, so do not need to allocate memory.
             auto const phys_pgd = g_pgd;
             auto const virt_pgd = PhysMap::phys_to_virt(phys_pgd );
             auto status = page_table_.init_mmu(phys_pgd, virt_pgd);
@@ -68,18 +69,21 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto ArchVmAspace::map(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>
-    {  
+    auto ArchVmAspace::map(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) 
+        -> ustl::Result<usize, Status> {
         return page_table_.map_pages(va, pa, n, flags, control);
     }
 
-    auto ArchVmAspace::unmap(VirtAddr va, usize n, UnMapControl control) -> Status
-    {  
+    auto ArchVmAspace::map_bulk(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, MapControl control) 
+        -> ustl::Result<usize, Status> {
+        return page_table_.map_pages_bulk(va, pa, n, flags, control);
+    }
+
+    auto ArchVmAspace::unmap(VirtAddr va, usize n, UnMapControl control) -> Status {
         return page_table_.unmap_pages(va, n, control);
     }
 
-    auto ArchVmAspace::query(VirtAddr va, ai_out PhysAddr *pa, MmuFlags *flags) -> Status
-    {
+    auto ArchVmAspace::query(VirtAddr va, ai_out PhysAddr *pa, MmuFlags *flags) -> Status {
         return page_table_.query_mapping(va, pa, flags);
     }
 }

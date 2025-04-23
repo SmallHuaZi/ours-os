@@ -28,6 +28,7 @@ namespace ours::mem {
         ustl::sync::AtomicU16 num_users;
     };
     static_assert(sizeof(VmPage) <= kFrameDescSize, "");
+    USTL_DECLARE_LIST(VmPage, VmPageList, ustl::collections::intrusive::ConstantTimeSize<false>);
 
     template <>
     struct RoleViewDispatcher<PfRole::Vmm> {
