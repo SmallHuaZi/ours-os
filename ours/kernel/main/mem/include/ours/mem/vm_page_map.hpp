@@ -12,9 +12,10 @@
 #define OURS_MEM_VM_PAGE_MAP_HPP 1
 
 #include <ours/const.hpp>
+#include <ours/mem/gaf.hpp>
 #include <ours/mem/vm_page.hpp>
-#include <ours/mem/scope.hpp>
 
+#include <ktl/new.hpp>
 #include <gktl/xarray.hpp>
 #include <ustl/bitfields.hpp>
 
@@ -44,13 +45,13 @@ namespace ours::mem {
             template <typename T>
             FORCE_INLINE
             static auto allocate() -> T * {
-                return static_cast<T *>(kmalloc(sizeof(T), kGafKernel));
+                return new (kGafKernel) T();
             }
 
             template <typename T>
             FORCE_INLINE
             static auto deallocate(T *t) -> void {
-                kfree(t, sizeof(T), kGafKernel);
+                delete t;
             }
         };
 

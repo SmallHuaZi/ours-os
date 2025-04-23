@@ -5,6 +5,7 @@
 
 #include <ustl/lazy_init.hpp>
 #include <logz4/log.hpp>
+#include <ktl/new.hpp>
 
 namespace ours::mem {
     static ObjectCache *s_object_cache_self;
@@ -62,7 +63,7 @@ namespace ours::mem {
 
     FORCE_INLINE
     auto ObjectCachePerNode::create(NodeId nid) -> Self * {
-        auto self = s_object_cache_node->allocate<Self>(nid);
+        auto self = new (*s_object_cache_node, kGafKernel, nid) ObjectCachePerNode();
         if (!self) {
             return nullptr;
         }
@@ -170,9 +171,9 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto ObjectCache::create(const char *name, usize obj_size, AlignVal align, OcFlags flags) -> ustl::Rc<Self> {
+    auto ObjectCache::create(const char *name, usize obj_size, AlignVal align, OcFlags flags) -> Self * {
         // In future we should check if the arguments is valid, but now it is unnecessary.
-        auto self = s_object_cache_self->allocate<Self>(current_node());
+        auto self = new (*s_object_cache_self, kGafKernel) Self();
         if (!self) {
             log::trace("Failed to allcoate a object cache:[name: {}, os: {}, align: {}]", 
                 name, obj_size, usize(align));
@@ -188,7 +189,7 @@ namespace ours::mem {
             return {};
         }
 
-        return ustl::make_rc<Self>(self);
+        return self;
     }
 
     auto ObjectCache::create_boot(Self &self, char const *name, usize obj_size, AlignVal align, OcFlags flags) -> Status {

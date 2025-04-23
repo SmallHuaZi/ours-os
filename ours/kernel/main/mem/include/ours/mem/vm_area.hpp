@@ -25,25 +25,42 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
+    enum class VmaFlags: u32 {
+        // For semantics, no any actual effects.
+        None,
+
+        // Only serve for VmMapping
+        Write = BIT(1),
+        Read  = BIT(2),
+        Exec  = BIT(3),
+        Share = BIT(4),
+        PermMask = Write | Read | Exec | Share,
+
+        // States 
+        Active   = 0x10000,
+        Pinned   = 0x20000,
+
+        // Features.
+        Anonymous = 0x40000,
+        Mergeable = 0x80000,
+    };
+    USTL_ENABLE_ENUM_BITMASK(VmaFlags);
+
     /// `VmArea` is a representation of a contiguous range of virtual memory space.
-    class VmArea: public VmAreaBase {
+    class VmArea: public ustl::RefCounter<VmArea> {
         typedef VmArea      Self;
-        typedef VmAreaBase  Base;
     public:
-        static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *) 
-            -> ustl::Result<ustl::Rc<Self>, Status>;
-
-        virtual auto activate() -> void override;
-
-        auto destroy() -> void;
+        static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *, ustl::Rc<Self> *) -> Status;
 
         /// Create a mapping unit in page range [vma_off, vma_off + nr_pages).
-        auto create_mapping(PgOff vma_off, usize nr_pages, VmaFlags, PgOff vmo_off, MmuFlags, ustl::Rc<VmObject>, char const *name) 
-            -> ustl::Result<ustl::Rc<VmMapping>, Status>;
+        auto create_mapping(PgOff vma_off, usize nr_pages, PgOff vmo_off, MmuFlags, ustl::Rc<VmObject>, 
+                            char const *name, ustl::Rc<VmMapping> *) -> Status;
 
         /// Create a sub-VMA in page range [vma_off, vma_off + nr_pages).
-        auto create_subvma(PgOff vma_off, usize nr_pages, VmaFlags, char const *name) 
-            -> ustl::Result<ustl::Rc<VmArea>, Status>;
+        auto create_subvma(PgOff vma_off, usize nr_pages, VmaFlags, char const *name, ustl::Rc<VmArea> *) -> Status;
+
+        /// Create a sub-VMA in page range [vma_off, vma_off + nr_pages).
+        auto create_subvma(usize nr_pages, VmaFlags, char const *name, ustl::Rc<VmArea> *) -> Status;
 
         auto unmap(PgOff vma_off, usize nr_pages) -> void;
 
@@ -52,27 +69,45 @@ namespace ours::mem {
 
         auto contains(VirtAddr addr) const -> bool;
 
-        auto address_range() const -> gktl::Range<VirtAddr>;
-
         // On logic, it should be protected to avoid the incorrect use. But 
         VmArea(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *);
     protected:
-        auto prepare_create_subvma(PgOff vma_off, usize nr_pages, VmaFlags &, 
-                                   VirtAddr ai_out &base, VirtAddr ai_out &size) const -> bool;
+        auto prepare_subrange(PgOff vma_off, usize nr_pages, VirtAddr ai_out &base, VirtAddr ai_out &size) 
+            const -> bool;
 
-        /// Check whether a given `|mmflags|` is valid. If valid return a set of permission in VmaFlags,
-        /// otherwise a `VmaFlags::None`
-        auto validate_mmuflags(MmuFlags mmflags) const -> VmaFlags;
+        /// Check whether a given `|mmflags|` is valid. True if valid, otherwise invalid.
+        auto validate_mmuflags(MmuFlags mmflags) const -> bool;
 
+        auto activate() -> void;
+
+        auto destroy() -> void;
+
+        FORCE_INLINE
+        auto has_range(VirtAddr base, usize size) const -> bool;
+
+        /// This for the collections to compare two VMA.
+        FORCE_INLINE CXX23_STATIC
+        auto operator()(Self const &x, Self const &y) -> bool {
+            return x.base_ < y.base_;
+        }
     private:
         friend class VmObject;
         friend class VmAspace;
-        friend class VmRootArea;
-        friend class VmMappingHandler;
+        friend class VmMapping;
 
-        VmAreaSet subvmas_;
+        GKTL_CANARY(VmArea, canary_);
+        char const *name_;
+        VirtAddr  base_;
+        VirtAddr  size_;
+        VmaFlags  vmaf_;
+        VmArea   *parent_;      // Null if it is root or dead.
+        VmMapping *mapping_;    // Non-null if it is a leaf.
+        ustl::Rc<VmAspace> aspace_;
+        ustl::collections::intrusive::SetMemberHook<> subvma_hook_;
+        USTL_DECLARE_HOOK_OPTION(Self, subvma_hook_, ManagedOptions);
+        USTL_DECLARE_MULTISET(Self, VmaSet, ManagedOptions);
+        VmaSet subvmas_;
     };
-
 } // namespace ours::mem
 
 #endif // #ifndef OURS_MEM_VM_AREA_HPP

@@ -14,7 +14,6 @@
 #include <ours/config.hpp>
 #include <ours/mem/cfg.hpp>
 #include <ours/mem/types.hpp>
-#include <ours/mem/scope.hpp>
 #include <ours/status.hpp>
 #include <ours/types.hpp>
 

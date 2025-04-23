@@ -18,7 +18,6 @@
 #include <ustl/option.hpp>
 #include <ustl/limits.hpp>
 #include <ours/types.hpp>
-#include <ours/mem/scope.hpp>
 
 namespace ours::phys {
     struct Aspace {

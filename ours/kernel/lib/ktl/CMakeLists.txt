@@ -17,3 +17,9 @@ INTERFACE
     kernel::main::headers
     kernel::lib::ktl::headers
 )
+
+target_sources(ktl
+INTERFACE
+    "kmalloc.cpp"
+    "new.cpp"
+)

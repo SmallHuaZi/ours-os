@@ -12,9 +12,9 @@
 #define OURS_MEM_OBJECT_CACHE_HPP 1
 
 #include <ours/mem/gaf.hpp>
-#include <ours/mem/scope.hpp>
-#include <ours/mem/pm_frame.hpp>
 #include <ours/mem/cfg.hpp>
+#include <ours/mem/pm_frame.hpp>
+#include <ours/mem/pmm.hpp>
 
 #include <ours/mutex.hpp>
 #include <ours/cpu-local.hpp>
@@ -130,9 +130,7 @@ namespace ours::mem {
         usize num_partial;
     };
 
-    class ObjectCache
-        : public ustl::RefCounter<ObjectCache>
-    {
+    class ObjectCache {
         typedef ObjectCache         Self;
         typedef Slab::Object        Object;
         typedef Slab::ObjectList    ObjectList;
@@ -140,11 +138,11 @@ namespace ours::mem {
         struct CacheOnCpu;
         struct CacheOnNode;
 
-        static auto create(char const *name, usize obj_size, AlignVal align, OcFlags flags) -> ustl::Rc<Self>;
+        static auto create(char const *name, usize obj_size, AlignVal align, OcFlags flags) -> Self *;
 
         template <typename Object>
         FORCE_INLINE
-        static auto create(char const *name, OcFlags flags) -> ustl::Rc<Self> {
+        static auto create(char const *name, OcFlags flags) -> Self * {
             return create(name, sizeof(Object), alignof(Object), flags);
         }
 
@@ -158,44 +156,17 @@ namespace ours::mem {
             return do_allocate(gaf_, nid);
         }
 
-        template <typename T, typename... Args> 
-        auto allocate(Args &&...args) -> T * {
-            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
-            auto const object = do_allocate(current_node());
-            if (!object) {
-                return nullptr;
-            }
-            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
+        FORCE_INLINE
+        auto allocate(Gaf gaf, NodeId nid) -> void * {
+            return allocate(1, gaf, nid);
         }
 
-        template <typename T, typename... Args> 
-        auto allocate(NodeId nid, Args &&...args) -> T * {
-            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
-            auto const object = do_allocate(nid);
-            if (!object) {
-                return nullptr;
-            }
-            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
-        }
-
-        template <typename T, typename... Args> 
-        auto allocate(Gaf gaf, Args &&...args) -> T * {
-            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
-            auto const object = do_allocate(gaf, current_node());
-            if (!object) {
-                return nullptr;
-            }
-            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
-        }
-
-        template <typename T, typename... Args> 
-        auto allocate(Gaf gaf, NodeId nid, Args &&...args) -> T * {
-            DEBUG_ASSERT(sizeof(T) <= object_size_, "The size of object is too large");
+        auto allocate(usize n, Gaf gaf, NodeId nid) -> void * {
             auto const object = do_allocate(gaf, nid);
             if (!object) {
                 return nullptr;
             }
-            return ustl::mem::construct_at(reinterpret_cast<T *>(object), ustl::forward<Args>(args)...);
+            return object;
         }
 
         auto do_deallocate(void *object) -> void {

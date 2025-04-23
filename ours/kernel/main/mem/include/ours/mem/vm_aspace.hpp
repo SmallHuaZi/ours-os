@@ -79,7 +79,7 @@ namespace ours::mem {
         friend class VmArea;
         friend class VmMapping;
 
-        auto init() -> Status;
+        auto init(VmaFlags) -> Status;
 
         GKTL_CANARY(VmAspace, canary_);
 

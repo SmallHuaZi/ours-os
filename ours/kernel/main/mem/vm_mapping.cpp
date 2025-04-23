@@ -1,5 +1,5 @@
 #include <ours/mem/vm_mapping.hpp>
-#include <ours/mem/vm_object.hpp>
+#include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_object_paged.hpp>
 #include <ours/mem/vm_aspace.hpp>
 #include <ours/mem/object-cache.hpp>
@@ -7,6 +7,7 @@
 
 #include <ustl/mem/align.hpp>
 #include <gktl/init_hook.hpp>
+#include <ktl/new.hpp>
 
 namespace ours::mem {
     /// This helper class was used to batch mapping requests.
@@ -62,32 +63,38 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    static ustl::Rc<ObjectCache> s_vm_mapping_cache;
+    static ObjectCache *s_vm_mapping_cache;
 
-    VmMapping::VmMapping(VirtAddr base, usize size, VmArea *vma, VmaFlags vmaf, 
+    VmMapping::VmMapping(VirtAddr base, usize size, VmArea *vma,
                          PgOff vmo_off, ustl::Rc<VmObject> vmo, MmuFlags mmuf, 
                          const char *name)
-        : Base(base, size, vmaf, name),
-          vmo_pgoff_(vmo_off), vmo_(ustl::move(vmo)), mmuf_(mmuf)
+        : vmo_pgoff_(vmo_off), vmo_(ustl::move(vmo)), mmuf_(mmuf)
     {}
 
-    auto VmMapping::create(VirtAddr base, usize size, VmArea *vma, VmaFlags vmaf, 
+    auto VmMapping::create(VirtAddr base, usize size, VmArea *vma, 
                            PgOff vmo_off, ustl::Rc<VmObject> vmo, MmuFlags mmuf, 
-                           const char *name)
-        -> ustl::Result<ustl::Rc<Self>, Status> {
+                           const char *name, ustl::Rc<Self> *out) -> Status {
         if (!vmo) {
-            return ustl::err(Status::InvalidArguments);
+            return Status::InvalidArguments;
         }
 
-        auto mapping = s_vm_mapping_cache->allocate<VmMapping>(base, size, vma, vmaf, vmo_off, vmo, mmuf, name);
+        auto mapping = new (*s_vm_mapping_cache, kGafKernel) VmMapping(base, size, vma, vmo_off, vmo, mmuf, name);
         if (!mapping) {
-            return ustl::err(Status::OutOfMem); 
+            return Status::OutOfMem; 
         }
+        *out = ustl::make_rc<Self>(mapping);
 
-        return ustl::ok(ustl::make_rc<Self>(mapping));
+        return Status::Ok;
     }
 
-    auto VmMapping::activate() -> void {}
+    FORCE_INLINE
+    auto VmMapping::check_sburange(PgOff pgoff, usize nr_pages) const -> bool {
+        return (pgoff + nr_pages) < (size_ >> PAGE_SHIFT);
+    }
+
+    auto VmMapping::activate() -> void {
+        vma_->mapping_ = this;
+    }
 
     FORCE_INLINE
     auto VmMapping::map_paged(PgOff pgoff, usize nr_pages, bool commit, MapControl control, VmObjectPaged *vmo) -> Status {
@@ -123,12 +130,8 @@ namespace ours::mem {
             return Status::InvalidArguments;
         }
 
-        if (!is_valid_vpn_range(pgoff, nr_pages)) {
+        if (!check_sburange(pgoff, nr_pages)) {
             return Status::InvalidArguments;
-        }
-
-        if (!is_active()) {
-            return Status::BadState;
         }
 
         if (auto vmo = downcast<VmObjectPaged>(vmo_.as_ptr_mut())) {
@@ -140,9 +143,11 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-
     auto VmMapping::unmap(PgOff pgoff, usize size, UnMapControl control) -> Status {
+        return Status::Unimplemented;
+    }
 
+    auto VmMapping::fault(VmFault *vmf) -> void {
     }
 
     INIT_CODE

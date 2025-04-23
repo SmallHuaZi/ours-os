@@ -2,9 +2,10 @@
 #include <ours/mem/object-cache.hpp>
 
 #include <gktl/init_hook.hpp>
+#include <ktl/new.hpp>
 
 namespace ours::mem {
-    static ustl::Rc<ObjectCache> s_vm_cow_pages_cache;
+    static ObjectCache *s_vm_cow_pages_cache;
 
     VmCowPages::VmCowPages(Gaf gaf, usize nr_pages)
         : gaf_(gaf),
@@ -14,7 +15,7 @@ namespace ours::mem {
     auto VmCowPages::create(Gaf gaf, usize nr_pages) 
         -> ustl::Result<ustl::Rc<VmCowPages>, Status>
     {
-        auto cow_pages = s_vm_cow_pages_cache->allocate<Self>(kGafKernel, gaf, nr_pages);
+        auto cow_pages = new (*s_vm_cow_pages_cache, kGafKernel) Self(gaf, nr_pages);
         if (!cow_pages) {
             return ustl::err(Status::OutOfMem);
         }

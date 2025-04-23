@@ -16,7 +16,7 @@ namespace logz4 {
         }
     }
 
-    auto log_impl(Logger &logger, Level level, ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void {
+    auto do_log(Logger &logger, Level level, ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void {
         // logger.log({ 
         //     .level = level,
         //     .args = args,
@@ -52,9 +52,7 @@ namespace logz4 {
         write(s_format_buffer, end - s_format_buffer + 1);
     }
 
-    auto wlog(Logger &logger, Level level, ustl::views::WStringView fmt, ustl::fmt::FormatArgs const &args) -> void
-    {
-
+    auto do_wlog(Logger &logger, Level level, ustl::views::WStringView fmt, ustl::fmt::FormatArgs const &args) -> void {
     }
 
 } // namespace logz4

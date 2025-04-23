@@ -64,6 +64,8 @@ namespace ustl {
         typedef Element &           RefMut;
         typedef Element const &     Ref;
 
+        Result() = default;
+
         USTL_FORCEINLINE USTL_CONSTEXPR
         Result(Ok<T> &&ok) USTL_NOEXCEPT
             : storage_(Inplace<Element>(), ustl::forward<Element>(ok.value_))

@@ -3,6 +3,7 @@
 
 #include <logz4/log.hpp>
 
+#include <ktl/new.hpp>
 #include <gktl/init_hook.hpp>
 #include <ustl/mem/align.hpp>
 
@@ -10,7 +11,7 @@ using ustl::mem::align_up;
 using ustl::mem::align_down;
 
 namespace ours::mem {
-    static ustl::Rc<ObjectCache> s_vmo_paged_cache;
+    static ObjectCache *s_vmo_paged_cache;
 
     VmObjectPaged::VmObjectPaged(VmoFLags vmof, ustl::Rc<VmCowPages> cowpages)
         : Base(Type::Paged, vmof),
@@ -25,7 +26,7 @@ namespace ours::mem {
             return ustl::err(cow_pages.unwrap_err());
         }
 
-        auto vmo = s_vmo_paged_cache->allocate<VmObjectPaged>(vmof, ustl::move(cow_pages.unwrap()));
+        auto vmo = new (*s_vmo_paged_cache, kGafKernel) VmObjectPaged(vmof, ustl::move(cow_pages.unwrap()));
         if (!vmo) {
             return ustl::err(Status::OutOfMem);
         }

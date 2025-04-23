@@ -55,7 +55,7 @@ namespace ustl {
 
         // Downcast is allowed but need to be give out explicitly.
         template <typename U>
-            requires traits::IsBaseOfV<U, T>
+            requires (traits::IsBaseOfV<U, T> && !traits::IsSameV<T, U>)
         USTL_FORCEINLINE
         explicit Rc(U *ptr) USTL_NOEXCEPT
             : pointer_(static_cast<T *>(ptr)),

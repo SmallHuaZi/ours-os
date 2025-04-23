@@ -8,16 +8,20 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef HEAP_LIB_HPP
-#define HEAP_LIB_HPP 1
+#ifndef KTL_KMALLOC_HPP
+#define KTL_KMALLOC_HPP 1
 
-#include <ours/config.hpp>
+#include <ktl/types.hpp>
 
-namespace heap {
-    auto malloc() -> void;
+namespace ktl {
+    auto init_kmalloc() -> void;
 
-    auto free() -> void;
+    auto kmalloc(usize size, Gaf gaf) -> void *;
 
-} // namespace heap
+    auto kmalloc(usize size, Gaf gaf, NodeId nid) -> void *;
 
-#endif // #ifndef HEAP_LIB_HPP
+    auto kfree(void *object) -> void;
+
+} // namespace ktl
+
+#endif // #ifndef KTL_KMALLOC_HPP

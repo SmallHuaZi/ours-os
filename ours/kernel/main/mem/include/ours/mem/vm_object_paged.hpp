@@ -48,7 +48,10 @@ namespace ours::mem {
         ///
         virtual auto write(void *out, PgOff pgoff, usize size) -> Status override;
 
-        auto make_cursor(PgOff pgoff, usize n) -> ustl::Result<VmCowPages::Cursor, Status>;
+        FORCE_INLINE
+        auto make_cursor(PgOff pgoff, usize n) -> ustl::Result<VmCowPages::Cursor, Status> {
+            return cow_pages_->make_cursor(pgoff, n);
+        }
 
         /// Priviate on logic, please go to use the facotry member like VmObjectPaged::create*.
         VmObjectPaged(VmoFLags vmof, ustl::Rc<VmCowPages>);
@@ -56,6 +59,7 @@ namespace ours::mem {
     private:
         auto commit_range_internal(PgOff offset, usize n, CommitOptions option) -> Status;
 
+        VmMappingList mappings_;
         ustl::Rc<VmCowPages> cow_pages_;
         Mutex mutex_;
     };

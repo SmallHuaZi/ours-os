@@ -16,8 +16,8 @@
 
 #include <arch/cache.hpp>
 
+#include <ktl/new.hpp>
 #include <logz4/log.hpp>
-#include <ktl/page_guard.hpp>
 
 using ustl::mem::align_up;
 using ustl::mem::align_down;
@@ -185,7 +185,7 @@ namespace ours {
     auto DynChunk::init(VirtAddr base, VirtAddr size) -> void {
         // This is the top half
         auto const nr_blocks = init_common(base, size);
-        auto raw_maps = new AllocationMapPerBlock[nr_blocks];
+        auto raw_maps = new (mem::kGafKernel) AllocationMapPerBlock[nr_blocks];
         if (!raw_maps) {
             log::error("Failed to allocate allocation maps for dynamic cpu local chunk.");
             return;
@@ -409,7 +409,7 @@ namespace ours {
         };
     
     #define MEMBER_INIT_IF_ERROR_THEN_RETURN(Member, Number) \
-        auto raw_##Member = new ustl::traits::RemoveCvRefT<decltype(CpuLocalAreaInfo::Member[0])>[Number];\
+        auto raw_##Member = new (mem::kGafKernel) ustl::traits::RemoveCvRefT<decltype(CpuLocalAreaInfo::Member[0])>[Number];\
         if (!raw_##Member) {\
             log::trace("Failed to allocate map for "#Member);\
             do_reclaim();\
@@ -534,7 +534,7 @@ namespace ours {
 
         auto size_sum = early_cpu_local_area_size();
         auto const dyn_size = size_sum - static_cpu_local_area_size();
-        auto const replica = mem::EarlyMem::allocate<u8>(early_cpu_local_area_size(), kPageAlign, NodeId(MAX_NODE));
+        auto const replica = mem::EarlyMem::allocate<u8>(early_cpu_local_area_size(), PAGE_SIZE, NodeId(MAX_NODE));
         if (!replica) {
             panic("No enough memory to place boot cpu-local area");
         }

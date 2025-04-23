@@ -27,17 +27,17 @@ namespace logz4 {
 
     auto set_global_logger(Logger &logger) -> void;
 
-    auto log_impl(Logger &logger, Level level, ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void;
+    auto do_log(Logger &logger, Level level, ustl::views::StringView fmt, ustl::fmt::FormatArgs const &args) -> void;
 
-    auto wlog_impl(Logger &logger, Level level, ustl::views::WStringView fmt, ustl::fmt::FormatArgs const &args) -> void;
+    auto do_wlog(Logger &logger, Level level, ustl::views::WStringView fmt, ustl::fmt::FormatArgs const &args) -> void;
 
     template <typename... Args>
     auto log(Logger &logger, Level level, ustl::views::StringView fmt, Args &&...args) -> void
-    {  return log_impl(logger, level, fmt, ustl::fmt::make_format_args(args...));  }
+    {  return do_log(logger, level, fmt, ustl::fmt::make_format_args(args...));  }
 
     template <typename... Args>
     auto wlog(Logger &logger, Level level, ustl::views::WStringView fmt, Args &&...args) -> void
-    {  return wlog_impl(logger, level, fmt, ustl::fmt::make_format_args(args...));  }
+    {  return do_wlog(logger, level, fmt, ustl::fmt::make_format_args(args...));  }
 
     template <typename... Args>
     inline auto debug(Logger &logger, ustl::views::StringView fmt, Args &&...args) -> void

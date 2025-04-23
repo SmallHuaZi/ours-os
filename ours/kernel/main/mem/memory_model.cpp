@@ -1,12 +1,12 @@
 #include <ours/mem/memory_model.hpp>
 #include <ours/mem/vmm.hpp>
 #include <ours/mem/pmm.hpp>
-#include <ours/mem/scope.hpp>
 #include <ours/mem/pm_zone.hpp>
 #include <ours/mem/early-mem.hpp>
 #include <ours/mem/pm_node.hpp>
 #include <ours/panic.hpp>
 
+#include <ktl/new.hpp>
 #include <logz4/log.hpp>
 #include <ustl/algorithms/minmax.hpp>
 
@@ -18,7 +18,7 @@ namespace ours::mem {
     static auto memory_model_allocate(usize n, AlignVal alignment, NodeId nid) -> T * {
         T *object;
         if (pmm_enabled()) {
-            object = new T[n];
+            object = new (kGafKernel, nid) T[n];
         } else {
             object = EarlyMem::allocate<T>(n, alignment, nid);
             if (!object) {
@@ -57,7 +57,7 @@ namespace ours::mem {
 
     INIT_CODE
     auto MemoryModel::init(bool map_init) -> Status {
-        sgd_ = memory_model_allocate<PmSection>(kEntriesPerSection, kPageAlign, NodeId(0));
+        sgd_ = memory_model_allocate<PmSection>(kEntriesPerSection, PAGE_SIZE, NodeId(0));
         if (!sgd_) {
             panic("Failed to allocate memory for root section");
         }
@@ -159,7 +159,7 @@ namespace ours::mem {
                 section = section->section_map().data();
             } else {
                 // No sub section map, need we to create a new.
-                auto submap = memory_model_allocate<PmSection>(kEntriesPerSection, kPageAlign, nid);
+                auto submap = memory_model_allocate<PmSection>(kEntriesPerSection, PAGE_SIZE, nid);
                 if (!submap) {
                     return ustl::err(Status::OutOfMem);
                 }
@@ -193,7 +193,7 @@ namespace ours::mem {
         }
 
         auto const nr_frames = kFramesPerLevel[section->level()];
-        auto framemap = memory_model_allocate<PmFrame>(nr_frames, kPageAlign, nid);
+        auto framemap = memory_model_allocate<PmFrame>(nr_frames, PAGE_SIZE, nid);
         if (!framemap) {
             return ustl::err(Status::OutOfMem);
         }

@@ -1,5 +1,4 @@
 #include <ours/mem/vm_aspace.hpp>
-#include <ours/mem/scope.hpp>
 #include <ours/arch/aspace_layout.hpp>
 #include <ours/mem/object-cache.hpp>
 
@@ -7,13 +6,13 @@
 #include <ustl/sync/lockguard.hpp>
 
 #include <logz4/log.hpp>
-#include <heap/scope.hpp>
 #include <gktl/init_hook.hpp>
+#include <ktl/new.hpp>
 
 namespace ours::mem {
     /// Manage the lifetime manually.
     /// The global-unique address sapce.
-    static ustl::Rc<ObjectCache>        s_aspace_cache;
+    static ObjectCache *s_aspace_cache;
 
     VmAspace::VmAspace(VirtAddr base, usize size, VmasFlags flags, char const *name)
         : Base(),
@@ -45,12 +44,12 @@ namespace ours::mem {
     auto VmAspace::create(VirtAddr base, usize size, VmasFlags flags, char const *name) 
         -> ustl::Rc<VmAspace>
     {
-        auto aspace = s_aspace_cache->allocate<Self>(kGafKernel, base, size, flags, name);
+        auto aspace = new (*s_aspace_cache, kGafKernel) VmAspace(base, size, flags, name);
         if (!aspace) {
             return nullptr;
         }
 
-        aspace->init();
+        aspace->init(VmaFlags::Read | VmaFlags::Write | VmaFlags::Exec | VmaFlags::Share);
         {
             // Entrollment into the global list.
             ustl::sync::LockGuard guard(Self::all_aspace_list_mutex_);
@@ -87,24 +86,24 @@ namespace ours::mem {
         return nullptr;
     }
 
-    auto VmAspace::init() -> Status {
+    auto VmAspace::init(VmaFlags vmaf) -> Status {
         auto status = this->arch_.init();
         if (status != Status::Ok) {
             return status;
         }
-        auto may_vma = VmArea::create(this, base_, size_, {}, "RootVma");
-        if (!may_vma) {
+
+        status = VmArea::create(this, base_, size_, vmaf, "RootVma", &root_vma_);
+        if (status != Status::Ok) {
             return Status::OutOfMem;
         }
-        root_vma_ = ustl::move(*may_vma);
 
         return Status::Ok;
     }
 
     auto VmAspace::fault(VirtAddr virt_addr, VmfCause cause) -> void {
         if (!fault_cache_) [[likely]] {
-            if (fault_cache_->contains(virt_addr)) {
-            }
+            // if (fault_cache_->contains(virt_addr)) {
+            // }
         } else {
             // if (auto fault = root_vma_.find_subvma(virt_addr)) {
             //     fault_cache_ = ustl::move(fault);

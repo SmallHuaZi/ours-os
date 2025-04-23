@@ -12,6 +12,7 @@
 #define OURS_MEM_CFG_HPP 1
 
 #include <ours/macro_abi.hpp>
+#include <arch/macro/irqframe.hpp>
 
 #ifndef OURS_CONFIG_MAX_NODES
 #   if OURS_CONFIG_NUMA == 1 || OURS_CONFIG_NUMA_EMULATION == 1

@@ -14,7 +14,6 @@
 #include <ours/status.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/fault.hpp>
-#include <ours/mem/vm_area_base.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/result.hpp>
@@ -25,16 +24,25 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
+    class ProtectedRegionSet {
+    public:
+        
+    private:
+        struct ProtectedNode: public ustl::collections::intrusive::SetBaseHook<> {
+            VirtAddr size;
+            MmuFlags mmuf;
+        };
+    };
+
     /// VmMapping is the representation of a or a group of area which has been mapped in 
     /// virtual memory address space.
     /// 
     /// It was usually created by VmArea out of some mapping request.
-    class VmMapping: public VmAreaBase {
+    class VmMapping: public ustl::RefCounter<VmMapping> {
         typedef VmMapping   Self;
-        typedef VmAreaBase  Base;
     public:
-        static auto create(VirtAddr, usize, VmArea *, VmaFlags, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *name) 
-            -> ustl::Result<ustl::Rc<Self>, Status>;
+        static auto create(VirtAddr, usize, VmArea *, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *, ustl::Rc<Self> *) 
+            -> Status;
         
         auto map(PgOff, usize nr_pages, bool commit, MapControl control) -> Status;
 
@@ -42,7 +50,6 @@ namespace ours::mem {
 
         auto unmap(PgOff, usize nr_pages, UnMapControl control) -> Status;
 
-        FORCE_INLINE
         auto fault(VmFault *vmf) -> void;
 
         FORCE_INLINE
@@ -50,7 +57,17 @@ namespace ours::mem {
             return aspace_;
         }
 
-        VmMapping(VirtAddr base, usize, VmArea *, VmaFlags, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *name);
+        FORCE_INLINE
+        auto base() const -> VirtAddr {
+            return base_;
+        }
+
+        FORCE_INLINE
+        auto size() const -> VirtAddr {
+            return size_;
+        }
+
+        VmMapping(VirtAddr, usize, VmArea *, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *);
         virtual ~VmMapping() = default;
     private:
         friend class VmArea;
@@ -58,21 +75,24 @@ namespace ours::mem {
         
         auto map_paged(PgOff pgoff, usize nr_pages, bool commit, MapControl control, VmObjectPaged *vmo) -> Status;
 
-        virtual auto activate() -> void override;
+        auto activate() -> void;
 
+        auto check_sburange(PgOff pgoff, usize nr_pages) const -> bool;
+
+        GKTL_CANARY(VmMapping, canary_);
         MmuFlags mmuf_;
+        VirtAddr base_;
+        VirtAddr size_;
         ustl::Rc<VmArea> vma_;
         ustl::Rc<VmObject> vmo_;
+        ustl::Rc<VmAspace> aspace_;
         PgOff vmo_pgoff_;
-
-        ustl::collections::intrusive::SetMemberHook<> vma_set_hook_;
-        ustl::collections::intrusive::ListMemberHook<> vmo_list_hook_;
+        ProtectedRegionSet protected_regions_;
+        ustl::collections::intrusive::ListMemberHook<> list_hook_;
     public:
-        USTL_DECLARE_HOOK_OPTION(Self, vma_set_hook_, VmaSetHookOptions);
-        USTL_DECLARE_HOOK_OPTION(Self, vmo_list_hook_, VmoListHookOptions);
+        USTL_DECLARE_HOOK_OPTION(Self, list_hook_, VmoListHookOptions);
     };
     USTL_DECLARE_LIST(VmMapping, VmMappingList, VmMapping::VmoListHookOptions);
-    USTL_DECLARE_MULTISET(VmMapping, VmMappingSet, VmMapping::VmaSetHookOptions);
 
 } // namespace ours::mem
 

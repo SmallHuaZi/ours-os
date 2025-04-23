@@ -7,7 +7,6 @@ set(source_set
     "pmm.cpp"
     "object-cache.cpp"
     "vmm.cpp"
-    "scope.cpp"
     "stack.cpp"
     "early-mem.cpp"
     "pm_frame.cpp"
@@ -17,9 +16,9 @@ set(source_set
     # VMM
     "vm_aspace.cpp"
     "vm_area.cpp"
-    "vm_object_paged.cpp"
-    "vm_object.cpp"
     "vm_mapping.cpp"
+    "vm_object.cpp"
+    "vm_object_paged.cpp"
     "vm_cow_pages.cpp"
 )
 
@@ -33,5 +32,4 @@ target_link_libraries(kernel_mem
 INTERFACE
     kernel::main::headers
     kernel::lib::kmrd
-    kernel::lib::heap
 )

@@ -8,19 +8,32 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef KTL_RESULT_HPP
-#define KTL_RESULT_HPP 1
+#ifndef KTL_TYPES_HPP
+#define KTL_TYPES_HPP 1
 
+#include <ours/types.hpp>
 #include <ours/status.hpp>
-#include <ustl/result.hpp>
+#include <ours/mem/gaf.hpp>
 
 namespace ktl {
-    template <typename T>
-    using Result = ustl::Result<T, ours::Status>;
+    using ours::u8;
+    using ours::u16;
+    using ours::u32;
+    using ours::u64;
+    using ours::usize;
 
-    using ustl::ok; 
-    using ustl::err;
+    using ours::i8;
+    using ours::i16;
+    using ours::i32;
+    using ours::i64;
+    using ours::isize;
 
+    using ours::NodeId;
+    using ours::HIrqNum;
+    using ours::VIrqNum;
+    using ours::Status;
+
+    using ours::mem::Gaf;
 } // namespace ktl
 
-#endif // #ifndef KTL_RESULT_HPP
+#endif // #ifndef KTL_TYPES_HPP

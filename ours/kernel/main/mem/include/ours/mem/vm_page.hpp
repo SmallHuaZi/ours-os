@@ -23,7 +23,7 @@ namespace ours::mem {
         typedef VmPage  Self;
 
         VmObject *vmo; // For reverse mapping.
-        ustl::sync::AtomicU32 vmo_index;    // Index in VMO's page list
+        ustl::sync::AtomicU32 vmo_index;    // Index in VMO's page map
         ustl::sync::AtomicU16 num_mappings;
         ustl::sync::AtomicU16 num_users;
     };

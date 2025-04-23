@@ -22,6 +22,8 @@
 #include <ustl/algorithms/minmax.hpp>
 #include <ustl/algorithms/generation.hpp>
 
+#include <ktl/kmalloc.hpp>
+
 #include <logz4/log.hpp>
 
 #include <arch/cache.hpp>
@@ -83,7 +85,7 @@ namespace ours::mem {
 
     INIT_CODE FORCE_INLINE
     static auto alloc_node(NodeId id) -> PmNode * {
-        auto node = EarlyMem::allocate<PmNode>(1, kCacheAlign, id);
+        auto node = EarlyMem::allocate<PmNode>(1, CACHE_SIZE, id);
         if (!node) {
             panic("Fail to allocate for PmNode[{}]", id);
         }
@@ -182,6 +184,7 @@ namespace ours::mem {
         EarlyMem::do_handoff();
 
         init_object_cache();
+        ktl::init_kmalloc();
 
         // Ok, PMM is available now.
         g_pmm_enabled = true;
