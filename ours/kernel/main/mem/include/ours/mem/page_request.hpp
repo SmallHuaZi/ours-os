@@ -15,7 +15,7 @@
 #include <ours/status.hpp>
 
 #include <ustl/rc.hpp>
-#include <gktl/xarray.hpp>
+#include <ktl/xarray.hpp>
 
 namespace ours::mem {
     class PageRequest {

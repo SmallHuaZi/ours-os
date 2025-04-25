@@ -20,16 +20,17 @@ namespace arch::paging {
         OverwriteIfExisting,
         ErrorIfExisting,
         TryLargePage = BIT(2),
+
+        /// 
+        TryMerge = BIT(3),
     };
     USTL_ENABLE_ENUM_BITMASK(MapControl);
 
-    enum class UnMapControl {
-        // Allow us to unmap the path to the pte of termnal node but
-        // not unmap the terminal node.
-        WithoutTerminal,
-        OnlyTerminal,
+    enum class UnmapControl {
+        /// For semantics.
+        None,
     };
-    USTL_ENABLE_ENUM_BITMASK(UnMapControl);
+    USTL_ENABLE_ENUM_BITMASK(UnmapControl);
 
     enum class HarvestControl {
         /// Only updates the frame's age if it is accessed.

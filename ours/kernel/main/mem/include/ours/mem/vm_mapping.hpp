@@ -32,6 +32,7 @@ namespace ours::mem {
             VirtAddr size;
             MmuFlags mmuf;
         };
+        ustl::collections::intrusive::Set<ProtectedNode> regions_;
     };
 
     /// VmMapping is the representation of a or a group of area which has been mapped in 
@@ -48,7 +49,7 @@ namespace ours::mem {
 
         auto protect(PgOff, usize nr_pages, usize size, MmuFlags mmuf) -> Status;
 
-        auto unmap(PgOff, usize nr_pages, UnMapControl control) -> Status;
+        auto unmap(PgOff, usize nr_pages, UnmapControl control) -> Status;
 
         auto fault(VmFault *vmf) -> void;
 

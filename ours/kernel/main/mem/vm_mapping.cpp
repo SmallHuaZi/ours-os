@@ -29,6 +29,7 @@ namespace ours::mem {
         VirtAddr va_;
         PhysAddr pa_[MaxNumPages];
         usize nr_pages_;
+        usize total_mapped_;
         MmuFlags mmuf_;
         MapControl map_ctrl_;
     };
@@ -50,16 +51,17 @@ namespace ours::mem {
             return Status::Ok;
         }
 
-        auto result = mapping_->aspace()
+        usize nr_mapped = 0;
+        auto status = mapping_->aspace()
                               ->arch_aspace()
-                              .map_bulk(va_, pa_, nr_pages_, mmuf_, MapControl::TryLargePage);
-        if (!result) {
+                              .map_bulk(va_, pa_, nr_pages_, mmuf_, MapControl::TryLargePage, &nr_mapped);
+        if (Status::Ok != status) {
             log::error("Failed to map {} pages at {}", nr_pages_, va_);
-            return result.unwrap_err();
         }
 
         va_ += nr_pages_ * PAGE_SIZE;
         nr_pages_ = 0;
+        total_mapped_ += nr_mapped;
         return Status::Ok;
     }
 
@@ -143,7 +145,11 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmMapping::unmap(PgOff pgoff, usize size, UnMapControl control) -> Status {
+    auto VmMapping::protect(PgOff, usize nr_pages, usize size, MmuFlags mmuf) -> Status {
+        return Status::Unimplemented;
+    }
+
+    auto VmMapping::unmap(PgOff pgoff, usize size, UnmapControl control) -> Status {
         return Status::Unimplemented;
     }
 

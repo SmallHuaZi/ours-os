@@ -13,6 +13,7 @@
 
 #include <arch/types.hpp>
 #include <arch/paging/mmu_flags.hpp>
+#include <arch/paging/arch_mmu_flags.hpp>
 #include <ustl/option.hpp>
 #include <ustl/result.hpp>
 #include <ustl/util/pair.hpp>
@@ -37,12 +38,18 @@ namespace arch::paging {
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto virt_addr() const -> VirtAddr {
+            DEBUG_ASSERT(consumed_ < size_);
             return addr_ + consumed_;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto consume(usize page_size) -> void {
             consumed_ += page_size;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto consumed_range() const -> VirtAddrCursor {
+            return VirtAddrCursor(addr_, consumed_);
         }
 
         usize size_;
@@ -95,7 +102,7 @@ namespace arch::paging {
         GenericMappingContext() = default;
 
         GenericMappingContext(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
-            : flags_(flags),
+            : flags_(mmuflags_cast<ArchMmuFlags>(flags)),
               virt_cursor_(va, page_size * n),
               phys_cursor_(pa, n, page_size)
         {}
@@ -111,7 +118,7 @@ namespace arch::paging {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto flags() const -> MmuFlags {  
+        auto flags() const -> ArchMmuFlags {  
             return flags_;  
         }
 
@@ -127,7 +134,7 @@ namespace arch::paging {
 
         FORCE_INLINE
         auto virt_cursor() -> VirtAddrCursor & {  
-            return virt_cursor_;  
+            return virt_cursor_;
         }
 
         FORCE_INLINE
@@ -157,7 +164,7 @@ namespace arch::paging {
         }
 
     private:
-        MmuFlags flags_;
+        ArchMmuFlags flags_;
         PhysAddrCursor phys_cursor_;
         VirtAddrCursor virt_cursor_;
     };

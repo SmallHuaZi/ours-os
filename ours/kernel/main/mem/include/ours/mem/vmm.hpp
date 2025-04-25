@@ -12,6 +12,7 @@
 #define OURS_MEM_VMM_HPP 1
 
 #include <ours/mem/types.hpp>
+#include <ours/mem/vm_area.hpp>
 
 namespace ours::mem {
     /// Do not use the following symbols directly.
@@ -72,6 +73,13 @@ namespace ours::mem {
     auto virt_to_phys(VirtAddr) -> PhysAddr;
 
     auto phys_to_virt(PhysAddr) -> VirtAddr;
+
+    enum class VmMapOption {
+        Commit = BIT(0),
+        Pinned = BIT(1),
+    };
+    USTL_ENABLE_ENUM_BITMASK(VmMapOption);
+    auto vmmap(usize nr_pages, VmaFlags vmaf, char const *name, VmMapOption options) -> ustl::Result<VirtAddr, Status>;
 
 } // namespace ours::mem
 

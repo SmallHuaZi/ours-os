@@ -12,6 +12,7 @@
 #define ARCH_PAGING_PAGING_TRAITS_HPP 1
 
 #include <arch/paging/paging_dispatcher.hpp>
+#include <arch/paging/arch_mmu_flags.hpp>
 
 #include <ustl/array.hpp>
 #include <ustl/traits/enum.hpp>
@@ -81,6 +82,16 @@ namespace arch::paging {
         FORCE_INLINE CXX11_CONSTEXPR 
         static auto max_entries(LevelType level) -> usize {
             return Paging::max_entries(level);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR 
+        static auto arhc_mmu_flags_from_pte(LevelType level, PteVal<kFinalLevel> pte) -> ArchMmuFlags {
+            return Paging::arhc_mmu_flags_from_pte(level, pte);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR 
+        static auto phys_addr_from_pte(LevelType level, PteVal<kFinalLevel> pte) -> PhysAddr {
+            return Paging::phys_addr_from_pte(level, pte);
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 

@@ -16,16 +16,18 @@
 #include <ours/mem/vm_page.hpp>
 
 #include <ktl/new.hpp>
-#include <gktl/xarray.hpp>
+#include <ktl/allocator.hpp>
+#include <ktl/xarray.hpp>
 #include <ustl/bitfields.hpp>
 
 namespace ours::mem {
     class VmPageMap {
+    public:
         enum class Tag {
             Owned,
             Borrowed = BIT(0),
         };
-    public:
+
         FORCE_INLINE
         auto get_page(PgOff index) -> VmPage * {
             auto option = pages_.load(index).cast_to<VmPage *>();
@@ -36,26 +38,12 @@ namespace ours::mem {
         }
 
         FORCE_INLINE
-        auto insert_page(PgOff index, VmPage *page, /*states*/...) -> void {
+        auto insert_page(PgOff index, VmPage *page, Tag tag = Tag::Owned) -> void {
             pages_.store(index, pages_.make_entry(page));
         }
     
     private:
-        struct TempAllocator {
-            template <typename T>
-            FORCE_INLINE
-            static auto allocate() -> T * {
-                return new (kGafKernel) T();
-            }
-
-            template <typename T>
-            FORCE_INLINE
-            static auto deallocate(T *t) -> void {
-                delete t;
-            }
-        };
-
-        gktl::Xarray<TempAllocator>  pages_;
+        ktl::Xarray<ktl::Allocator<char>>  pages_;
     };
 
 } // namespace ours::mem

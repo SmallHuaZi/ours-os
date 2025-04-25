@@ -60,7 +60,7 @@ namespace ours::phys {
     auto KernelBoot::load() -> void {
         auto const image_size = ustl::mem::align_up(kimage_.size(), PAGE_SIZE);
         auto const mem = global_bootmem();
-        PhysAddr target_addr = mem->allocate(image_size, kMaxPageAlign);
+        PhysAddr target_addr = mem->allocate(image_size, PAGE_SIZE);
         if (!target_addr) {
             panic("No enough memory to place image");
         }
@@ -83,7 +83,7 @@ namespace ours::phys {
         auto aspace = global_aspace();
         DEBUG_ASSERT(aspace, "Global aspace must be initialized");
 
-        auto const nr_pages = ustl::mem::align_up(kernel_size_, PAGE_SIZE);
+        auto const nr_pages = ustl::mem::align_up(kernel_size_, PAGE_SIZE) / PAGE_SIZE;
         auto result = aspace->map(KERNEL_LOAD_BASE + kaslr_offset_, nr_pages , kernel_addr_, kDefaultKernelMmuFlags);
         DEBUG_ASSERT(result.is_ok(), "Failed to map kernel image");
 

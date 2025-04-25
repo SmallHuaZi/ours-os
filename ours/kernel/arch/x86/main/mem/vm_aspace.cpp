@@ -22,15 +22,15 @@ namespace ours::mem {
     ///
     /// The layout above is kernel address space by default.
     ///
-    ///      (32GB) [0]--KERNEL_PDP[0]--KERNEL_PHYSMAP_PD[0..511]
+    ///      (32GB) [0]--g_pdp[0]--g_physmap_pd[0..511]
     ///              |
     ///              |
-    /// KERNEL_PGD--[..]-(NULL)
-    ///              |                [0]---KERNEL_PHYSMAP_PD[0][0..511]
+    /// g_pgd--[..]-(NULL)
+    ///              |                [0]---g_physmap_pd[0][0..511]
     ///              |                 |
-    ///    (512GB) [511]-KERNEL_PDP---ERNEL_PHYSMAP_PD[..][0..511]
+    ///    (512GB) [511]-g_pdp---g_physmap_pd[..][0..511]
     ///                                |
-    ///                               [31]---KERNEL_PHYSMAP_PD[31][0..511]
+    ///                               [31]---g_physmap_pd[31][0..511]
     ///
 
     /// In this file scope, it should be readonly.
@@ -42,6 +42,7 @@ namespace ours::mem {
     {}
 
     auto ArchVmAspace::init() -> Status {
+        canary_.verify();
         if (bool(VmasFlags::Kernel & flags_)) [[unlikely]] {
             // Kernel page table was provided by kernel.phys, so do not need to allocate memory.
             auto const phys_pgd = g_pgd;
@@ -69,21 +70,30 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto ArchVmAspace::map(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control) 
-        -> ustl::Result<usize, Status> {
-        return page_table_.map_pages(va, pa, n, flags, control);
+    auto ArchVmAspace::map(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control, usize *mapped) 
+        -> Status {
+        canary_.verify();
+        return page_table_.map_pages(va, pa, n, flags, control, mapped);
     }
 
-    auto ArchVmAspace::map_bulk(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, MapControl control) 
-        -> ustl::Result<usize, Status> {
-        return page_table_.map_pages_bulk(va, pa, n, flags, control);
+    auto ArchVmAspace::map_bulk(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, MapControl control, usize *mapped) 
+        -> Status {
+        canary_.verify();
+        return page_table_.map_pages_bulk(va, pa, n, flags, control, mapped);
     }
 
-    auto ArchVmAspace::unmap(VirtAddr va, usize n, UnMapControl control) -> Status {
-        return page_table_.unmap_pages(va, n, control);
+    auto ArchVmAspace::unmap(VirtAddr va, usize n, UnmapControl control, usize *unmapped) -> Status {
+        canary_.verify();
+        return page_table_.unmap_pages(va, n, control, unmapped);
     }
 
     auto ArchVmAspace::query(VirtAddr va, ai_out PhysAddr *pa, MmuFlags *flags) -> Status {
+        canary_.verify();
         return page_table_.query_mapping(va, pa, flags);
+    }
+
+    auto ArchVmAspace::protect(VirtAddr va, usize n, MmuFlags mmuf) -> Status {
+        canary_.verify();
+        return page_table_.protect_pages(va, n, mmuf);
     }
 }

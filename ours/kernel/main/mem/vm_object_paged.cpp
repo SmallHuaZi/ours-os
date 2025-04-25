@@ -18,17 +18,17 @@ namespace ours::mem {
           cow_pages_(ustl::move(cowpages))
     {}
 
-    auto VmObjectPaged::create(Gaf gaf, usize nr_pages, VmoFLags vmof)
-        -> ustl::Result<ustl::Rc<VmObjectPaged>, Status> {
+    auto VmObjectPaged::create(Gaf gaf, usize nr_pages, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status {
         // Check vmof
-        auto cow_pages = VmCowPages::create(gaf, nr_pages);
-        if (!cow_pages) {
-            return ustl::err(cow_pages.unwrap_err());
+        ustl::Rc<VmCowPages> cow_pages;
+        auto status = VmCowPages::create(gaf, nr_pages, &cow_pages);
+        if (Status::Ok != status) {
+            return status;
         }
 
-        auto vmo = new (*s_vmo_paged_cache, kGafKernel) VmObjectPaged(vmof, ustl::move(cow_pages.unwrap()));
+        auto vmo = new (*s_vmo_paged_cache, kGafKernel) VmObjectPaged(vmof, ustl::move(cow_pages));
         if (!vmo) {
-            return ustl::err(Status::OutOfMem);
+            return Status::OutOfMem;
         }
 
         /// A non-lazy VMO need we directly request pages it demands.
@@ -40,8 +40,9 @@ namespace ours::mem {
 
             vmo->commit_range(0, nr_pages, options);
         }
+        *out = ustl::make_rc<Self>(vmo);
 
-        return ustl::ok(ustl::make_rc<Self>(vmo));
+        return Status::Ok;
     }
 
     FORCE_INLINE

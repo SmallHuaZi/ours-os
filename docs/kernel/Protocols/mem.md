@@ -19,7 +19,7 @@ Description:
 4. __auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control) -> Status__ <br>
 Description:
 
-5. __auto unmap(VirtAddr, usize n, UnMapControl control) -> Status__ <br>
+5. __auto unmap(VirtAddr, usize n, UnmapControl control) -> Status__ <br>
 Description:
 
 6. __auto protect(VirtAddr, usize n, MmuFlags) -> Status__ <br>
@@ -49,7 +49,7 @@ public:
 
     auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control) -> Status;
 
-    auto unmap(VirtAddr, usize n, UnMapControl control) -> Status;
+    auto unmap(VirtAddr, usize n, UnmapControl control) -> Status;
 
     auto protect(VirtAddr, usize n, MmuFlags) -> Status;
 

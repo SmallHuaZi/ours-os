@@ -13,6 +13,7 @@
 
 #include <arch/macro/mmu.hpp>
 #include <arch/paging/mmu_flags.hpp>
+#include <arch/paging/arch_mmu_flags.hpp>
 #include <arch/paging/controls.hpp>
 #include <arch/paging/mapping_context.hpp>
 #include <arch/paging/paging_traits.hpp>
@@ -31,21 +32,18 @@ namespace arch::paging {
         IX86PageTable() = default;
         virtual ~IX86PageTable() = default;
 
-        auto init(PhysAddr pa_table, VirtAddr va_table) -> Status;
-
         /// Maps `n` frames starting from `|pa|` to the `|va|`, and the mapping is done with the specified `|flags|`.
         /// During the mapping process, those existing entries will be handled through `|control|`.
         /// Return the number of page mappped if success.
-        virtual auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags, MapControl)
-            -> ustl::Result<usize, Status> = 0;
+        virtual auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, usize *mapped) -> Status = 0;
 
         /// Maps `n` frames of physical memory starting from `phys_addr` to the virtual address `virt_addr`,
         /// and the mapping is done with the specified `flags`.
-        virtual auto map_pages_bulk(VirtAddr, PhysAddr *, usize len, MmuFlags flags, MapControl control)
-            -> ustl::Result<usize, Status> = 0;
+        virtual auto map_pages_bulk(VirtAddr, PhysAddr *, usize len, MmuFlags flags, MapControl control, usize *mapped)
+            -> Status = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
-        virtual auto unmap_pages(VirtAddr va, usize n, UnMapControl) -> Status = 0;
+        virtual auto unmap_pages(VirtAddr va, usize n, UnmapControl, usize *unmapped) -> Status = 0;
 
         /// Unmaps `n` pages of virtual memory starting from the address `virt_addr`.
         virtual auto protect_pages(VirtAddr va, usize n, MmuFlags flags) -> Status = 0;
@@ -57,6 +55,7 @@ namespace arch::paging {
 
         virtual auto alias_to(IX86PageTable const &other, VirtAddr base, usize nr_pages) -> Status = 0;
 
+        FORCE_INLINE
         auto install() const -> void {
             auto cr3 = Cr3::read();
             if (cr3.get<cr3.PageTableAddress>() != phys_) {
@@ -65,6 +64,7 @@ namespace arch::paging {
             }
         }
 
+        FORCE_INLINE
         auto page_usage() const -> usize {
             return pages_.load();
         }
@@ -78,35 +78,90 @@ namespace arch::paging {
         ustl::sync::AtomicUsize refcnt_;
     };
 
-    FORCE_INLINE
-    auto IX86PageTable::init(PhysAddr pa_table, VirtAddr va_table) -> Status {
-        phys_ = pa_table;
-        virt_ = va_table;
+    template <typename LevelType>
+    struct PendingTlbInvalidation {
+        CXX11_CONSTEXPR
+        static auto const kMaxPendingItems = 32;
+        struct Item {
+            LevelType level : 3;
+            usize reserved : 9;
+            VirtAddr virt_addr : 52;
+        };
 
-        return Status::Ok;
-    }
+        auto enqueue(VirtAddr va, LevelType level) -> void {
+            items_[count_++] = {level, 0, va};
+            if (count_ == kMaxPendingItems) {
+                flush();
+            }
+        }
 
-    // struct PendingTlbInvalidation {
-    //     struct Item {
-    //         LevelType level : 3;
-    //         usize reserved : 9;
-    //         VirtAddr virt_addr : 52;
-    //     };
+        auto flush() -> void {}
 
-    //     auto enqueue(VirtAddr va, LevelType level) -> void {}
+        auto clear() -> void {}
 
-    //     auto clear() -> void {}
-
-    //     usize count_;
-    //     Item items_[32];
-    // };
+        usize count_;
+        Item items_[kMaxPendingItems];
+    };
 
     template <typename PageTable>
     struct X86PageTableSynchroniser {
+        typedef typename PageTable::LevelType   LevelType;
         auto sync() -> void {}
 
+        auto append(VirtAddr va, LevelType level) -> void {
+            pending_.enqueue(va, level);
+        }
+
         PageTable *page_table_;
-        // PendingTlbInvalidation pending_;
+        PendingTlbInvalidation<LevelType> pending_;
+    };
+
+    template <typename PageTable>
+    struct UnmapContext {
+        typedef UnmapContext    Self;
+        typedef X86PageTableSynchroniser<PageTable> Synchroniser;
+
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto consume(usize page_size) -> void {
+            cursor_.consume(page_size);
+            nr_unmapped_ += 1;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto size() const -> usize {  
+            return cursor_.size();  
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto unmapped() const -> usize {  
+            return nr_unmapped_;  
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto virt_addr() const -> VirtAddr {  
+            return cursor_.virt_addr();  
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto synchroniser() -> Synchroniser & {
+            return *synchroniser_;
+        }
+
+        FORCE_INLINE
+        auto set_cursor(VirtAddrCursor cursor) -> Self & {
+            cursor_ = cursor;
+            return *this;
+        }
+
+        FORCE_INLINE
+        auto set_synchroniser(Synchroniser *synchroniser) -> Self & {
+            synchroniser_ = synchroniser;
+            return *this;
+        }
+
+        usize nr_unmapped_;
+        VirtAddrCursor cursor_;
+        Synchroniser *synchroniser_;
     };
 
     template <typename PageTable>
@@ -119,12 +174,13 @@ namespace arch::paging {
         MappingContext(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
             : Base(va, pa, n, flags, page_size),
               nr_mapped_(),
-              synchroniser_() {}
+              synchroniser_(0) 
+        {}
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto consume(usize page_size) -> void {
             Base::consume(page_size);
-            nr_mapped_ += page_size / 4096;
+            nr_mapped_ += 1;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 
@@ -133,22 +189,27 @@ namespace arch::paging {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 
+        auto set_synchroniser(Synchroniser *synchroniser) -> void {
+            synchroniser_ = synchroniser;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR 
         auto synchroniser() -> Synchroniser & {
-            return synchroniser_;
+            return *synchroniser_;
         }
 
         usize nr_mapped_;
-        Synchroniser synchroniser_;
+        Synchroniser *synchroniser_;
     };
 
-    template <typename PagingOptions>
-    struct PagingOptionsTraits {
-        typedef typename PagingOptions::Mutex           Mutex;
-        typedef typename PagingOptions::PhysToVirt      PhysToVirt;
-        typedef typename PagingOptions::PageAllocator   PageAllocator;
+    template <typename PageTableOptions>
+    struct PageTableOptionsTraits {
+        typedef typename PageTableOptions::Mutex           Mutex;
+        typedef typename PageTableOptions::PhysToVirt      PhysToVirt;
+        typedef typename PageTableOptions::PageAllocator   PageAllocator;
 
         CXX11_CONSTEXPR
-        static auto const kPagingLevel = PagingOptions::kPagingLevel;
+        static auto const kPagingLevel = PageTableOptions::kPagingLevel;
     };
 
     /// CRTP class `X86PageTable` is a high-level implementation of architecturelly page table.
@@ -157,7 +218,7 @@ namespace arch::paging {
         typedef IX86PageTable    Base;
         typedef X86PageTableImpl Self;
       protected:
-        typedef PagingOptionsTraits<Options> OptionsTraits;
+        typedef PageTableOptionsTraits<Options>         OptionsTraits;
         typedef typename OptionsTraits::Mutex           Mutex;
         typedef typename OptionsTraits::PhysToVirt      PhysToVirt;
         typedef typename OptionsTraits::PageAllocator   PageAllocator;
@@ -167,20 +228,25 @@ namespace arch::paging {
         typedef typename PagingTraits::template Pte<PagingTraits::kFinalLevel>  Pte;
         typedef typename Pte::ValueType    PteVal;
 
+        typedef X86PageTableSynchroniser<Derived> Synchroniser;
         typedef MappingContext<Derived> MappingContext;
+        typedef UnmapContext<Derived>  UnmapContext;
       public:
         X86PageTableImpl() = default;
         virtual ~X86PageTableImpl() override = default;
 
-        /// Sees IX86PageTable::map_pages.
-        auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags, MapControl)
-            -> ustl::Result<usize, Status> override;
+        auto init() -> Status;
 
-        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control)
-            -> ustl::Result<usize, Status> override;
+        auto init(PhysAddr pa_table, VirtAddr va_table) -> Status;
+
+        /// Sees IX86PageTable::map_pages.
+        auto map_pages(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, usize *) -> Status override;
+
+        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapControl control, usize *)
+            -> Status override;
 
         /// Sees IX86PageTable::unmap_pages.
-        auto unmap_pages(VirtAddr, usize, UnMapControl) -> Status override;
+        auto unmap_pages(VirtAddr, usize, UnmapControl, usize *unmapped) -> Status override;
 
         /// Sees IX86PageTable::protect_pages.
         auto protect_pages(VirtAddr, usize, MmuFlags) -> Status override;
@@ -215,8 +281,13 @@ namespace arch::paging {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR 
-        static auto alloc_page_table() -> PhysAddr {
-            return 0;
+        auto alloc_page_table() -> PhysAddr {
+            return get_allocator().alloc_pages(1, PAGE_SIZE);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto phys_to_virt(PhysAddr phys_addr) -> VirtAddr {
+            return payload_.phys_to_virt(phys_addr);
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -225,7 +296,7 @@ namespace arch::paging {
                 return 0;
             }
 
-            return reinterpret_cast<PteVal volatile *>(payload_.phys_to_virt(pteval & X86_PFN_MASK));
+            return reinterpret_cast<PteVal volatile *>(phys_to_virt(pteval & X86_PG_FRAME));
         }
 
         auto prepare_map_pages(VirtAddr, PhysAddr *, usize, MmuFlags, MappingContext *) -> Status;
@@ -236,18 +307,27 @@ namespace arch::paging {
         auto create_mapping_at_l0(PteVal volatile *, MappingContext *, MapControl) -> Status;
 
         /// Remove a page table entry.
-        auto remove_mapping(PteVal volatile *, MappingContext *, usize) -> Status;
-        auto remove_mapping_at_l0(PteVal *, MappingContext *) -> Status;
-        auto split_mapping(PteVal volatile *) -> Status;
+        auto remove_mapping(LevelType, PteVal volatile *, UnmapContext *, UnmapControl) -> Status;
+        auto remove_mapping_at_l0(PteVal volatile*, UnmapContext *, UnmapControl) -> Status;
+
+        /// Split a large page mapping into multiple smaller page mappings.
+        auto split_mapping(LevelType, PteVal volatile *, VirtAddr va, UnmapContext *) -> Status;
+
+        auto read_mapping(PteVal volatile *, VirtAddr, LevelType *out_level, PteVal *out_pte) -> Status;
 
         /// Update a page table entry.
-        auto update_mapping(PteVal volatile *, MappingContext *, usize) -> Status;
-        auto update_mapping_at_l0(PteVal *, MappingContext *) -> Status;
+        auto update_mapping(LevelType, PteVal volatile *, MappingContext *) -> Status;
+        auto update_mapping_at_l0(PteVal volatile *, MappingContext *) -> Status;
 
         /// Update a entry.
-        auto update_entry(LevelType, PteVal volatile *, PhysAddr, VirtAddr, MmuFlags) -> void;
+        auto update_entry(PteVal volatile *, LevelType, PhysAddr, VirtAddr, X86MmuFlags, Synchroniser &) -> void;
 
-        auto unmap_entry(PteVal volatile *, LevelType level) -> Status;
+        auto unmap_entry(PteVal volatile *, LevelType level, VirtAddr, Synchroniser &) -> Status;
+
+        FORCE_INLINE
+        auto get_allocator() -> PageAllocator & {
+            return static_cast<PageAllocator &>(payload_);
+        }
 
         struct Payload 
             : public PhysToVirt,

@@ -126,8 +126,7 @@ namespace arch::paging {
                 }
             }
 
-            auto const flags = mmuflags_cast<ArchMmuFlags>(context_.flags());
-            pte = Pte<Level>::make(phys_addr, flags, is_terminal);
+            pte = Pte<Level>::make(phys_addr, context_.flags(), is_terminal);
 
             if (is_terminal) {
                 return ustl::ok();

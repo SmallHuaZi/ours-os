@@ -18,6 +18,7 @@
 
 #include <ustl/rc.hpp>
 #include <ustl/result.hpp>
+#include <ustl/option.hpp>
 #include <ustl/collections/intrusive/set.hpp>
 #include <ustl/collections/intrusive/list.hpp>
 
@@ -50,30 +51,47 @@ namespace ours::mem {
     class VmArea: public ustl::RefCounter<VmArea> {
         typedef VmArea      Self;
     public:
-        static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *, ustl::Rc<Self> *) -> Status;
+        static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *, ustl::Rc<Self> *) 
+            -> Status;
 
-        /// Create a mapping unit in page range [vma_off, vma_off + nr_pages).
-        auto create_mapping(PgOff vma_off, usize nr_pages, PgOff vmo_off, MmuFlags, ustl::Rc<VmObject>, 
-                            char const *name, ustl::Rc<VmMapping> *) -> Status;
-
-        /// Create a sub-VMA in page range [vma_off, vma_off + nr_pages).
-        auto create_subvma(PgOff vma_off, usize nr_pages, VmaFlags, char const *name, ustl::Rc<VmArea> *) -> Status;
+        /// Create a mapping unit in page range [vma_off, vma_off + size).
+        auto create_mapping(usize vma_ofs, usize size, usize vmo_ofs, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
+                            char const *name, ustl::Rc<VmMapping> *out) -> Status;
 
         /// Create a sub-VMA in page range [vma_off, vma_off + nr_pages).
+        auto create_subvma(usize offset, usize size, VmaFlags vmaf, char const *name, ustl::Rc<VmArea> *out) 
+            -> Status;
+
+        /// Create a sub-VMA of the specified size.
         auto create_subvma(usize nr_pages, VmaFlags, char const *name, ustl::Rc<VmArea> *) -> Status;
 
-        auto unmap(PgOff vma_off, usize nr_pages) -> void;
+        auto unmap(usize offset, usize size) -> Status;
 
         /// Update rights of the subset of the area. 
-        auto protect(PgOff vma_off, usize nr_pages, MmuFlags flags) -> void;
+        auto protect(usize offset, usize size, MmuFlags flags) -> Status;
+
+        /// Update rights of the subset of the area. 
+        auto reserve(usize offset, usize size, MmuFlags flags, char const *name) -> Status;
 
         auto contains(VirtAddr addr) const -> bool;
 
-        // On logic, it should be protected to avoid the incorrect use. But 
-        VmArea(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *);
+        FORCE_INLINE
+        auto base() const -> VirtAddr {
+            return base_;
+        }
+
+        FORCE_INLINE
+        auto size() const -> VirtAddr {
+            return size_;
+        }
     protected:
+        VmArea(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *);
+
         auto prepare_subrange(PgOff vma_off, usize nr_pages, VirtAddr ai_out &base, VirtAddr ai_out &size) 
             const -> bool;
+
+        auto find_spot(usize nr_pages, AlignVal align, VirtAddr upper_limit)
+            const -> ustl::Result<VirtAddr, Status>;
 
         /// Check whether a given `|mmflags|` is valid. True if valid, otherwise invalid.
         auto validate_mmuflags(MmuFlags mmflags) const -> bool;

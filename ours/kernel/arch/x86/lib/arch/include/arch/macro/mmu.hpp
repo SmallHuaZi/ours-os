@@ -54,7 +54,9 @@
 #define X86_PT_SHIFT     12
 
 #define X86_PAGE_SHIFT   12
-#define X86_PFN_MASK     (~(BIT(X86_PAGE_SHIFT)-1))
+#define X86_PG_FRAME     (~(BIT(X86_PAGE_SHIFT)-1))
+#define X86_PD_FRAME     (~(BIT(X86_PD_SHIFT)-1))
+#define X86_PDP_FRAME     (~(BIT(X86_PDP_SHIFT)-1))
 
 #define X86_MAX_PTES    512
 

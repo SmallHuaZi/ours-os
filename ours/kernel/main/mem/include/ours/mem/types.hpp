@@ -23,10 +23,12 @@
 #include <arch/paging/mmu_flags.hpp>
 #include <arch/paging/controls.hpp>
 
+#include <gktl/range.hpp>
+
 namespace ours::mem {
     using arch::paging::MmuFlags;
     using arch::paging::MapControl;
-    using arch::paging::UnMapControl;
+    using arch::paging::UnmapControl;
     using arch::paging::HarvestControl;
 
     enum class ZoneType {
@@ -76,30 +78,23 @@ namespace ours::mem {
         return Pfn(phys_addr >> PAGE_SHIFT);  
     }
 
-    /// A pre-allocated storage reserve designed for scenarios requiring specialized physical page management. 
-    /// It serves two core purposes:
-    /// 
-    /// 1. **Bypass Default Allocators**
-    ///    Provides dedicated storage when the standard `alloc_frame`, `free_frame` interfaces are unsuitable 
-    ///    (e.g., `PMM` is not unuseful).
-    /// 
-    /// 2. **Reuse Idle Resources**
-    ///    Actively reclaims and repurposes underutilized `PmFrame` objects to eliminate redundant allocation 
-    ///    cycles.
-    struct Altmap {
-    	Pfn start;
-    	Pfn end;
+    template <typename Addr>
+    FORCE_INLINE
+    auto resolve_page_range(Addr base, usize size) -> gktl::Range<usize> {
+        static_assert(sizeof(Addr) == sizeof(VirtAddr));
+        return {
+            reinterpret_cast<VirtAddr>(base) >> PAGE_SHIFT,
+            (size + PAGE_SIZE) >> PAGE_SHIFT
+        };
+    }
 
-        // free pages set aside in the mapping for memmap storage
-    	Pfn reserve;
-
-        // pages reserved to meet allocation alignments
-    	usize free;
-    	usize align;
-
-        // track pages consumed, public to caller 
-    	usize alloc;
-    };
+    FORCE_INLINE
+    auto resolve_byte_range(PgOff pgoff, usize nr_pages) -> gktl::Range<usize> {
+        return {
+            pgoff << PAGE_SHIFT,
+            nr_pages << PAGE_SHIFT,
+        };
+    }
 
     /// Forward declarations.
     /// Main classes for physical memory management.

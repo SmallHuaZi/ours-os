@@ -16,6 +16,7 @@
 #include <ustl/util/enum_bits.hpp>
 
 namespace arch::paging {
+    /// Layout statifing the standard flag bits in a PTE 
     enum class X86MmuFlags: usize {
         Present      = X86_MMUF_PRESENT,
         Writable     = X86_MMUF_WRITABLE,
@@ -27,6 +28,8 @@ namespace arch::paging {
         PageSize     = X86_MMUF_PAGE_SIZE,
         Global       = X86_MMUF_GLOBAL,
         NoExecutable  = X86_MMUF_NOEXECUTABLE,
+
+        PermMask     = Writable,
     };
     USTL_ENABLE_ENUM_BITMASK(X86MmuFlags);
 

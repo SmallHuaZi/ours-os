@@ -1,11 +1,11 @@
-#include <gktl/xarray.hpp>
+#include <ktl/xarray.hpp>
 
 #define TEMPLATE \
     template <typename Allocator, typename Config>
 #define XARRAY_CURSOR \
     Xarray<Allocator, Config>::Cursor
 
-namespace gktl {
+namespace ktl {
     TEMPLATE 
     auto XARRAY_CURSOR::expand(Entry head) -> ustl::Option<usize> {
         // Represent the shift of upper-level, by default
@@ -139,4 +139,7 @@ namespace gktl {
         return entry;
     }
 
-} // namespace gktl
+} // namespace ktl
+
+#undef TEMPLATE
+#undef XARRAY_CURSOR

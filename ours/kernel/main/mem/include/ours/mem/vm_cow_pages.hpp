@@ -27,7 +27,7 @@ namespace ours::mem {
     public:
         class Cursor;
 
-        static auto create(Gaf gaf, usize num_page) -> ustl::Result<ustl::Rc<VmCowPages>, Status>;
+        static auto create(Gaf gaf, usize num_page, ustl::Rc<VmCowPages> *out) -> Status;
 
         auto commit_range_locked(PgOff pgoff, usize n, ai_out usize *nr_commited) -> Status;
 
@@ -37,13 +37,15 @@ namespace ours::mem {
         auto num_pages_locked() const -> usize {
             return num_pages_;
         }
-
-        VmCowPages(Gaf gaf, usize num_pages);
     private:
+        VmCowPages(Gaf gaf, usize num_pages);
+
+        auto alloc_pages(usize order, VmPage **page, PageRequest *page_request) -> Status;
+
         /// When no page sources exists, it will be used in frame allocation request.
         Gaf gaf_;
         /// Page map that operates within the virtual memory range of the VMO, from [0, N).
-        VmPageMap pages_;
+        VmPageMap pagemap_;
         ustl::Rc<PageSource> page_source_;
         usize num_pages_;
     };
@@ -53,6 +55,9 @@ namespace ours::mem {
         Cursor(VmCowPages *owner, PgOff pgoff, usize num_page);
 
         auto require_owned_page(usize nr_pages, PageRequest *page_request) -> ustl::Result<VmPage *, Status>;
+
+        auto create_read_request(usize nr_pages, PageRequest *page_request) -> Status;
+        auto create_dirty_request(usize nr_pages, PageRequest *page_request) -> Status;
     private:
         VmCowPages *owner_;
     };

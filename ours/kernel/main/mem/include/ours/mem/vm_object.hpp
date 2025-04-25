@@ -29,6 +29,9 @@ namespace ours::mem {
 
         /// Never pre-commit pages, only when the page access fault occurs.
         Lazy = BIT(1),
+
+        /// 
+        Resizable = BIT(2),
     };
     USTL_ENABLE_ENUM_BITMASK(VmoFLags);
 

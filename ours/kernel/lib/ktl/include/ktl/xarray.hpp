@@ -8,8 +8,8 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef GKTL_XARRAY_HPP
-#define GKTL_XARRAY_HPP 1
+#ifndef KTL_XARRAY_HPP
+#define KTL_XARRAY_HPP 1
 
 #include <ours/types.hpp>
 #include <ours/config.hpp>
@@ -21,7 +21,7 @@
 
 #include <ktl/result.hpp>
 
-namespace gktl {
+namespace ktl {
     namespace ubf = ustl::bitfields;
 
     struct XarryDefaultConfig {
@@ -32,7 +32,7 @@ namespace gktl {
         static auto const kNumBitTags = 4;
     };
 
-    template <typename Allocator, typename Config = XarryDefaultConfig>
+    template <typename A, typename Config = XarryDefaultConfig>
     struct Xarray {
         typedef Xarray   Self;
 
@@ -184,6 +184,7 @@ namespace gktl {
         };
         typedef Node *          NodePtrMut;
         typedef Node const *    NodePtr;
+        typedef typename A::template RebindT<Node>  Allocator;
 
         struct Cursor {
             /// This dummy pointer was used to act as a tag which indicates that this cursor
@@ -235,7 +236,7 @@ namespace gktl {
       private:
 
         auto alloc_node() -> NodePtrMut {
-            return payload_.get_allocator().template allocate<Node>();
+            return payload_.get_allocator().allocate();
         }
 
         struct Payload: public Allocator {
@@ -247,6 +248,6 @@ namespace gktl {
         } payload_;
     };
 
-} // namespace gktl
+} // namespace ktl
 
-#endif // #ifndef GKTL_XARRAY_HPP
+#endif // #ifndef KTL_XARRAY_HPP

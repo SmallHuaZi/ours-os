@@ -61,22 +61,22 @@ namespace paging {
 
         /// Sees IX86PageTable::map_pages.
         FORCE_INLINE
-        auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl action) 
-            -> ustl::Result<usize, Status> {
-            return pimpl_->map_pages(va, pa, n, flags, action);
+        auto map_pages(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl action, usize *mapped) 
+            -> Status {
+            return pimpl_->map_pages(va, pa, n, flags, action, mapped);
         }
 
         /// Sees IX86PageTable::map_pages.
         FORCE_INLINE
-        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, MapControl action) 
-            -> ustl::Result<usize, Status> {
-            return pimpl_->map_pages_bulk(va, pa, n, flags, action);
+        auto map_pages_bulk(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, MapControl action, usize *mapped) 
+            -> Status {
+            return pimpl_->map_pages_bulk(va, pa, n, flags, action, mapped);
         }
 
         /// Sees IX86PageTable::unmap_pages.
         FORCE_INLINE
-        auto unmap_pages(VirtAddr va, usize n, UnMapControl control) -> Status {
-            return pimpl_->unmap_pages(va, n, control);
+        auto unmap_pages(VirtAddr va, usize n, UnmapControl control, usize *unmapped) -> Status {
+            return pimpl_->unmap_pages(va, n, control, unmapped);
         }
 
         /// Sees IX86PageTable::protect_pages.
@@ -122,18 +122,11 @@ namespace paging {
         static_assert(traits::IsBaseOfV<IX86PageTable, Derived>, "You don't know?");
 
         Derived *derived = new (&storage_) Derived();
-        pimpl_ = derived;
-        auto status = pimpl_->init(pgd_pa, pgd_va);
+        auto status = derived->init(pgd_pa, pgd_va);
         if (status != Status::Ok) {
             return status;
         }
-
-        if CXX20_CONSTEXPR (HasFninit<auto (Derived::*)() -> Status>::VALUE) {
-            status = derived->init();
-            if (status != Status::Ok) {
-                return status;
-            }
-        }
+        pimpl_ = derived;
 
         return Status::Ok;
     }
@@ -143,14 +136,16 @@ namespace paging {
     FORCE_INLINE CXX11_CONSTEXPR
     auto X86PageTable<Options>::init() -> Status {
         // Try allocate page from PageSource
-        PhysAddr pgd_pa;
-        if (!pgd_pa) {
-            return Status::OutOfMem;
+        static_assert(traits::IsBaseOfV<IX86PageTable, Derived>, "You don't know?");
+
+        Derived *derived = new (&storage_) Derived();
+        auto status = derived->init();
+        if (status != Status::Ok) {
+            return status;
         }
+        pimpl_ = derived;
 
-        VirtAddr pgd_va;
-
-        return init<Derived>(pgd_pa, pgd_va);
+        return Status::Ok;
     }
 
     struct PageTableDefaultOptions {
@@ -163,17 +158,17 @@ namespace paging {
         struct PhysToVirt {
             FORCE_INLINE CXX11_CONSTEXPR
             auto phys_to_virt(PhysAddr addr) -> VirtAddr {
-                return addr;
+                OX_PANIC("Nerver call this {}", __func__);
             }
         };
 
         /// The example code which nerver be invoked. 
         struct PageAllocator {
-            auto alloc_pages(usize size, usize alignment) -> PhysAddr {
+            auto alloc_pages(usize nr_pages, usize alignment) -> PhysAddr {
                 OX_PANIC("Nerver call this {}", __func__);
             }
 
-            auto free_pages(PhysAddr page, usize n) -> void {
+            auto free_pages(PhysAddr page, usize nr_pages) -> void {
                 OX_PANIC("Nerver call this {}", __func__);
             }
         };

@@ -28,11 +28,11 @@ namespace ours::mem {
 
         auto init() -> Status;
 
-        auto map(VirtAddr, PhysAddr, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>;
+        auto map(VirtAddr, PhysAddr, usize n, MmuFlags flags, MapControl control, usize *mapped) -> Status;
 
-        auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control) -> ustl::Result<usize, Status>;
+        auto map_bulk(VirtAddr, PhysAddr *, usize n, MmuFlags flags, MapControl control, usize *mapped) -> Status;
 
-        auto unmap(VirtAddr, usize n, UnMapControl control) -> Status;
+        auto unmap(VirtAddr, usize n, UnmapControl control, usize *unmapped) -> Status;
 
         auto protect(VirtAddr, usize n, MmuFlags) -> Status;
 

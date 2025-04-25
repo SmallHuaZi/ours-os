@@ -25,7 +25,7 @@ auto operator new(usize size, ObjectCache &cache, ktl::Gaf gaf) -> void * {
 }
 
 auto operator new[](usize size, ObjectCache &cache, ktl::Gaf gaf) -> void * {
-    return cache.allocate(gaf, ours::mem::current_node());
+    return cache.allocate(size / cache.object_size(), gaf);
 }
 
 auto operator new(usize size, ObjectCache &cache, ktl::Gaf gaf, ktl::NodeId nid) -> void * {
@@ -33,7 +33,7 @@ auto operator new(usize size, ObjectCache &cache, ktl::Gaf gaf, ktl::NodeId nid)
 }
 
 auto operator new[](usize size, ObjectCache &cache, ktl::Gaf gaf, ktl::NodeId nid) -> void * {
-    return cache.allocate(gaf, nid);
+    return cache.allocate(size / cache.object_size(), gaf, nid);
 }
 
 auto operator delete(void *ptr) -> void {

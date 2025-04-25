@@ -39,16 +39,16 @@ namespace gktl {
         PlatformEarlyInternal = ArchEarly + kDeltaBetweenLevels,
         PlatformEarly = PlatformEarlyInternal + kDeltaBetweenLevels,
 
-        CpuLocalInternal = PlatformEarly + kDeltaBetweenLevels,
-        CpuLocal = CpuLocalInternal + kDeltaBetweenLevels,
-
-        HeapInternal = CpuLocal + kDeltaBetweenLevels,
+        HeapInternal = PlatformEarly + kDeltaBetweenLevels,
         Heap = HeapInternal + kDeltaBetweenLevels,
 
         VmmInternal = Heap + kDeltaBetweenLevels,
         Vmm = VmmInternal + kDeltaBetweenLevels,
 
-        IrqInternal = Vmm + kDeltaBetweenLevels,
+        CpuLocalInternal = Vmm + kDeltaBetweenLevels,
+        CpuLocal = CpuLocalInternal + kDeltaBetweenLevels,
+
+        IrqInternal = CpuLocal + kDeltaBetweenLevels,
         Irq = IrqInternal + kDeltaBetweenLevels,
 
         ArchInternal = Irq + kDeltaBetweenLevels,

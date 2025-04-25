@@ -67,6 +67,7 @@ namespace ours::mem {
         if (!caches) {
             panic("Failed to create object cache for VmAspace");
         }
+        s_aspace_cache = caches;
 
         auto kaspace = Self::create(KERNEL_ASPACE_BASE, KERNEL_ASPACE_SIZE, flags, "K:Aspace");
         if (!kaspace) {
@@ -114,14 +115,4 @@ namespace ours::mem {
             fault_cache_->fault(&vmf);
         }
     }
-
-    INIT_CODE
-    static auto init_aspace_cache() -> void {
-        s_aspace_cache = ObjectCache::create<VmAspace>("aspace-cache", OcFlags::Folio);
-        if (!s_aspace_cache) {
-            panic("Failed to create object cache for VmArea");
-        }
-        log::trace("AspaceCache has been created");
-    }
-    GKTL_INIT_HOOK(VmAspaceInit, init_aspace_cache, gktl::InitLevel::PlatformEarly);
 }

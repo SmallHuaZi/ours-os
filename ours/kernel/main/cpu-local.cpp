@@ -408,15 +408,15 @@ namespace ours {
             }
         };
     
-    #define MEMBER_INIT_IF_ERROR_THEN_RETURN(Member, Number) \
-        auto raw_##Member = new (mem::kGafKernel) ustl::traits::RemoveCvRefT<decltype(CpuLocalAreaInfo::Member[0])>[Number];\
-        if (!raw_##Member) {\
-            log::trace("Failed to allocate map for "#Member);\
-            do_reclaim();\
-            return Status::OutOfMem;\
-        }\
-        num_allocated += 1;\
-        Member = ustl::views::make_span(raw_##Member, Number);
+        #define MEMBER_INIT_IF_ERROR_THEN_RETURN(Member, Number) \
+            auto raw_##Member = new (mem::kGafKernel) ustl::traits::RemoveCvRefT<decltype(CpuLocalAreaInfo::Member[0])>[Number];\
+            if (!raw_##Member) {\
+                log::trace("Failed to allocate map for "#Member);\
+                do_reclaim();\
+                return Status::OutOfMem;\
+            }\
+            num_allocated += 1;\
+            Member = ustl::views::make_span(raw_##Member, Number);
 
         MEMBER_INIT_IF_ERROR_THEN_RETURN(n2g_map_, MAX_NODE);
         MEMBER_INIT_IF_ERROR_THEN_RETURN(g2n_map_, nr_groups);
@@ -427,7 +427,7 @@ namespace ours {
         MEMBER_INIT_IF_ERROR_THEN_RETURN(group_num_units_, nr_groups);
         MEMBER_INIT_IF_ERROR_THEN_RETURN(group_consume_, nr_groups);
         MEMBER_INIT_IF_ERROR_THEN_RETURN(group_frames_, nr_groups);
-    #undef MEMBER_INIT_IF_ERROR_THEN_RETURN
+        #undef MEMBER_INIT_IF_ERROR_THEN_RETURN
 
         unit_size_ = ustl::mem::align_up(static_cpu_local_area_size() + dyn_size, unit_align);
         return Status::Ok;

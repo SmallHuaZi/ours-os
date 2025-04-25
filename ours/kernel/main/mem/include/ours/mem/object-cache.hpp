@@ -161,7 +161,7 @@ namespace ours::mem {
             return allocate(1, gaf, nid);
         }
 
-        auto allocate(usize n, Gaf gaf, NodeId nid) -> void * {
+        auto allocate(usize n, Gaf gaf, NodeId nid = current_node()) -> void * {
             auto const object = do_allocate(gaf, nid);
             if (!object) {
                 return nullptr;
@@ -181,6 +181,11 @@ namespace ours::mem {
             DEBUG_ASSERT(object, "Pass a invalid object");
             ustl::mem::destroy_at(object);
             do_deallocate(reinterpret_cast<Object *>(object));
+        }
+
+        FORCE_INLINE
+        auto object_size() const -> usize {
+            return object_size_;
         }
 
         // Do not use it.

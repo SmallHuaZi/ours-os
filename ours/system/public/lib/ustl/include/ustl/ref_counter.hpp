@@ -27,7 +27,7 @@ namespace ustl {
     template <typename T>
     struct RcEvictor;
 
-    template <typename T, typename A, bool = traits::IsSameV<A, Monostate>>
+    template <typename T, typename A = Monostate, bool = traits::IsSameV<A, Monostate>>
     struct RcReclaimer;
 
     template <typename T, typename A = Monostate, typename Size = usize>

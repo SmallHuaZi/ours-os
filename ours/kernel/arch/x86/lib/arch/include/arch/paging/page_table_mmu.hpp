@@ -23,14 +23,13 @@ namespace arch::paging {
     {
         typedef X86PageTableMmu                  Self;
         typedef X86PageTableImpl<Self, Options>  Base;
-
+    public:
         using typename Base::PagingTraits;
         using typename Base::LevelType;
-    public:
+
         ~X86PageTableMmu() override = default;
 
-        auto init() -> Status
-        {  return Status::Unimplemented;  }
+        using Base::init;
 
         auto invalidate_tlb() -> void;
 
@@ -52,8 +51,8 @@ namespace arch::paging {
         static auto level_can_be_terminal(LevelType level) -> bool
         {  return PagingTraits::level_can_be_terminal(level); }
 
-        static auto make_pteval(LevelType level, PhysAddr phys, MmuFlags flags) -> PteVal {
-            auto arch_flags = mmuflags_cast<X86MmuFlags>(flags) | X86MmuFlags::Present;
+        static auto make_pteval(LevelType level, PhysAddr phys, X86MmuFlags flags) -> PteVal {
+            auto arch_flags = flags | X86MmuFlags::Present;
             if (level != PagingTraits::kFinalLevel) {
                 arch_flags |= X86MmuFlags::PageSize;
             }

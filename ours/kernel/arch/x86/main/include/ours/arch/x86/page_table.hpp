@@ -21,31 +21,30 @@
 
 namespace ours::mem::details {
     struct PageAllocator {
-        static auto alloc_page() -> PhysAddr {
+        static auto alloc_page(usize nr_pages, usize align) -> PhysAddr {
             PhysAddr phys_addr;
             auto frame = alloc_frame(kGafKernel, &phys_addr, 0); 
             if (!frame) {
-                panic("no memory");
+                return 0;
             }
+            auto page = role_cast<PfRole::Vmm>(frame);
+            page->num_mappings += 1;
 
-            auto mmu_frame = role_cast<PfRole::Vmm>(frame);
-            mmu_frame->num_mappings += 1;
             return phys_addr;
         }
 
-        static auto free_page(PhysAddr phys_addr) -> void {
+        static auto free_page(PhysAddr phys_addr, usize nr_pages) -> void {
             if (auto frame = phys_to_frame(phys_addr)) {
-                auto mmu_frame = role_cast<PfRole::Vmm>(frame);
-                mmu_frame->num_mappings -= 1;
-                if (0 == mmu_frame->num_mappings) {
+                auto page = role_cast<PfRole::Vmm>(frame);
+                page->num_mappings -= 1;
+                if (0 == page->num_mappings) {
                     free_frame(frame, 0);
                 } 
             }
         }
     };
 
-    struct TlbInvalidator
-    {
+    struct TlbInvalidator {
         static auto invalidate(VirtAddr virt_addr) -> void
         {}
     };

@@ -22,7 +22,7 @@
 
 namespace ours::mem {
     using arch::paging::MapControl;
-    using arch::paging::UnMapControl;
+    using arch::paging::UnmapControl;
     using arch::paging::HarvestControl;
 
     enum class VmasFlags: usize {
@@ -57,17 +57,17 @@ namespace ours::mem {
         "The ArchVmAspace do not implements required method `ArchVmAspace::init`");
         
         USTL_MPL_CREATE_METHOD_DETECTOR(map, Map);
-        static_assert(HasFnMap<auto (ArchVmAspace::*)(VirtAddr, PhysAddr, usize, MmuFlags, MapControl) 
-            -> ustl::Result<usize, Status>>::VALUE,
+        static_assert(HasFnMap<auto (ArchVmAspace::*)(VirtAddr, PhysAddr, usize, MmuFlags, MapControl, usize *) 
+            -> Status>::VALUE,
         "The ArchVmAspace do not implements required method `ArchVmAspace::map`");
 
         USTL_MPL_CREATE_METHOD_DETECTOR(map_bulk, MapBulk);
-        static_assert(HasFnMapBulk<auto (ArchVmAspace::*)(VirtAddr, PhysAddr *, usize, MmuFlags, MapControl) 
-            -> ustl::Result<usize, Status>>::VALUE,
+        static_assert(HasFnMapBulk<auto (ArchVmAspace::*)(VirtAddr, PhysAddr *, usize, MmuFlags, MapControl, usize *) 
+            -> Status>::VALUE,
         "The ArchVmAspace do not implements required method `ArchVmAspace::map_bulk`");
         
         USTL_MPL_CREATE_METHOD_DETECTOR(unmap, Unmap);
-        static_assert(HasFnUnmap<auto (ArchVmAspace::*)(VirtAddr, usize, UnMapControl) -> Status>::VALUE,
+        static_assert(HasFnUnmap<auto (ArchVmAspace::*)(VirtAddr, usize, UnmapControl, usize *) -> Status>::VALUE,
         "The ArchVmAspace do not implements required method `ArchVmAspace::unmap`");
 
         USTL_MPL_CREATE_METHOD_DETECTOR(protect, Protect);

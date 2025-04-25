@@ -146,13 +146,13 @@ namespace arch::paging {
         FORCE_INLINE CXX11_CONSTEXPR
         static auto make(ValueType addr, X86MmuFlags flags, bool terminal) -> X86Pte {
             if (!terminal) { 
-                return { (addr & X86_PFN_MASK) | ValueType(flags) | X86_KERNEL_PD_FLAGS };
+                return { (addr & X86_PG_FRAME) | ValueType(flags) | X86_KERNEL_PD_FLAGS };
             }
             
             if CXX17_CONSTEXPR (Level == X86PagingLevel::PageTable) {
-                return { (addr & X86_PFN_MASK) | ValueType(flags) | X86_KERNEL_PAGE_FLAGS };
+                return { (addr & X86_PG_FRAME) | ValueType(flags) | X86_KERNEL_PAGE_FLAGS };
             } else {
-                return { (addr & X86_PFN_MASK) | ValueType(flags) | X86_KERNEL_HUGE_PAGE_FLAGS };
+                return { (addr & X86_PG_FRAME) | ValueType(flags) | X86_KERNEL_HUGE_PAGE_FLAGS };
             }
         }
 
@@ -162,7 +162,7 @@ namespace arch::paging {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto address() const -> PhysAddr {
-            return inner_ & X86_PFN_MASK;
+            return inner_ & X86_PG_FRAME;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -240,6 +240,22 @@ namespace arch::paging {
         FORCE_INLINE CXX11_CONSTEXPR
         static auto max_entries(LevelType level) -> usize {
             return BIT(kNumPtesLog2<LevelType::MaxNumLevels>);
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto phys_addr_from_pte(LevelType level, PhysAddr pte) -> PhysAddr {
+            CXX11_CONSTEXPR 
+            static usize const kShift[] {
+                X86_PG_FRAME,
+                X86_PD_FRAME,
+                X86_PDP_FRAME,
+            };
+            return pte & kShift[usize(level)];
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        static auto arhc_mmu_flags_from_pte(LevelType level, PhysAddr pte) -> ArchMmuFlags {
+            return ArchMmuFlags(pte & X86_MMUF_MASK);
         }
 
         CXX11_CONSTEXPR

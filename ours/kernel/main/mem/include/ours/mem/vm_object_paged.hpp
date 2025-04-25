@@ -1,4 +1,3 @@
-// ours/mem OURS/MEM_VM_OBJECT_PAGED_HPP
 /// Copyright(C) 2024 smallhuazi
 ///
 /// This program is free software; you can redistribute it and/or modify
@@ -24,11 +23,9 @@ namespace ours::mem {
         typedef VmObject        Base;
         typedef VmObjectPaged   Self;
     public:
-        static auto create(Gaf gaf, usize nr_pages, VmoFLags vmof)
-            -> ustl::Result<ustl::Rc<VmObjectPaged>, Status>;
+        static auto create(Gaf gaf, usize nr_pages, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
 
-        static auto create_contiguous(Gaf gaf, usize nr_pages, VmoFLags vmof)
-            -> ustl::Result<ustl::Rc<VmObjectPaged>, Status>;
+        static auto create_contiguous(Gaf gaf, usize nr_pages, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
 
         /// 
         virtual auto commit_range(PgOff offset, usize n, CommitOptions option) -> Status override;

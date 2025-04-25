@@ -22,53 +22,52 @@
 
 #include <arch/cache.hpp>
 
-using ustl::mem::align_up;
-using ustl::mem::align_down;
-
 namespace ours::mem {
-    struct PhysVmo {
+    struct PhysVma {
         char const *name;
         VirtAddr base;
         usize size;
-        MmuFlags rights;
+        MmuFlags mmuf;
         VmaFlags flags;
     };
 
     CXX11_CONSTEXPR
     static MmuFlags const kPresetVmaMmuFlags = MmuFlags::PermMask;
 
-    /// Used in init_vmm_postheap
+    /// Used in init_vmm_postheap.
+    /// TODO(SmallHuaZi) These be provided by PhysBoot through HandOff rather than
+    /// direct to use linking symbols.
     INIT_CONST
-    static PhysVmo s_phys_vmos[] = {
+    static PhysVma s_phys_vmos[] = {
         {
             .name = "k:code",
             .base = VirtAddr(kKernelCodeStart),
             .size = usize(kKernelCodeEnd - kKernelCodeStart),
-            .rights = MmuFlags::Executable | MmuFlags::Readable
+            .mmuf = MmuFlags::Executable | MmuFlags::Readable
         },
         {
             .name = "k:data",
             .base = VirtAddr(kKernelDataStart),
             .size = usize(kKernelDataEnd - kKernelDataStart),
-            .rights = MmuFlags::Writable | MmuFlags::Readable
+            .mmuf = MmuFlags::Writable | MmuFlags::Readable
         },
         {
             .name = "k:rodata",
             .base = VirtAddr(kKernelRodataStart),
             .size = usize(kKernelRodataEnd - kKernelRodataStart),
-            .rights = MmuFlags::Readable
+            .mmuf = MmuFlags::Readable
         },
         {
             .name = "k:bss",
             .base = VirtAddr(kKernelBssStart),
             .size = usize(kKernelBssEnd - kKernelBssStart),
-            .rights = MmuFlags::Readable | MmuFlags::Writable
+            .mmuf = MmuFlags::Readable | MmuFlags::Writable
         },
         {
             .name = "k:init",
             .base = VirtAddr(kKernelInitStart),
             .size = usize(kKernelInitEnd - kKernelInitStart),
-            .rights = MmuFlags::Readable | MmuFlags::Writable | MmuFlags::Executable,
+            .mmuf = MmuFlags::Readable | MmuFlags::Writable | MmuFlags::Executable,
             .flags = VmaFlags::Read | VmaFlags::Write | VmaFlags::Exec
         },
         {
@@ -76,7 +75,7 @@ namespace ours::mem {
             // If ASLR(Address space layout randomilization) enabled, this needs to fix up with get_kernel_virt_base().
             .base = PhysMap::kVirtBase,
             .size = PhysMap::kSize,
-            .rights = kPresetVmaMmuFlags,
+            .mmuf = kPresetVmaMmuFlags,
             .flags = VmaFlags::Read | VmaFlags::Write
         },
         {
@@ -84,29 +83,28 @@ namespace ours::mem {
             .base = PhysMap::kVirtBase + PhysMap::kSize,
             // Reserve a max page to prevent over prevent overwring.
             .size = MAX_PAGE_SIZE,
-            .rights = kPresetVmaMmuFlags,
+            .mmuf = kPresetVmaMmuFlags,
         },
     };
 
     INIT_CODE
+    static auto entrol_preset_vma(PhysVma const &phys_vma) -> void {
+        auto kaspace = VmAspace::kernel_aspace();
+        auto root_vma = kaspace->root_vma();
+        ustl::Rc<VmArea> vma;
+        auto status = root_vma->create_subvma(phys_vma.base - root_vma->base(), phys_vma.size, VmaFlags::Pinned, phys_vma.name, &vma);
+        DEBUG_ASSERT(Status::Ok == status);
+
+        status = vma->reserve(0, phys_vma.size, phys_vma.mmuf, phys_vma.name);
+        DEBUG_ASSERT(Status::Ok == status);
+    }
+
+    INIT_CODE
     static auto init_vmm_preheap() -> void {
         VmAspace::init_kernel_aspace();
-        auto kaspace = VmAspace::kernel_aspace();
-        auto rvma = kaspace->root_vma();
 
-        auto kvmo = VmObjectPaged::create(kGafKernel, get_kernel_size() / PAGE_SIZE, VmoFLags::Pinned);
-        if (!kvmo) {
-            panic("Failed to create VMO for kernel image.");
-        }
-
-        PgOff vmo_off = 0;
         for (auto i = 0; i < std::size(s_phys_vmos); ++i) {
-            auto const &region = s_phys_vmos[i];
-            PgOff vma_off = (region.base - KERNEL_ASPACE_BASE)>> PAGE_SHIFT;
-            usize nr_pages = align_up(region.size, PAGE_SIZE) >> PAGE_SHIFT;
-
-            rvma->protect(vma_off, nr_pages, region.rights);
-            vmo_off += vma_off;
+            entrol_preset_vma(s_phys_vmos[i]);
         }
 
         auto frame = alloc_frame(kGafKernel, usize(0));

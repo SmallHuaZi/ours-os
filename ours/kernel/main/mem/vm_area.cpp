@@ -1,6 +1,7 @@
 #include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_aspace.hpp>
 #include <ours/mem/vm_object.hpp>
+#include <ours/mem/vm_object_paged.hpp>
 #include <ours/mem/object-cache.hpp>
 
 #include <ktl/new.hpp>
@@ -17,7 +18,7 @@ namespace ours::mem {
                    char const *name)
         : canary_(), base_(base), size_(size), vmaf_(vmaf), 
           name_(name), subvmas_(), mapping_(), aspace_(aspace),
-          subvma_hook_()
+          subvma_hook_(), parent_()
     {}
 
     static ObjectCache *s_vma_cache;
@@ -29,7 +30,7 @@ namespace ours::mem {
         if (!self) {
             return Status::OutOfMem;
         }
-        *out = ustl::make_rc<VmArea>(self);
+        *out = ustl::move(ustl::make_rc<VmArea>(self));
 
         return Status::Ok;
     }
@@ -98,21 +99,57 @@ namespace ours::mem {
             return false;
         }
 
-        return true;
+        // Except the requirements above, a qualifying MMU flag has at least one
+        // performing permission yet.
+        return !!(mmuf & MmuFlags::PermMask);
     }
 
     auto VmArea::create_subvma(usize nr_pages, VmaFlags vmaf, char const *name, ustl::Rc<VmArea> *out) -> Status {
-        PgOff pgoff = 0;
+        canary_.verify();
+        auto result = find_spot(nr_pages, PAGE_SIZE, base_ + size_);
+        if (!result) {
+            return result.unwrap_err();
+        }
         // Find a fixed area
-        return create_subvma(pgoff, nr_pages, vmaf, name, out);
+        return create_subvma(*result - base_, nr_pages, vmaf, name, out);
     }
 
-    auto VmArea::create_subvma(PgOff vma_off, usize nr_pages, VmaFlags vmaf, char const *name, ustl::Rc<VmArea> *out)
+    auto VmArea::find_spot(usize nr_pages, AlignVal align, VirtAddr upper_limit) 
+        const -> ustl::Result<VirtAddr, Status> {
+        if (!nr_pages) {
+            return ustl::err(Status::InvalidArguments);
+        }
+        if (align < PAGE_SIZE) {
+            align = PAGE_SIZE;
+        }
+
+        auto request_size = (nr_pages << PAGE_SHIFT);
+        upper_limit = ustl::algorithms::clamp(upper_limit, base_, base_ + size_);
+
+        VirtAddr addr = align_up(base_, align);
+        for (auto i = subvmas_.begin(), end = subvmas_.end(); i != end; ++i) {
+            if (addr > upper_limit) {
+                break;
+            }
+
+            if (i->base_  > addr + request_size) {
+                return ustl::ok(addr);
+            }
+
+            addr = align_up(i->base_, align);
+        }
+        return ustl::err(Status::NotFound);
+    }
+
+    auto VmArea::create_subvma(usize vma_ofs, usize size_bytes, VmaFlags vmaf, char const *name, ustl::Rc<VmArea> *out)
         -> Status {
         DEBUG_ASSERT(!mapping_, "Attempt to create a sub-area for a terminal VMA");
+        canary_.verify();
+
+        auto [pgoff, nr_pages] = resolve_page_range(vma_ofs, size_bytes);
 
         VirtAddr base, size;
-        if (!prepare_subrange(vma_off, nr_pages, base, size)) {
+        if (!prepare_subrange(pgoff, nr_pages, base, size)) {
             return Status::InvalidArguments;
         }
 
@@ -131,10 +168,14 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmArea::create_mapping(PgOff vma_off, usize nr_pages, 
-                                PgOff vmo_off, MmuFlags mmuf, ustl::Rc<VmObject> vmo,
+    auto VmArea::create_mapping(usize vma_ofs, usize size_bytes, 
+                                usize vmo_ofs, MmuFlags mmuf, ustl::Rc<VmObject> vmo,
                                 char const *name, ustl::Rc<VmMapping> *out) -> Status {
         DEBUG_ASSERT(subvmas_.empty(), "Attempt to create mapping for a interminal VMA");
+        canary_.verify();
+
+        auto [pgoff, nr_pages] = resolve_page_range(vma_ofs, size_bytes);
+        vmo_ofs >>= PAGE_SHIFT;
 
         // First, we check if the given MMU flags have the same or lower permissions than 
         // those allowed by this VMA.
@@ -143,12 +184,12 @@ namespace ours::mem {
         }
 
         VirtAddr base, size;
-        if (!prepare_subrange(vma_off, nr_pages, base, size)) {
+        if (!prepare_subrange(pgoff, nr_pages, base, size)) {
             return Status::InvalidArguments;
         }
 
         ustl::Rc<VmMapping> mapping;
-        auto status = VmMapping::create(base, size, this, vma_off, vmo, mmuf, name, &mapping);
+        auto status = VmMapping::create(base, size, this, pgoff, vmo, mmuf, name, &mapping);
         if (Status::Ok != status) {
             return status;
         }
@@ -158,11 +199,41 @@ namespace ours::mem {
         return Status::Ok;
     } 
 
-    auto VmArea::unmap(PgOff vma_off, usize nr_pages) -> void {
+    auto VmArea::unmap(PgOff vma_off, usize nr_pages) -> Status {
+        return Status::Unimplemented; 
     }
 
 
-    auto VmArea::protect(PgOff vma_off, usize nr_pages, MmuFlags flags) -> void {
+    auto VmArea::protect(PgOff vma_off, usize nr_pages, MmuFlags flags) -> Status {
+        return Status::Unimplemented; 
+    }
+
+    auto VmArea::reserve(usize vma_off, usize size_bytes, MmuFlags mmuf, char const *name) -> Status {
+        canary_.verify();
+        auto [pgoff, nr_pages] = resolve_page_range(vma_off, size_bytes);
+        if (!nr_pages) {
+            return Status::InvalidArguments;
+        }
+
+        if (!validate_mmuflags(mmuf)) {
+            return Status::InvalidArguments;
+        }
+
+        // TODO(SmallHuaZi) Maybe we should provide a specific way to make these kind of zero length VMO.
+        ustl::Rc<VmObjectPaged> vmo;
+        auto status = VmObjectPaged::create(kGafKernel, 0, VmoFLags::Pinned, &vmo);
+        if (Status::Ok != status) {
+            return status;
+        }
+
+        ustl::Rc<VmMapping> mapping;
+        status = VmMapping::create(pgoff, nr_pages, this, 0, vmo, mmuf, name, &mapping);
+        if (Status::Ok != status) {
+            return status;
+        }
+
+        // The mappings are existing, just update the permission of them.
+        return aspace_->arch_aspace().protect(base_ + (pgoff << PAGE_SHIFT), nr_pages << PAGE_SHIFT, mmuf);
     }
 
     INIT_CODE

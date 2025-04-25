@@ -166,7 +166,8 @@ namespace ustl {
             destory();
             pointer_ = other.pointer_;
             counter_ = other.counter_;
-            other.destory();
+            other.counter_ = 0;
+            other.pointer_ = 0;
             return *this;
         }
 
@@ -281,10 +282,9 @@ namespace ustl {
         }
 
         USTL_FORCEINLINE USTL_CONSTEXPR
-        ~Weak() USTL_NOEXCEPT
-        {
+        ~Weak() USTL_NOEXCEPT {
             if (counter_) {
-                if (counter_->weak_count() == 1) {
+                if (!counter_->strong_count() && counter_->weak_count() == 1) {
                     // AllocatorTraits::deallocate(counter_->allocator(), pointer_);
                 } else {
                     counter_->dec_weak_ref();

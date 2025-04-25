@@ -20,14 +20,13 @@ namespace arch::paging {
     {
         typedef X86PageTableEpt     Self;
         typedef X86PageTableImpl<Self, Options> Base;
-
+    public:
         using typename Base::PagingTraits;
         using typename Base::LevelType;
-    public:
+
         virtual ~X86PageTableEpt() override = default;
 
-        auto init() -> Status
-        { return Status::Unimplemented;  }
+        using Base::init;
 
         static auto check_phys_addr(PhysAddr) -> bool
         { return false;  }
@@ -45,7 +44,7 @@ namespace arch::paging {
         static auto level_can_be_terminal(LevelType level) -> bool
         { return false;  }
 
-        static auto make_pteval(LevelType level, PhysAddr phys, MmuFlags flags) -> PteVal
+        static auto make_pteval(LevelType level, PhysAddr phys, X86MmuFlags flags) -> PteVal
         { return {};  }
     };
 
