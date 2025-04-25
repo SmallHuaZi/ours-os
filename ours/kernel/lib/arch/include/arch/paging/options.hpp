@@ -15,10 +15,9 @@
 #include <ustl/util/pack_options.hpp>
 
 namespace arch::paging {
-    USTL_TYPE_OPTION(PageSourceT, PageSource);
-    USTL_TYPE_OPTION(PageFlusherT, PageFlusher);
+    USTL_TYPE_OPTION(PageAllocator, PageAllocator);
 
-    USTL_CONSTANT_OPTION(PagingLevelV, usize, kPagingLevel);
+    USTL_CONSTANT_OPTION(PagingLevel, usize, kPagingLevel);
 
 } // namespace arch::paging
 

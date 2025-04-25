@@ -14,6 +14,8 @@
 #include <arch/paging/page_table_impl.hpp>
 
 namespace arch::paging {
+    USTL_TYPE_OPTION(X86EptPageSynchroniser, EptPageSynchroniser);
+
     template <typename Options>
     class X86PageTableEpt
         : public X86PageTableImpl<X86PageTableEpt<Options>, Options>
@@ -27,6 +29,9 @@ namespace arch::paging {
         virtual ~X86PageTableEpt() override = default;
 
         using Base::init;
+
+        auto invalidate(PendingInvalidationItems const &items) -> void {
+        }
 
         static auto check_phys_addr(PhysAddr) -> bool
         { return false;  }

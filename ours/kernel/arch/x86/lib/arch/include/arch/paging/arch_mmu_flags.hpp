@@ -27,7 +27,7 @@ namespace arch::paging {
         Dirty        = X86_MMUF_DIRTY,
         PageSize     = X86_MMUF_PAGE_SIZE,
         Global       = X86_MMUF_GLOBAL,
-        NoExecutable  = X86_MMUF_NOEXECUTABLE,
+        NoExecutable = X86_MMUF_NOEXECUTABLE,
 
         PermMask     = Writable,
     };
@@ -59,7 +59,7 @@ namespace arch::paging {
     template <>
     FORCE_INLINE CXX11_CONSTEXPR
     auto mmuflags_cast(X86MmuFlags const flags) -> MmuFlags {
-        MmuFlags target{};
+        auto target = MmuFlags::Readable;
         if (!!(flags & X86MmuFlags::Present)) {
             target |= MmuFlags::Present;
         }
@@ -75,7 +75,6 @@ namespace arch::paging {
         if (!!(flags & X86MmuFlags::Discache)) {
             target |= MmuFlags::Discache;
         }
-        target |= MmuFlags::Readable;
 
         return target;
     }

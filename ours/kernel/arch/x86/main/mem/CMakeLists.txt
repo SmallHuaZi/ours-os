@@ -2,6 +2,7 @@ set(source_set
     "mmu.cpp"
     "fault.cpp"
     "vm_aspace.cpp"
+    "page_table.cpp"
 )
 
 if (CONFIG_NUMA)

@@ -48,11 +48,12 @@ namespace ours::mem {
     private:
         GKTL_CANARY(ArchVmAspace, canary_);
 
+        usize pcid_;
         VmasFlags flags_;
         /// CPUs that are currently executing in this virtual address space.
         CpuMask active_cpus_;
         gktl::Range<VirtAddr> range_;
-        details::PageTable page_table_;
+        PageTable page_table_;
     };
 
 } // namespace ours::mem

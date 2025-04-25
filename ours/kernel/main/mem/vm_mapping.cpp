@@ -70,7 +70,8 @@ namespace ours::mem {
     VmMapping::VmMapping(VirtAddr base, usize size, VmArea *vma,
                          PgOff vmo_off, ustl::Rc<VmObject> vmo, MmuFlags mmuf, 
                          const char *name)
-        : vmo_pgoff_(vmo_off), vmo_(ustl::move(vmo)), mmuf_(mmuf)
+        : base_(base), size_(size), vma_(vma), name_(name),
+          vmo_pgoff_(vmo_off), vmo_(ustl::move(vmo)), mmuf_(mmuf)
     {}
 
     auto VmMapping::create(VirtAddr base, usize size, VmArea *vma, 

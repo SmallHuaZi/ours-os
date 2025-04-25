@@ -15,13 +15,29 @@
 #include <ours/mem/gaf.hpp>
 #include <ours/mem/vm_page.hpp>
 #include <ours/mem/memory_model.hpp>
+#include <ours/mem/physmap.hpp>
 #include <ours/mutex.hpp>
 
 #include <arch/page_table.hpp>
+#include <ustl/bitfields.hpp>
 
-namespace ours::mem::details {
-    struct PageAllocator {
-        static auto alloc_page(usize nr_pages, usize align) -> PhysAddr {
+namespace ours::mem {
+    struct X86PageAllocator;
+    struct X86MmuPageSynchroniser;
+    struct X86EptPageSynchroniser;
+
+    typedef arch::PageTable <
+        arch::paging::PageAllocator<X86PageAllocator>,
+        // A x86-custom option to give out a type of page synchroniser for MMU.
+        arch::paging::X86MmuPageSynchroniser<X86MmuPageSynchroniser>,
+        // A x86-custom option to give out a type of page synchroniser for EPT.
+        arch::paging::X86EptPageSynchroniser<X86EptPageSynchroniser>,
+        arch::paging::PhysToVirt<PhysMap>,
+        arch::MutexT<Mutex>
+    > PageTable;
+
+    struct X86PageAllocator {
+        static auto alloc_pages(usize nr_pages, usize align) -> PhysAddr {
             PhysAddr phys_addr;
             auto frame = alloc_frame(kGafKernel, &phys_addr, 0); 
             if (!frame) {
@@ -44,18 +60,17 @@ namespace ours::mem::details {
         }
     };
 
-    struct TlbInvalidator {
-        static auto invalidate(VirtAddr virt_addr) -> void
+    struct X86MmuPageSynchroniser {
+        typedef X86MmuPageSynchroniser  Self;
+        X86MmuPageSynchroniser(PageTable::Mmu *mmu)
+            : page_table_(mmu)
         {}
+
+        auto sync(arch::paging::PendingInvalidationItems const &items) -> void;
+
+        PageTable::Mmu *page_table_;
     };
 
-    typedef arch::PageTable
-    <
-        arch::paging::PageSourceT<PageAllocator>,
-        arch::paging::PageFlusherT<TlbInvalidator>,
-        arch::MutexT<Mutex>
-    > PageTable;
-
-} // namespace ours::mem::details
+} // namespace ours::mem
 
 #endif // #ifndef OURS_ARCH_X86_PAGE_TABLE_HPP

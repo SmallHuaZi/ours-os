@@ -18,6 +18,25 @@ namespace arch::paging {
     using ustl::mem::align_up;
 
     TEMPLATE
+    class X86_PAGE_TABLE::PageSynchroniser {
+      public:
+        auto append(VirtAddr addr, LevelType level, bool is_global, bool is_terminal) -> void {
+            items_.append(addr, level, is_global, is_terminal);
+            if (items_.is_full()) {
+                sync();
+            }
+        }
+
+        auto sync() -> void {
+            page_table_->invalidate(items_);
+        }
+    
+      private:
+        Derived *page_table_;
+        PendingInvalidationItems items_;
+    };
+
+    TEMPLATE
     auto X86_PAGE_TABLE::init() -> Status {
         PhysAddr pgd_pa = alloc_page_table();
         if (!phys_) {
@@ -35,21 +54,20 @@ namespace arch::paging {
     }
 
     TEMPLATE FORCE_INLINE
-    auto X86_PAGE_TABLE::unmap_entry(PteVal volatile *pteval, LevelType level, 
-                                     VirtAddr virt, Synchroniser &synchroniser) -> Status {  
+    auto X86_PAGE_TABLE::unmap_entry(PteVal volatile *pteval, LevelType level, VirtAddr virt, 
+                                     PageSynchroniser *synchroniser) -> Status {  
         auto const derived = static_cast<Derived *>(this);
         PteVal const old_pte = *pteval;
         *pteval = 0;
 
         if (Derived::is_present(old_pte)) {
-            // Should add it into the reclaim list.
-            synchroniser.append(virt, level);
+            synchroniser->append(virt, level, *pteval & X86_MMUF_GLOBAL, Derived::is_large_page_mapping(old_pte));
         }
     }
 
     TEMPLATE
     auto X86_PAGE_TABLE::update_entry(PteVal volatile *pteval, LevelType level, PhysAddr phys, VirtAddr virt, 
-                                      X86MmuFlags flags, Synchroniser &synchroniser) -> void {
+                                      X86MmuFlags flags, PageSynchroniser *synchroniser) -> void {
         auto const derived = static_cast<Derived *>(this);
 
         PteVal const old_pte = *pteval;
@@ -62,14 +80,13 @@ namespace arch::paging {
         *pteval = new_pte;
 
         if (Derived::is_present(old_pte)) {
-            // Should add it into the reclaim list.
-            synchroniser.append(virt, level);
+            synchroniser->append(virt, level, *pteval & X86_MMUF_GLOBAL, Derived::is_large_page_mapping(old_pte));
         }
     }
 
     TEMPLATE
     auto X86_PAGE_TABLE::split_mapping(LevelType level, PteVal volatile *pte, VirtAddr virt_addr, 
-                                       UnmapContext *context) -> Status {
+                                       TravelContext *context, PageSynchroniser *synchroniser) -> Status {
         auto phys_table = alloc_page_table();
         if (!phys_table) {
             return Status::OutOfMem;
@@ -85,17 +102,17 @@ namespace arch::paging {
 
         auto const lower_level = PagingTraits::next_level(level);
         for (auto i = 0; i < max_entries; ++i) {
-            update_entry(entry + i, lower_level, phys_addr, virt_addr, mmuflags, context->synchroniser());
+            update_entry(entry + i, lower_level, phys_addr, virt_addr, mmuflags, synchroniser);
             phys_addr += page_size;
             virt_addr += page_size;
         }
 
-        update_entry(pte, level, phys_table, virt_addr, mmuflags, context->synchroniser());
+        update_entry(pte, level, phys_table, virt_addr, mmuflags, synchroniser);
         return Status::Ok;
     }
 
     TEMPLATE FORCE_INLINE
-    auto X86_PAGE_TABLE::make_mapping_context(MappingContext *context, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags)
+    auto X86_PAGE_TABLE::make_mapping_context(MapContext *context, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags)
         -> Status {
         auto const derived = static_cast<Derived *>(this);
         ustl::mem::construct_at(context, va, pa, n, flags, 4096);
@@ -103,7 +120,7 @@ namespace arch::paging {
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::prepare_map_pages(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MappingContext *context)
+    auto X86_PAGE_TABLE::prepare_map_pages(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapContext *context)
         -> Status {
         auto const derived = static_cast<Derived *>(this);
         if (derived->check_virt_addr(va)) {
@@ -130,26 +147,22 @@ namespace arch::paging {
             return Status::Ok;
         }
 
-        MappingContext context;
+        MapContext context;
         auto status = prepare_map_pages(va, &pa, n, flags, &context);
         if (status != Status::Ok) {
             return status;
         }
-        Synchroniser synchroniser{};
-        context.set_synchroniser(&synchroniser);
 
+        PageSynchroniser synchroniser{};
         auto pgd = reinterpret_cast<PteVal *>(virt_);
         {
             ustl::sync::LockGuard guard(mutex_);
-            status = create_mapping(Self::top_level(), pgd, &context, control);
+            status = create_mapping(Self::top_level(), pgd, &context, control, &synchroniser);
 
             if (status != Status::Ok) {
                 // Failed to map, need we to unmap those mapped pages.
-                UnmapContext unmap_context{};
-                unmap_context.set_cursor(context.virt_cursor().consumed_range())
-                             .set_synchroniser(&synchroniser);
-
-                status = remove_mapping(Self::top_level(), pgd, &unmap_context, UnmapControl::None);
+                TravelContext unmap_context{context.virt_cursor().consumed_range()};
+                status = remove_mapping(Self::top_level(), pgd, &unmap_context, UnmapControl::None, &synchroniser);
             }
             synchroniser.sync();
         }
@@ -158,7 +171,7 @@ namespace arch::paging {
         }
 
         if (mapped) {
-            *mapped = context.mapped();
+            *mapped = context.num_mapped();
         }
 
         return status;
@@ -172,27 +185,23 @@ namespace arch::paging {
             return Status::Ok;
         }
 
-        MappingContext context;
+        MapContext context;
         auto status = prepare_map_pages(va, pa, len, flags, &context);
         if (status != Status::Ok) {
             return status;
         } 
 
-        Synchroniser synchroniser{};
-        context.set_synchroniser(&synchroniser);
-
+        PageSynchroniser synchroniser{};
         auto pgd = reinterpret_cast<PteVal *>(virt_);
         {
             ustl::sync::LockGuard guard(mutex_);
-            status = create_mapping(Self::top_level(), pgd, &context, control);
+            status = create_mapping(Self::top_level(), pgd, &context, control, &synchroniser);
 
             if (status != Status::Ok) {
-                UnmapContext unmap_context{};
-                unmap_context.set_cursor(context.virt_cursor().consumed_range())
-                             .set_synchroniser(&synchroniser);
-
-                status = remove_mapping(Self::top_level(), pgd, &unmap_context, UnmapControl::None);
+                TravelContext unmap_context{context.virt_cursor().consumed_range()};
+                status = remove_mapping(Self::top_level(), pgd, &unmap_context, UnmapControl::None, &synchroniser);
             }
+
             synchroniser.sync();
         }
 
@@ -201,18 +210,17 @@ namespace arch::paging {
         }
 
         if (mapped) {
-            *mapped = context.mapped();
+            *mapped = context.num_mapped();
         }
 
         return Status::Ok;
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::create_mapping(LevelType level, ai_virt PteVal volatile *table, MappingContext *context, MapControl control)
-        -> Status 
-    {
+    auto X86_PAGE_TABLE::create_mapping(LevelType level, ai_virt PteVal volatile *table, MapContext *context, 
+                                        MapControl control, PageSynchroniser *synchroniser) -> Status {
         if (level == PagingTraits::kFinalLevel) {
-            this->create_mapping_at_l0(table, context, control);
+            this->create_mapping_at_l0(table, context, control, synchroniser);
         }
         auto const derived = static_cast<Derived *>(this);
         auto const level_page_size = Self::page_size(level);
@@ -234,7 +242,7 @@ namespace arch::paging {
                         context->remaining_size() >= level_page_size) 
                     {
                         // The current address range supports a large mapping.
-                        update_entry(entry, level, phys_addr, virt_addr, mmuflags, context->synchroniser());
+                        update_entry(entry, level, phys_addr, virt_addr, mmuflags, synchroniser);
 
                         context->consume(level_page_size);
                         // Large page mapping entry is leaf of page table, so we directly start to next iteration.
@@ -244,7 +252,7 @@ namespace arch::paging {
 
                 // The request do not cover the whole large page, so create a lower mappings to then map it.
                 PhysAddr new_table = this->alloc_page_table();
-                update_entry(entry, level, new_table, virt_addr, mmuflags, context->synchroniser());
+                update_entry(entry, level, new_table, virt_addr, mmuflags, synchroniser);
             } else {  
                 if (Derived::is_large_page_mapping(*table)) {
                     if (bool(control & MapControl::ErrorIfExisting)) {
@@ -262,7 +270,7 @@ namespace arch::paging {
 
             auto status = create_mapping(PagingTraits::next_level(level),
                                   get_next_table_unchecked(*entry),
-                                        context, control);
+                                        context, control, synchroniser);
             if (Status::Ok != status) {
                 return status;
             }
@@ -272,7 +280,8 @@ namespace arch::paging {
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::create_mapping_at_l0(PteVal volatile *table, MappingContext *context, MapControl control) -> Status {
+    auto X86_PAGE_TABLE::create_mapping_at_l0(PteVal volatile *table, MapContext *context, MapControl control, 
+                                              PageSynchroniser *synchroniser) -> Status {
         CXX11_CONSTEXPR
         auto const level = PagingTraits::kFinalLevel;
         auto const readonly = (context->flags() & X86MmuFlags::PermMask) == X86MmuFlags::Writable;
@@ -285,28 +294,33 @@ namespace arch::paging {
             auto const is_existing = Derived::is_present(*table);
 
             if (is_existing) {
-                if (bool(control & MapControl::ErrorIfExisting)) {
+                if (!!(control & MapControl::ErrorIfExisting)) {
                     return Status::Error;
-                } else if (bool(control & MapControl::SkipIfExisting)) {
+                } else if (!!(control & MapControl::SkipIfExisting)) {
                     context->skip(page_size);
                     continue;
-                } else if (bool(control & MapControl::OverwriteIfExisting)) {
+                } else if (!!(control & MapControl::OverwriteIfExisting)) {
                     if (!readonly) {
-                        unmap_entry(entry, level, context->virt_addr(), context->synchroniser());
+                        unmap_entry(entry, level, context->virt_addr(), synchroniser);
+
+                        // Before installing a new entry, the old entry invalidated must be
+                        // flushed to make the changes visible. Otherwise the new entry may
+                        // not work correctly.
+                        synchroniser->sync();
                     }
                 }
             }
 
             auto const [phys, virt] = context->take(page_size);
-            update_entry(entry, level, phys, virt, context->flags(), context->synchroniser());
+            update_entry(entry, level, phys, virt, context->flags(), synchroniser);
         }
 
         return Status::Ok;
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::remove_mapping_at_l0(PteVal volatile *pte, UnmapContext *context, UnmapControl) 
-        -> Status {
+    auto X86_PAGE_TABLE::remove_mapping_at_l0(PteVal volatile *pte, TravelContext *context, 
+                                              UnmapControl, PageSynchroniser *synchroniser)  -> Status {
         CXX11_CONSTEXPR
         auto const level = PagingTraits::kFinalLevel;
         auto const max_entries = Self::max_entries(level);
@@ -316,7 +330,7 @@ namespace arch::paging {
         for (; index < max_entries && context->size() > 0; ++index) {
             PteVal volatile *entry = pte + index;
             if (Derived::is_present(*entry)) {
-                unmap_entry(entry, level, context->virt_addr(), context->synchroniser());
+                unmap_entry(entry, level, context->virt_addr(), synchroniser);
             }
 
             context->consume(level_page_size);
@@ -326,10 +340,10 @@ namespace arch::paging {
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::remove_mapping(LevelType level, PteVal volatile *pte, UnmapContext *context, UnmapControl control) 
-        -> Status {
+    auto X86_PAGE_TABLE::remove_mapping(LevelType level, PteVal volatile *pte, TravelContext *context, 
+                                        UnmapControl control, PageSynchroniser *synchroniser) -> Status {
         if (level == PagingTraits::kFinalLevel) {
-            return remove_mapping_at_l0(pte, context, control);
+            return remove_mapping_at_l0(pte, context, control, synchroniser);
         }
 
         auto const max_entries = Self::max_entries(level);
@@ -349,21 +363,21 @@ namespace arch::paging {
                 auto const va_aligned = align_down(virt_addr, level_page_size);
                 if (va_aligned == virt_addr && context->size() >= level_page_size) {
                     // The request covers the entire large page, just unmap it.
-                    unmap_entry(entry, level, virt_addr, context->synchroniser());
+                    unmap_entry(entry, level, virt_addr, synchroniser);
                     context->consume(level_page_size);
                     continue;
                 }
 
                 // The request does not cover the entire large page. Split it into multiple lower
                 // level mappings to remove respectively.
-                auto status = split_mapping(level, entry, va_aligned, context);
+                auto status = split_mapping(level, entry, va_aligned, context, synchroniser);
                 if (Status::Ok != status) {
                     return status;
                 }
             }
 
             auto table = get_next_table_unchecked(*entry);
-            auto status = remove_mapping(PagingTraits::next_level(level), table, context, control);
+            auto status = remove_mapping(PagingTraits::next_level(level), table, context, control, synchroniser);
             if (Status::Ok != status) {
                 return status;
             }
@@ -371,6 +385,7 @@ namespace arch::paging {
 
         return Status::Ok;
     }
+
     TEMPLATE
     auto X86_PAGE_TABLE::unmap_pages(VirtAddr va, usize n, UnmapControl control, usize *unmapped) -> Status {  
         canary_.verify();
@@ -384,27 +399,26 @@ namespace arch::paging {
             return Status::InvalidArguments;
         }
 
-        Synchroniser synchroniser{};
-        UnmapContext context{};
-        context.set_cursor(VirtAddrCursor(virt_, n * PAGE_SIZE))
-               .set_synchroniser(&synchroniser);
+        PageSynchroniser synchroniser{};
+        TravelContext context{virt_, n, PAGE_SIZE};
         
         Status status;
         auto pgd = reinterpret_cast<PteVal volatile *>(virt_);
         {
             ustl::sync::LockGuard guard(mutex_);
-            status = remove_mapping(Self::top_level(), pgd, &context, control);
+            status = remove_mapping(Self::top_level(), pgd, &context, control, &synchroniser);
             synchroniser.sync();
         }
         if (unmapped) {
-            *unmapped = context.unmapped();
+            *unmapped = context.num_travelled();
         }
 
         return status;
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::update_mapping_at_l0(PteVal volatile *pte, MappingContext *context) -> Status {
+    auto X86_PAGE_TABLE::update_mapping_at_l0(PteVal volatile *pte, MapContext *context, 
+                                              PageSynchroniser *synchroniser) -> Status {
         CXX11_CONSTEXPR
         auto const level = PagingTraits::kFinalLevel;
         auto const mmuflags = context->flags();
@@ -416,7 +430,7 @@ namespace arch::paging {
             PteVal volatile *entry = pte + index;
             if (Derived::is_present(*entry)) {
                 PhysAddr const phys = PagingTraits::phys_addr_from_pte(level, *entry);
-                update_entry(entry, level, phys, context->virt_addr(), mmuflags, context->synchroniser());
+                update_entry(entry, level, phys, context->virt_addr(), mmuflags, synchroniser);
             } 
 
             context->consume(level_page_size);
@@ -426,9 +440,10 @@ namespace arch::paging {
     }
 
     TEMPLATE
-    auto X86_PAGE_TABLE::update_mapping(LevelType level, PteVal volatile *pte, MappingContext *context) -> Status {
+    auto X86_PAGE_TABLE::update_mapping(LevelType level, PteVal volatile *pte, MapContext *context,
+                                        PageSynchroniser *synchroniser) -> Status {
         if (level == PagingTraits::kFinalLevel) {
-            return update_mapping_at_l0(pte, context);
+            return update_mapping_at_l0(pte, context, synchroniser);
         }
 
         auto const mmuflags = context->flags();
@@ -449,13 +464,13 @@ namespace arch::paging {
                     PhysAddr const phys = PagingTraits::phys_addr_from_pte(level, *entry);
 
                     // The request covers the entire page, just let us to update it.
-                    update_entry(entry, level, phys, virt, mmuflags, context->synchroniser());
+                    update_entry(entry, level, phys, virt, mmuflags, synchroniser);
                     context->consume(level_page_size);
                     continue;
                 }
             }
 
-            auto status = update_mapping(PagingTraits::next_level(level), get_next_table_unchecked(*entry), context);
+            auto status = update_mapping(PagingTraits::next_level(level), get_next_table_unchecked(*entry), context, synchroniser);
             if (Status::Ok != status) {
                 return status;
             }
@@ -476,16 +491,13 @@ namespace arch::paging {
             return Status::InvalidArguments;
         }
 
-        Synchroniser synchroniser{};
-        MappingContext context;
-        context.set_synchroniser(&synchroniser);
-
-        Status status;
+        PageSynchroniser synchroniser{};
+        MapContext context{va, 0, n, flags, PAGE_SIZE};
+        Status status{};
         auto pgd = reinterpret_cast<PteVal volatile *>(virt_);
         {
             ustl::sync::LockGuard guard(mutex_);
-            status = update_mapping(Self::top_level(), pgd, &context);
-            synchroniser.sync();
+            status = update_mapping(Self::top_level(), pgd, &context, &synchroniser);
         }
 
         return status;

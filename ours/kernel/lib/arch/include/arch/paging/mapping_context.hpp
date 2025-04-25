@@ -98,10 +98,54 @@ namespace arch::paging {
         PhysAddr* addrs_;
     };
 
-    struct GenericMappingContext {
-        GenericMappingContext() = default;
+    struct TravelContext {
+        typedef TravelContext    Self;
 
-        GenericMappingContext(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
+        TravelContext() = default;
+
+        TravelContext(VirtAddr va, usize nr_pages, usize page_size)
+            : cursor_(va, nr_pages * page_size)
+        {}
+
+        TravelContext(VirtAddrCursor cursor)
+            : cursor_(cursor)
+        {}
+
+        FORCE_INLINE CXX11_CONSTEXPR 
+        auto consume(usize page_size) -> void {
+            cursor_.consume(page_size);
+            num_travelled_ += 1;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto size() const -> usize {  
+            return cursor_.size();  
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto num_travelled() const -> usize {  
+            return num_travelled_;  
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto virt_addr() const -> VirtAddr {  
+            return cursor_.virt_addr();  
+        }
+
+        FORCE_INLINE
+        auto set_cursor(VirtAddrCursor cursor) -> Self & {
+            cursor_ = cursor;
+            return *this;
+        }
+
+        usize num_travelled_;
+        VirtAddrCursor cursor_;
+    };
+
+    struct MapContext {
+        MapContext() = default;
+
+        MapContext(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
             : flags_(mmuflags_cast<ArchMmuFlags>(flags)),
               virt_cursor_(va, page_size * n),
               phys_cursor_(pa, n, page_size)
@@ -127,6 +171,11 @@ namespace arch::paging {
             return virt_cursor_.size();  
         }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto num_mapped() const -> usize {
+            return num_mapped_;
+        }
+
         CXX11_CONSTEXPR
         auto remaining_size() const -> usize {  
             return phys_cursor_.remaining_size();  
@@ -141,6 +190,7 @@ namespace arch::paging {
         auto consume(usize page_size) -> void {
             phys_cursor_.consume(page_size);
             virt_cursor_.consume(page_size);
+            num_mapped_ += 1;
         }
 
         FORCE_INLINE
@@ -164,6 +214,7 @@ namespace arch::paging {
         }
 
     private:
+        usize num_mapped_;
         ArchMmuFlags flags_;
         PhysAddrCursor phys_cursor_;
         VirtAddrCursor virt_cursor_;

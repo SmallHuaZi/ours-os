@@ -49,7 +49,11 @@ namespace ours::mem {
             return nullptr;
         }
 
-        aspace->init(VmaFlags::Read | VmaFlags::Write | VmaFlags::Exec | VmaFlags::Share);
+        // In the normal case, the root VMA always ownes RWX permissions so that the sub-VMA derived from
+        // it can be created with arbitrary permissions combination.
+        CXX11_CONSTEXPR
+        static auto const kRootVmaFlags = VmaFlags::PermMask | VmaFlags::Share;
+        aspace->init(kRootVmaFlags);
         {
             // Entrollment into the global list.
             ustl::sync::LockGuard guard(Self::all_aspace_list_mutex_);

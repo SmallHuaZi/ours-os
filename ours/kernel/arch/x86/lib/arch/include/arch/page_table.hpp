@@ -30,15 +30,18 @@
 namespace arch {
 namespace paging {
     USTL_MPL_CREATE_METHOD_DETECTOR(Init, init);
+    USTL_TYPE_OPTION(PhysToVirt, PhysToVirt);
 
     /// `PageTable` is a high-level abstract to virutal memory mapping.
     /// `|Mutex|` should provides the interface `lock` and `unlock` at least.
     /// `|PageManager|`  should provides the interface `alloc_page` and `free_page`  at least.
     template <typename Options>
     class X86PageTable {
+      public:
         using Mmu = paging::X86PageTableMmu<Options>;
         using Ept = paging::X86PageTableEpt<Options>;
-      public:
+        using PagingTraits = typename Mmu::PagingTraits;
+
         template <typename Derived>
         CXX11_CONSTEXPR
         auto init(PhysAddr pgd_pa, VirtAddr pgd_va) -> Status;
@@ -106,7 +109,6 @@ namespace paging {
         auto install() const -> void {
             pimpl_->install();
         }
-
       private: 
         union Storage {
             alignas(Mmu) char mmu_[sizeof(Mmu)];

@@ -81,6 +81,7 @@ namespace ours::mem {
         auto check_sburange(PgOff pgoff, usize nr_pages) const -> bool;
 
         GKTL_CANARY(VmMapping, canary_);
+        char const *name_;
         MmuFlags mmuf_;
         VirtAddr base_;
         VirtAddr size_;

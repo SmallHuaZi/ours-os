@@ -136,7 +136,7 @@ namespace arch::paging {
         }
 
         Allocator allocator_;
-        GenericMappingContext context_;
+        MapContext context_;
     };
 
     template <typename PagingTraits, typename Allocator>

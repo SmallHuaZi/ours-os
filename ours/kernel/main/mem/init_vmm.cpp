@@ -27,8 +27,7 @@ namespace ours::mem {
         char const *name;
         VirtAddr base;
         usize size;
-        MmuFlags mmuf;
-        VmaFlags flags;
+        VmaFlags vmaf;
     };
 
     CXX11_CONSTEXPR
@@ -43,47 +42,45 @@ namespace ours::mem {
             .name = "k:code",
             .base = VirtAddr(kKernelCodeStart),
             .size = usize(kKernelCodeEnd - kKernelCodeStart),
-            .mmuf = MmuFlags::Executable | MmuFlags::Readable
+            .vmaf = VmaFlags::Exec | VmaFlags::Read
         },
         {
             .name = "k:data",
             .base = VirtAddr(kKernelDataStart),
             .size = usize(kKernelDataEnd - kKernelDataStart),
-            .mmuf = MmuFlags::Writable | MmuFlags::Readable
+            .vmaf = VmaFlags::Write | VmaFlags::Read
         },
         {
             .name = "k:rodata",
             .base = VirtAddr(kKernelRodataStart),
             .size = usize(kKernelRodataEnd - kKernelRodataStart),
-            .mmuf = MmuFlags::Readable
+            .vmaf = VmaFlags::Read
         },
         {
             .name = "k:bss",
             .base = VirtAddr(kKernelBssStart),
             .size = usize(kKernelBssEnd - kKernelBssStart),
-            .mmuf = MmuFlags::Readable | MmuFlags::Writable
+            .vmaf = VmaFlags::Read | VmaFlags::Write
         },
         {
             .name = "k:init",
             .base = VirtAddr(kKernelInitStart),
             .size = usize(kKernelInitEnd - kKernelInitStart),
-            .mmuf = MmuFlags::Readable | MmuFlags::Writable | MmuFlags::Executable,
-            .flags = VmaFlags::Read | VmaFlags::Write | VmaFlags::Exec
+            .vmaf = VmaFlags::Read | VmaFlags::Write | VmaFlags::Exec
         },
         {
             .name = "k:physmap",
             // If ASLR(Address space layout randomilization) enabled, this needs to fix up with get_kernel_virt_base().
             .base = PhysMap::kVirtBase,
             .size = PhysMap::kSize,
-            .mmuf = kPresetVmaMmuFlags,
-            .flags = VmaFlags::Read | VmaFlags::Write
+            .vmaf = VmaFlags::Read | VmaFlags::Write
         },
         {
             .name = "k:padding",
             .base = PhysMap::kVirtBase + PhysMap::kSize,
             // Reserve a max page to prevent over prevent overwring.
             .size = MAX_PAGE_SIZE,
-            .mmuf = kPresetVmaMmuFlags,
+            .vmaf = VmaFlags::Read
         },
     };
 
@@ -92,10 +89,10 @@ namespace ours::mem {
         auto kaspace = VmAspace::kernel_aspace();
         auto root_vma = kaspace->root_vma();
         ustl::Rc<VmArea> vma;
-        auto status = root_vma->create_subvma(phys_vma.base - root_vma->base(), phys_vma.size, VmaFlags::Pinned, phys_vma.name, &vma);
+        auto status = root_vma->create_subvma(phys_vma.base - root_vma->base(), phys_vma.size, phys_vma.vmaf, phys_vma.name, &vma);
         DEBUG_ASSERT(Status::Ok == status);
 
-        status = vma->reserve(0, phys_vma.size, phys_vma.mmuf, phys_vma.name);
+        status = vma->reserve(0, phys_vma.size, extract_permissions(phys_vma.vmaf), phys_vma.name);
         DEBUG_ASSERT(Status::Ok == status);
     }
 

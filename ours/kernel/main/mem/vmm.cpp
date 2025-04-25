@@ -33,25 +33,8 @@ namespace ours::mem {
         return PhysMap::phys_to_virt(phys_addr);
     }
 
-    /// This should be a common routine to extract MMU permissions from
-    /// a VmaFlags.
-    FORCE_INLINE
-    static auto extract_permissions(VmaFlags vmaflags) -> MmuFlags {
-        MmuFlags mmuf{};
-        if (!!(vmaflags & VmaFlags::Write)) {
-            mmuf |= MmuFlags::Writable;
-        }
-        if (!!(vmaflags & VmaFlags::Read)) {
-            mmuf |= MmuFlags::Readable;
-        }
-        if (!!(vmaflags & VmaFlags::Exec)) {
-            mmuf |= MmuFlags::Executable;
-        }
-
-        return mmuf;
-    };
-
-    auto vmmap(usize nr_pages, VmaFlags vmaf, const char *name, VmMapOption options) -> ustl::Result<VirtAddr, Status> {
+    auto vmmap(usize nr_pages, VmaFlags vmaf, const char *name, VmMapOption options) 
+        -> ustl::Result<VirtAddr, Status> {
         auto root_vma = VmAspace::kernel_aspace()->root_vma();
 
         ustl::Rc<VmArea> vma;

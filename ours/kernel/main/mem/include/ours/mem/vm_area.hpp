@@ -47,6 +47,22 @@ namespace ours::mem {
     };
     USTL_ENABLE_ENUM_BITMASK(VmaFlags);
 
+    FORCE_INLINE
+    static auto extract_permissions(VmaFlags vmaflags) -> MmuFlags {
+        MmuFlags mmuf{};
+        if (!!(vmaflags & VmaFlags::Write)) {
+            mmuf |= MmuFlags::Writable;
+        }
+        if (!!(vmaflags & VmaFlags::Read)) {
+            mmuf |= MmuFlags::Readable;
+        }
+        if (!!(vmaflags & VmaFlags::Exec)) {
+            mmuf |= MmuFlags::Executable;
+        }
+
+        return mmuf;
+    }
+
     /// `VmArea` is a representation of a contiguous range of virtual memory space.
     class VmArea: public ustl::RefCounter<VmArea> {
         typedef VmArea      Self;

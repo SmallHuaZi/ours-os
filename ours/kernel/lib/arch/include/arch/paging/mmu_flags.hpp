@@ -26,15 +26,18 @@ namespace arch::paging {
         Executable  = BIT(3),
         PermMask    = Writable | Readable | Executable,
 
+        /// Only valid on some architectures.
         Discache    = BIT(4),
         User        = BIT(5),
     }; // enum class MmuFlags: usize
     USTL_ENABLE_ENUM_BITMASK(MmuFlags);
 
+    /// MmuFlags -> ArchMmuFlags
     template <typename ArchMmuFlags>
     CXX11_CONSTEXPR
     auto mmuflags_cast(MmuFlags flags) -> ArchMmuFlags;
 
+    /// ArchMmuFlags -> MmuFlags
     template <typename ArchMmuFlags>
     CXX11_CONSTEXPR
     auto mmuflags_cast(ArchMmuFlags flags) -> MmuFlags;
