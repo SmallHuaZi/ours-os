@@ -63,7 +63,7 @@ namespace arch::paging {
 
         FORCE_INLINE
         static auto is_large_page_mapping(PteVal pte) -> bool {
-            return pte & (X86_MMUF_PAGE_SIZE | X86_MMUF_PRESENT);
+            return pte & X86_MMUF_PAGE_SIZE;
         }
 
         FORCE_INLINE

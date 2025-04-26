@@ -81,7 +81,7 @@ namespace arch::paging {
 
         MappingVisitor(Allocator &&allocator, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
             : allocator_(allocator),
-              context_(va, pa, n, flags, page_size)
+              context_(va, pa, n, page_size, flags)
         {}
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -102,7 +102,7 @@ namespace arch::paging {
             // CXX11_CONSTEXPR
             auto const page_size = PagingTraits::page_size(Level);
             auto const start_address = context_.phys_addr();
-            auto const remaining_size = context_.remaining_size();
+            auto const remaining_size = context_.phys_cursor().remaining_size();
 
             // Can we take a large page mapping?
             // 1. Hardware support.
@@ -126,7 +126,7 @@ namespace arch::paging {
                 }
             }
 
-            pte = Pte<Level>::make(phys_addr, context_.flags(), is_terminal);
+            pte = Pte<Level>::make(phys_addr, context_.mmuflags(), is_terminal);
 
             if (is_terminal) {
                 return ustl::ok();

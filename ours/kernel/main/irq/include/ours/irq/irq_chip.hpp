@@ -25,6 +25,7 @@ namespace ours::irq {
 
         virtual auto mask(IrqData &data) -> void = 0;
         virtual auto unmask(IrqData &data) -> void = 0;
+        virtual auto ack(IrqData &data) -> void = 0;
         virtual auto send_eoi(IrqData &data) -> void {}
         virtual auto send_ack(IrqData &data) -> void {}
 
@@ -51,7 +52,6 @@ namespace ours::irq {
             return Status::Unsupported;
         }
         virtual auto teardown_nmi(IrqData &data) -> void {}
-
       protected:
         char const *name_;
     };

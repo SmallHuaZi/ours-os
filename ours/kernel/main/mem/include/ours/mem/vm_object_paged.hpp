@@ -25,29 +25,29 @@ namespace ours::mem {
     public:
         static auto create(Gaf gaf, usize nr_pages, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
 
-        static auto create_contiguous(Gaf gaf, usize nr_pages, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
+        static auto create_contiguous(Gaf gaf, usize size, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
 
         /// 
-        virtual auto commit_range(PgOff offset, usize n, CommitOptions option) -> Status override;
+        virtual auto commit_range(VirtAddr offset, usize size, CommitOptions option) -> Status override;
 
         ///
-        virtual auto decommit(PgOff pgoff, usize n) -> Status override;
+        virtual auto decommit(VirtAddr offset, usize size) -> Status override;
 
         ///
-        virtual auto take_pages(PgOff pgoff, usize n, VmPageList *pagelist) -> Status override;
+        virtual auto take_pages(VirtAddr offset, usize size, VmPageList *pagelist) -> Status override;
 
         ///
-        virtual auto supply_pages(PgOff pgoff, usize n, VmPageList *pagelist) -> Status override;
+        virtual auto supply_pages(VirtAddr offset, usize size, VmPageList *pagelist) -> Status override;
 
         ///
-        virtual auto read(void *out, PgOff pgoff, usize size) -> Status override;
+        virtual auto read(void *out, VirtAddr offset, usize size) -> Status override;
 
         ///
-        virtual auto write(void *out, PgOff pgoff, usize size) -> Status override;
+        virtual auto write(void *out, VirtAddr offset, usize size) -> Status override;
 
         FORCE_INLINE
-        auto make_cursor(PgOff pgoff, usize n) -> ustl::Result<VmCowPages::Cursor, Status> {
-            return cow_pages_->make_cursor(pgoff, n);
+        auto make_cursor(VirtAddr offset, usize size) -> ustl::Result<VmCowPages::Cursor, Status> {
+            return cow_pages_->make_cursor(offset, size);
         }
 
         /// Priviate on logic, please go to use the facotry member like VmObjectPaged::create*.

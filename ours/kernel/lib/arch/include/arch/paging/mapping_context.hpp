@@ -47,6 +47,11 @@ namespace arch::paging {
             consumed_ += page_size;
         }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto remaining_size() const -> usize {  
+            return size_ - consumed_; 
+        }
+
         FORCE_INLINE CXX11_CONSTEXPR 
         auto consumed_range() const -> VirtAddrCursor {
             return VirtAddrCursor(addr_, consumed_);
@@ -103,67 +108,20 @@ namespace arch::paging {
 
         TravelContext() = default;
 
-        TravelContext(VirtAddr va, usize nr_pages, usize page_size)
-            : cursor_(va, nr_pages * page_size)
+        TravelContext(VirtAddrCursor cursor, MmuFlags mmuf = {})
+            : num_travelled_(0),
+              virt_cursor_(cursor), 
+              flags_(mmuflags_cast<ArchMmuFlags>(mmuf))
         {}
 
-        TravelContext(VirtAddrCursor cursor)
-            : cursor_(cursor)
+        TravelContext(VirtAddr va, usize nr_pages, usize page_size, MmuFlags mmuf = {})
+            : Self(VirtAddrCursor(va, nr_pages * page_size), mmuf) 
         {}
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto consume(usize page_size) -> void {
-            cursor_.consume(page_size);
+            virt_cursor_.consume(page_size);
             num_travelled_ += 1;
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto size() const -> usize {  
-            return cursor_.size();  
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto num_travelled() const -> usize {  
-            return num_travelled_;  
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto virt_addr() const -> VirtAddr {  
-            return cursor_.virt_addr();  
-        }
-
-        FORCE_INLINE
-        auto set_cursor(VirtAddrCursor cursor) -> Self & {
-            cursor_ = cursor;
-            return *this;
-        }
-
-        usize num_travelled_;
-        VirtAddrCursor cursor_;
-    };
-
-    struct MapContext {
-        MapContext() = default;
-
-        MapContext(VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags, usize page_size)
-            : flags_(mmuflags_cast<ArchMmuFlags>(flags)),
-              virt_cursor_(va, page_size * n),
-              phys_cursor_(pa, n, page_size)
-        {}
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto phys_addr() const -> PhysAddr {  
-            return phys_cursor_.phys_addr();  
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto virt_addr() const -> VirtAddr {  
-            return virt_cursor_.virt_addr();  
-        }
-
-        FORCE_INLINE CXX11_CONSTEXPR
-        auto flags() const -> ArchMmuFlags {  
-            return flags_;  
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
@@ -172,13 +130,13 @@ namespace arch::paging {
         }
 
         FORCE_INLINE CXX11_CONSTEXPR
-        auto num_mapped() const -> usize {
-            return num_mapped_;
+        auto mmuflags() const -> ArchMmuFlags {  
+            return flags_;  
         }
 
-        CXX11_CONSTEXPR
-        auto remaining_size() const -> usize {  
-            return phys_cursor_.remaining_size();  
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto num_travelled() const -> usize {  
+            return num_travelled_;  
         }
 
         FORCE_INLINE
@@ -186,11 +144,54 @@ namespace arch::paging {
             return virt_cursor_;
         }
 
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto virt_addr() const -> VirtAddr {  
+            return virt_cursor_.virt_addr();  
+        }
+
+        FORCE_INLINE
+        auto set_cursor(VirtAddrCursor cursor) -> Self & {
+            virt_cursor_ = cursor;
+            return *this;
+        }
+
+      protected:
+        usize num_travelled_;
+        ArchMmuFlags flags_;
+        VirtAddrCursor virt_cursor_;
+    };
+
+    struct MapContext: public TravelContext {
+        typedef MapContext      Self;
+        typedef TravelContext   Base;
+
+        MapContext() = default;
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        MapContext(VirtAddr va, PhysAddr *pa, usize n, usize page_size, MmuFlags flags)
+            : Base(va, n, page_size, flags), 
+              phys_cursor_(pa, n, page_size)
+        {}
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto phys_addr() const -> PhysAddr {  
+            return phys_cursor_.phys_addr();  
+        }
+
+        FORCE_INLINE
+        auto phys_cursor() -> PhysAddrCursor & {  
+            return phys_cursor_;
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto num_mapped() const -> usize {
+            return num_travelled_;
+        }
+
         FORCE_INLINE
         auto consume(usize page_size) -> void {
+            Base::consume(page_size);
             phys_cursor_.consume(page_size);
-            virt_cursor_.consume(page_size);
-            num_mapped_ += 1;
         }
 
         FORCE_INLINE
@@ -206,18 +207,13 @@ namespace arch::paging {
             return ustl::make_pair(phys, virt);
         }
 
-        auto finish() -> void;
-
         FORCE_INLINE
         auto has_more() const -> bool {
             return phys_cursor_.count_ > 0;
         }
 
-    private:
-        usize num_mapped_;
-        ArchMmuFlags flags_;
+      protected:
         PhysAddrCursor phys_cursor_;
-        VirtAddrCursor virt_cursor_;
     };
 
 } // namespace arch::paging

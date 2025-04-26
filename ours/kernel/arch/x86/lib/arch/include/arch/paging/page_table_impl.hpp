@@ -222,7 +222,7 @@ namespace arch::paging {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto get_next_table_unchecked(PteVal pteval) -> PteVal volatile * {
-            if (Derived::is_present(pteval) && Derived::is_large_page_mapping(pteval)) {
+            if (!Derived::is_present(pteval) || Derived::is_large_page_mapping(pteval)) {
                 return 0;
             }
 
@@ -246,8 +246,8 @@ namespace arch::paging {
         auto read_mapping(PteVal volatile *, VirtAddr, LevelType *out_level, PteVal *out_pte) -> Status;
 
         /// Update a page table entry.
-        auto update_mapping(LevelType, PteVal volatile *, MapContext *, PageSynchroniser *) -> Status;
-        auto update_mapping_at_l0(PteVal volatile *, MapContext *, PageSynchroniser *) -> Status;
+        auto update_mapping(LevelType, PteVal volatile *, TravelContext *, PageSynchroniser *) -> Status;
+        auto update_mapping_at_l0(PteVal volatile *, TravelContext *, PageSynchroniser *) -> Status;
 
         /// Update a entry.
         auto update_entry(PteVal volatile *, LevelType, PhysAddr, VirtAddr, X86MmuFlags, PageSynchroniser *) -> void;

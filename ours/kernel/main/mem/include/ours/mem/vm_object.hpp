@@ -56,29 +56,29 @@ namespace ours::mem {
         USTL_ENABLE_INNER_ENUM_BITMASK(CommitOptions);
 
         /// Actively request pages for fulfilling range [pgoff, pgoff + n).
-        virtual auto commit_range(PgOff pgoff, usize n, CommitOptions commit = CommitOptions::None) -> Status = 0;
+        virtual auto commit_range(VirtAddr offset, usize size, CommitOptions commit = CommitOptions::None) -> Status = 0;
 
         ///
-        virtual auto decommit(PgOff pgoff, usize n) -> Status = 0;
+        virtual auto decommit(VirtAddr offset, usize size) -> Status = 0;
 
         /// Remove all pages in range [ `|pgoff|`, `|pgoff + n|`) to `|page_list|`.
-        virtual auto take_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status {
+        virtual auto take_pages(VirtAddr offset, usize size, VmPageList *page_list) -> Status {
             return Status::Unsupported;
         } 
 
         /// Supplies this VMO a group of page for range [pgoff, pgoff + n).
         /// Typically it should be invoked by PageProvider.
-        virtual auto supply_pages(PgOff pgoff, usize n, VmPageList *page_list) -> Status {
+        virtual auto supply_pages(VirtAddr offset, usize size, VmPageList *page_list) -> Status {
             return Status::Unsupported;
         } 
 
         ///
-        virtual auto read(void *out, PgOff pgoff, usize n) -> Status {
+        virtual auto read(void *out, VirtAddr offset, usize size) -> Status {
             return Status::Unsupported;
         }
 
         ///
-        virtual auto write(void *out, PgOff pgoff, usize n) -> Status {
+        virtual auto write(void *out, VirtAddr offset, usize size) -> Status {
             return Status::Unsupported;
         }
 

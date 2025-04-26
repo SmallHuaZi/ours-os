@@ -18,8 +18,7 @@
 #include <gktl/range.hpp>
 
 namespace ours::mem {
-    class ArchVmAspace
-    {
+    class ArchVmAspace {
         typedef ArchVmAspace  Self;
     public:
         ArchVmAspace(VirtAddr base, usize size, VmasFlags flags);
@@ -46,6 +45,9 @@ namespace ours::mem {
         auto active_cpus() const -> CpuMask;
     
     private:
+        ArchVmAspace(Self const &) = default;
+        ArchVmAspace(Self &&) = default;
+
         GKTL_CANARY(ArchVmAspace, canary_);
 
         usize pcid_;

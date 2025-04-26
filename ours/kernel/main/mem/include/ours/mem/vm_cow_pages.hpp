@@ -29,13 +29,13 @@ namespace ours::mem {
 
         static auto create(Gaf gaf, usize num_page, ustl::Rc<VmCowPages> *out) -> Status;
 
-        auto commit_range_locked(PgOff pgoff, usize n, ai_out usize *nr_commited) -> Status;
+        auto commit_range_locked(VirtAddr offset, usize size, ai_out usize *nr_commited) -> Status;
 
-        auto make_cursor(PgOff pgoff, usize n) -> ustl::Result<Cursor, Status>;
+        auto make_cursor(VirtAddr offset, usize size) -> ustl::Result<Cursor, Status>;
 
         FORCE_INLINE
-        auto num_pages_locked() const -> usize {
-            return num_pages_;
+        auto size_locked() const -> usize {
+            return size_;
         }
     private:
         VmCowPages(Gaf gaf, usize num_pages);
@@ -47,12 +47,12 @@ namespace ours::mem {
         /// Page map that operates within the virtual memory range of the VMO, from [0, N).
         VmPageMap pagemap_;
         ustl::Rc<PageSource> page_source_;
-        usize num_pages_;
+        usize size_;
     };
 
     class VmCowPages::Cursor {
     public:
-        Cursor(VmCowPages *owner, PgOff pgoff, usize num_page);
+        Cursor(VmCowPages *owner, VirtAddr offset, usize size);
 
         auto require_owned_page(usize nr_pages, PageRequest *page_request) -> ustl::Result<VmPage *, Status>;
 

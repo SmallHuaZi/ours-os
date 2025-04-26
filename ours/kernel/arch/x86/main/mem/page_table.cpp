@@ -11,6 +11,8 @@ namespace ours::mem {
                 arch::x86_invlpg(items.items_[i].get<items.Addr>());
             }
         };
+
+        pcpu_sync_task(this);
     }
 
 } // namespace ours::mem

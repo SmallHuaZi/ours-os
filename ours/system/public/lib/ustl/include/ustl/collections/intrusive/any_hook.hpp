@@ -33,8 +33,32 @@ namespace ustl::collections::intrusive {
     template <typename AnyHook>
     using AnyToAvlSetHook = ::boost::intrusive::any_to_avl_set_hook<AnyHook>;
 
-    template <typename AnyHook>
-    using AnyToListHook = ::boost::intrusive::any_to_list_hook<AnyHook>;
+    template <typename PtrBox>
+    using AnyNode = ::boost::intrusive::any_node<PtrBox>;
+
+    template <typename PtrBox>
+    struct AnyListNodeTraits {
+       typedef AnyNode<PtrBox>          Node;
+       typedef typename Node::node_ptr        node_ptr;
+       typedef typename Node::const_node_ptr  const_node_ptr;
+
+       BOOST_INTRUSIVE_FORCEINLINE static node_ptr get_next(const_node_ptr n)
+       {  return n->node_ptr_2;  }
+
+       BOOST_INTRUSIVE_FORCEINLINE static void set_next(node_ptr n, node_ptr next)
+       {  n->node_ptr_2 = next;  }
+
+       BOOST_INTRUSIVE_FORCEINLINE static node_ptr get_previous(const_node_ptr n)
+       {  return n->node_ptr_3;  }
+
+       BOOST_INTRUSIVE_FORCEINLINE static void set_previous(node_ptr n, node_ptr prev)
+       {  n->node_ptr_3 = prev;  }
+    };
+
+    template<class BasicHook>
+    struct AnyToListHook
+        : public detail::any_to_some_hook<BasicHook, AnyListNodeTraits>
+    {};
 
     template <typename AnyHook>
     using AnyToSlistHook = ::boost::intrusive::any_to_slist_hook<AnyHook>;

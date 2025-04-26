@@ -14,65 +14,36 @@
 #include <ours/status.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/vm_fault.hpp>
-#include <ours/mem/vm_mapping.hpp>
+#include <ours/mem/vm_area_or_mapping.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/result.hpp>
 #include <ustl/option.hpp>
 #include <ustl/collections/intrusive/set.hpp>
-#include <ustl/collections/intrusive/list.hpp>
 
 #include <gktl/range.hpp>
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
-    enum class VmaFlags: u32 {
-        // For semantics, no any actual effects.
-        None,
-
-        // Only serve for VmMapping
-        Write = BIT(1),
-        Read  = BIT(2),
-        Exec  = BIT(3),
-        Share = BIT(4),
-        PermMask = Write | Read | Exec | Share,
-
-        // States 
-        Active   = 0x10000,
-        Pinned   = 0x20000,
-
-        // Features.
-        Anonymous = 0x40000,
-        Mergeable = 0x80000,
-    };
-    USTL_ENABLE_ENUM_BITMASK(VmaFlags);
-
-    FORCE_INLINE
-    static auto extract_permissions(VmaFlags vmaflags) -> MmuFlags {
-        MmuFlags mmuf{};
-        if (!!(vmaflags & VmaFlags::Write)) {
-            mmuf |= MmuFlags::Writable;
-        }
-        if (!!(vmaflags & VmaFlags::Read)) {
-            mmuf |= MmuFlags::Readable;
-        }
-        if (!!(vmaflags & VmaFlags::Exec)) {
-            mmuf |= MmuFlags::Executable;
-        }
-
-        return mmuf;
-    }
-
     /// `VmArea` is a representation of a contiguous range of virtual memory space.
-    class VmArea: public ustl::RefCounter<VmArea> {
-        typedef VmArea      Self;
+    class VmArea: public VmAreaOrMapping {
+        typedef VmArea          Self;
+        typedef VmAreaOrMapping Base;
     public:
-        static auto create(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *, ustl::Rc<Self> *) 
+        static auto create(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *, ustl::Rc<Self> *) 
             -> Status;
 
         /// Create a mapping unit in page range [vma_off, vma_off + size).
         auto create_mapping(usize vma_ofs, usize size, usize vmo_ofs, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
                             char const *name, ustl::Rc<VmMapping> *out) -> Status;
+
+        /// Create a mapping of the specified size.
+        auto create_mapping(usize size, usize vmo_ofs, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
+                            char const *name, ustl::Rc<VmMapping> *out) -> Status;
+
+        /// Create a mapping of the specified size.
+        auto create_mapping(usize size, MmuFlags mmuf, char const *name, ustl::Rc<VmMapping> *out) 
+            -> Status;
 
         /// Create a sub-VMA in page range [vma_off, vma_off + nr_pages).
         auto create_subvma(usize offset, usize size, VmaFlags vmaf, char const *name, ustl::Rc<VmArea> *out) 
@@ -90,56 +61,16 @@ namespace ours::mem {
         auto reserve(usize offset, usize size, MmuFlags flags, char const *name) -> Status;
 
         auto contains(VirtAddr addr) const -> bool;
-
-        FORCE_INLINE
-        auto base() const -> VirtAddr {
-            return base_;
-        }
-
-        FORCE_INLINE
-        auto size() const -> VirtAddr {
-            return size_;
-        }
     protected:
-        VmArea(ustl::Rc<VmAspace>, VirtAddr, usize, VmaFlags, char const *);
+        VmArea(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *);
 
-        auto prepare_subrange(PgOff vma_off, usize nr_pages, VirtAddr ai_out &base, VirtAddr ai_out &size) 
-            const -> bool;
-
-        auto find_spot(usize nr_pages, AlignVal align, VirtAddr upper_limit)
-            const -> ustl::Result<VirtAddr, Status>;
-
-        /// Check whether a given `|mmflags|` is valid. True if valid, otherwise invalid.
-        auto validate_mmuflags(MmuFlags mmflags) const -> bool;
-
-        auto activate() -> void;
-
-        auto destroy() -> void;
-
-        FORCE_INLINE
-        auto has_range(VirtAddr base, usize size) const -> bool;
-
-        /// This for the collections to compare two VMA.
-        FORCE_INLINE CXX23_STATIC
-        auto operator()(Self const &x, Self const &y) -> bool {
-            return x.base_ < y.base_;
-        }
+        virtual auto activate() -> void override; 
+        virtual auto destroy() -> void override; 
     private:
         friend class VmObject;
         friend class VmAspace;
         friend class VmMapping;
 
-        GKTL_CANARY(VmArea, canary_);
-        char const *name_;
-        VirtAddr  base_;
-        VirtAddr  size_;
-        VmaFlags  vmaf_;
-        VmArea   *parent_;      // Null if it is root or dead.
-        VmMapping *mapping_;    // Non-null if it is a leaf.
-        ustl::Rc<VmAspace> aspace_;
-        ustl::collections::intrusive::SetMemberHook<> subvma_hook_;
-        USTL_DECLARE_HOOK_OPTION(Self, subvma_hook_, ManagedOptions);
-        USTL_DECLARE_MULTISET(Self, VmaSet, ManagedOptions);
         VmaSet subvmas_;
     };
 } // namespace ours::mem

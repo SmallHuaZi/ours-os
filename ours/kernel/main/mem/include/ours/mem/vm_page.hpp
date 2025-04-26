@@ -13,7 +13,6 @@
 
 #include <ours/mem/types.hpp>
 #include <ours/mem/pm_frame.hpp>
-#include <ours/mem/vm_area.hpp>
 
 #include <ustl/collections/intrusive/list.hpp>
 

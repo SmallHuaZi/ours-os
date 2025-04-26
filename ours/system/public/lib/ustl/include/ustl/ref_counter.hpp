@@ -94,8 +94,8 @@ namespace ustl {
 
         USTL_FORCEINLINE
         virtual ~RefCounter() USTL_NOEXCEPT {
-            USTL_ASSERT(weak_counter_ == 0 || weak_counter_ == PRE_ENABLE_SENTINEL);
-            USTL_ASSERT(strong_counter_ == 0 || strong_counter_  == PRE_ENABLE_SENTINEL);
+            DEBUG_ASSERT(weak_counter_ == 0 || weak_counter_ == kPreEnableSentinel, "{}", __func__);
+            DEBUG_ASSERT(strong_counter_ == 0 || strong_counter_  == kPreEnableSentinel, "{}", __func__);
         }
 
         USTL_NO_MOVEABLE_AND_COPYABLE(RefCounter);

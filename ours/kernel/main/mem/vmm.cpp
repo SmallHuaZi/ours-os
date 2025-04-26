@@ -33,37 +33,4 @@ namespace ours::mem {
         return PhysMap::phys_to_virt(phys_addr);
     }
 
-    auto vmmap(usize nr_pages, VmaFlags vmaf, const char *name, VmMapOption options) 
-        -> ustl::Result<VirtAddr, Status> {
-        auto root_vma = VmAspace::kernel_aspace()->root_vma();
-
-        ustl::Rc<VmArea> vma;
-        auto status = root_vma->create_subvma(nr_pages, vmaf, name, &vma);
-        if (Status::Ok != status) {
-            return ustl::err(status);
-        }
-
-        VmoFLags vmof{};
-        if (!(options & VmMapOption::Commit)) {
-            vmof |= VmoFLags::Lazy;
-        }
-        if (!!(options & VmMapOption::Pinned)) {
-            vmof |= VmoFLags::Pinned;
-        }
-
-        ustl::Rc<VmObjectPaged> vmo;
-        status = VmObjectPaged::create(kGafKernel, nr_pages, vmof, &vmo);
-        if (Status::Ok != status) {
-            vma.destory();
-            return ustl::err(status);
-        }
-
-        auto const mmuf = extract_permissions(vmaf);
-
-        ustl::Rc<VmMapping> mapping;
-        status = vma->create_mapping(0, nr_pages << PAGE_SHIFT, 0, mmuf, vmo, name, &mapping);
-
-        return ustl::ok(vma->base());
-    }
-
 } // namespace ours::mem

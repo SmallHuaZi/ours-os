@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef ARCH_X86_APIC_IOAPIC_HPP
 #define ARCH_X86_APIC_IOAPIC_HPP 1
 
@@ -24,13 +23,18 @@ namespace arch {
             RedTbl = 0x10,
         };
 
-        IoApic(PhysAddr phys, VirtAddr addr)
-            : mmio_virt_(reinterpret_cast<u32 *>(addr)),
-              mmio_phys_(phys),
-              id_((read(Id) >> 24) & 0xF) {
+        IoApic() = default;
+
+        FORCE_INLINE
+        auto init(PhysAddr phys, VirtAddr addr, u32 gsi_base) -> void {
+            mmio_phys_ = phys; 
+            mmio_virt_ = reinterpret_cast<u32 *>(addr);
+            id_ = (read(Id) >> 24) & 0xF;
+
             auto const value = read(Version);
             version_ = value & 0xFF;
             max_local_irqnum_ = ((value >> 16) & 0xFF);
+            gsi_base_ = gsi_base;
         }
 
         FORCE_INLINE
@@ -47,7 +51,7 @@ namespace arch {
 
         FORCE_INLINE
         auto issue_eoi(u32 irqnum) -> Status {
-            if (version_ < EOIREG_MIN_VERSION) {
+            if (version_ < kEoiRegMinVersion) {
                 return Status::Unsupported;
             }
 
@@ -57,7 +61,7 @@ namespace arch {
 
         FORCE_INLINE
         auto mask_all_irq() -> void {
-            for (auto i = global_irqnum_base_; i <= max_local_irqnum_; ++i) {
+            for (auto i = gsi_base_; i <= max_local_irqnum_; ++i) {
                 mask_irq(i);
             }
         }
@@ -65,20 +69,21 @@ namespace arch {
         FORCE_INLINE
         auto mask_irq(u32 global_irqnum) -> void {
             u64 entry = read_redtbl(global_irqnum);
-            entry |= REDTBL_ENTRY_MASKED;
+            entry |= kRedTblEntryMasked;
             write_redtbl(global_irqnum, entry);
         }
 
         FORCE_INLINE
         auto unmask_irq(u32 global_irqnum) -> void {
             u64 entry = read_redtbl(global_irqnum);
-            entry &= ~REDTBL_ENTRY_MASKED;
+            entry &= ~kRedTblEntryMasked;
             write_redtbl(global_irqnum, entry);
         }
 
         FORCE_INLINE
-        auto config_irq(u32 global_irqnum, ApicTriggerMode trimode, ApicInterruptPolarity polarity, ApicDeliveryMode delmode,
-                        ApicDestinationMode dstmode, u8 dst, u8 vector, bool mask = true) -> void {
+        auto config_irq(u32 global_irqnum, ApicTriggerMode trimode, ApicInterruptPolarity polarity, 
+                        ApicDeliveryMode delmode, ApicDestinationMode dstmode, 
+                        u8 dst, u8 vector, bool mask = true) -> void {
             u64 entry = 0;
             entry |= vector;                    // Vector
             entry |= (u64(delmode) & 0xF) << 8; // Delivery Mode (Nmi, ...)
@@ -92,13 +97,28 @@ namespace arch {
         }
 
         FORCE_INLINE
-        auto id() -> u32 {
+        auto id() -> const u32 {
             return id_;
         }
 
         FORCE_INLINE
-        auto version() -> u32 {
+        auto version() const -> u32 {
             return version_;
+        }
+
+        FORCE_INLINE
+        auto phys_base() const -> PhysAddr {
+            return mmio_phys_;
+        }
+
+        FORCE_INLINE
+        auto virt_base() const -> VirtAddr {
+            return VirtAddr(mmio_virt_);
+        }
+
+        FORCE_INLINE
+        auto reset_mmio(VirtAddr addr) -> void {
+            mmio_virt_ = reinterpret_cast<u32 *>(addr);
         }
 
       private:
@@ -115,8 +135,8 @@ namespace arch {
 
         FORCE_INLINE
         auto read_redtbl(u32 global_irqnum) -> u64 {
-            DEBUG_ASSERT(global_irqnum > global_irqnum_base_);
-            u32 const local_irqnum = global_irqnum - global_irqnum_base_;
+            DEBUG_ASSERT(global_irqnum > gsi_base_);
+            u32 const local_irqnum = global_irqnum - gsi_base_;
             DEBUG_ASSERT(local_irqnum <= max_local_irqnum_);
 
             RegsAddr const redtbl_low = RegsAddr(RedTbl + (global_irqnum << 1));
@@ -128,8 +148,8 @@ namespace arch {
 
         FORCE_INLINE
         auto write_redtbl(u32 global_irqnum, u64 value) -> void {
-            DEBUG_ASSERT(global_irqnum > global_irqnum_base_);
-            u32 const local_irqnum = global_irqnum - global_irqnum_base_;
+            DEBUG_ASSERT(global_irqnum > gsi_base_);
+            u32 const local_irqnum = global_irqnum - gsi_base_;
             DEBUG_ASSERT(local_irqnum <= max_local_irqnum_);
 
             RegsAddr const redtbl_low = RegsAddr(RedTbl + (global_irqnum << 1));
@@ -139,10 +159,10 @@ namespace arch {
         }
 
         CXX11_CONSTEXPR
-        static auto const EOIREG_MIN_VERSION = 0x20;
+        static auto const kEoiRegMinVersion = 0x20;
 
         CXX11_CONSTEXPR
-        static auto const REDTBL_ENTRY_MASKED = (u64(1) << 16);
+        static auto const kRedTblEntryMasked = (u64(1) << 16);
 
         /// Holds the base address of the registers in virtual memory. This
         /// address is `non-cacheable` (see paging).
@@ -155,7 +175,15 @@ namespace arch {
         /// The first IRQ which this IOAPIC handles. This is only found in the
         /// IOAPIC entry of the ACPI 2.0 MADT. It isn't found in the IOAPIC
         /// registers.
-        u32 global_irqnum_base_;
+        u32 gsi_base_;
+    };
+
+    struct IoApicIsaOverride {
+        u8 isa_irq;
+        bool remapped;
+        arch::ApicTriggerMode tri_mode;
+        arch::ApicInterruptPolarity polarity;
+        u32 global_irq;
     };
 
 } // namespace arch

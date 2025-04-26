@@ -80,19 +80,11 @@ namespace ours::mem {
 
     template <typename Addr>
     FORCE_INLINE
-    auto resolve_page_range(Addr base, usize size) -> gktl::Range<usize> {
+    auto resolve_page_range(Addr base, usize size) -> gktl::Range<VirtAddr> {
         static_assert(sizeof(Addr) == sizeof(VirtAddr));
         return {
-            reinterpret_cast<VirtAddr>(base) >> PAGE_SHIFT,
-            (size + PAGE_SIZE) >> PAGE_SHIFT
-        };
-    }
-
-    FORCE_INLINE
-    auto resolve_byte_range(PgOff pgoff, usize nr_pages) -> gktl::Range<usize> {
-        return {
-            pgoff << PAGE_SHIFT,
-            nr_pages << PAGE_SHIFT,
+            (reinterpret_cast<VirtAddr>(base) >> PAGE_SHIFT) << PAGE_SHIFT,
+            ((size + PAGE_SIZE) >> PAGE_SHIFT) << PAGE_SHIFT
         };
     }
 
@@ -112,6 +104,7 @@ namespace ours::mem {
     class ArchVmAspace;
     class VmAspace;
     class VmArea;
+    class VmMapping;
     class VmPage;
     class VmObject;
     class VmObjectPaged;

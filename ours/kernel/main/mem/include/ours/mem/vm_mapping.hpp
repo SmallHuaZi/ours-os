@@ -14,84 +14,117 @@
 #include <ours/status.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/fault.hpp>
+#include <ours/mem/vm_area_or_mapping.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/result.hpp>
 #include <ustl/function/fn.hpp>
 #include <ustl/collections/intrusive/set.hpp>
+#include <ustl/collections/vec.hpp>
 #include <ustl/collections/intrusive/list.hpp>
 
 #include <gktl/canary.hpp>
+#include <ktl/allocator.hpp>
 
 namespace ours::mem {
-    class ProtectedRegionSet {
-    public:
-        
-    private:
-        struct ProtectedNode: public ustl::collections::intrusive::SetBaseHook<> {
-            VirtAddr size;
+    /// Helper class to trace the mapping status in region.
+    class MappingRegionSet {
+        typedef MappingRegionSet    Self;
+
+        struct Enumerator;
+        struct Region {
+            VirtAddr end;
             MmuFlags mmuf;
         };
-        ustl::collections::intrusive::Set<ProtectedNode> regions_;
+        typedef ustl::collections::Vec<Region, ktl::Allocator<Region>>  RegionList;
+      public:
+        CXX11_CONSTEXPR
+        static auto const kNumInitialRegions = 4;
+
+        /// Update MMU flags for the range [base, base + size)
+        auto update(VirtAddr base, usize size, MmuFlags, VirtAddr lower_bound, VirtAddr upper_bound) 
+            -> Enumerator;
+
+        MappingRegionSet(usize size, MmuFlags mmuf);
+      private:
+        RegionList regions_;
+    };
+
+    struct MappingRegionSet::Enumerator {
+        typedef Enumerator  Self;
+        struct NextResult {
+            VirtAddr base;
+            usize size;
+            MmuFlags mmuf;
+        };
+
+        FORCE_INLINE
+        auto shift(usize delta) -> void {
+            base_ += delta;
+        }
+
+        FORCE_INLINE
+        auto next() -> ustl::Option<NextResult> {
+            if (iter_ != end_) {
+                return ustl::none();
+            }
+            VirtAddr old_base = base_;
+            MmuFlags mmuf = iter_->mmuf;
+
+            base_ = iter_->end;
+            ++iter_;
+            return ustl::some(NextResult{base_, base_ - old_base, mmuf});
+        }
+
+        FORCE_INLINE
+        friend auto operator!=(Self const &x, Self const &y) -> bool {
+            return x.iter_ != x.iter_;
+        }
+      private:
+        usize base_;
+
+        RegionList::IterMut iter_;
+        RegionList::IterMut end_;
     };
 
     /// VmMapping is the representation of a or a group of area which has been mapped in 
     /// virtual memory address space.
     /// 
     /// It was usually created by VmArea out of some mapping request.
-    class VmMapping: public ustl::RefCounter<VmMapping> {
-        typedef VmMapping   Self;
-    public:
-        static auto create(VirtAddr, usize, VmArea *, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *, ustl::Rc<Self> *) 
-            -> Status;
+    class VmMapping: public VmAreaOrMapping {
+        typedef VmMapping       Self;
+        typedef VmAreaOrMapping Base;
+      public:
+        static auto create(VmArea *, VirtAddr, usize, VmaFlags, ustl::Rc<VmObject>, usize, MmuFlags, 
+                           char const *, ustl::Rc<Self> *) -> Status;
         
-        auto map(PgOff, usize nr_pages, bool commit, MapControl control) -> Status;
+        auto map(VirtAddr offset, usize size, bool commit, MapControl) -> Status;
 
-        auto protect(PgOff, usize nr_pages, usize size, MmuFlags mmuf) -> Status;
+        auto protect(VirtAddr offset, usize size, MmuFlags) -> Status;
 
-        auto unmap(PgOff, usize nr_pages, UnmapControl control) -> Status;
+        auto unmap(VirtAddr offset, usize, UnmapControl) -> Status;
 
         auto fault(VmFault *vmf) -> void;
 
-        FORCE_INLINE
-        auto aspace() -> ustl::Rc<VmAspace> {
-            return aspace_;
-        }
-
-        FORCE_INLINE
-        auto base() const -> VirtAddr {
-            return base_;
-        }
-
-        FORCE_INLINE
-        auto size() const -> VirtAddr {
-            return size_;
-        }
-
-        VmMapping(VirtAddr, usize, VmArea *, PgOff, ustl::Rc<VmObject>, MmuFlags, char const *);
+        VmMapping(VmArea *, VirtAddr, usize, VmaFlags, ustl::Rc<VmObject>, usize, MmuFlags, char const *);
         virtual ~VmMapping() = default;
-    private:
+      private:
         friend class VmArea;
         friend class VmObject;
         
-        auto map_paged(PgOff pgoff, usize nr_pages, bool commit, MapControl control, VmObjectPaged *vmo) -> Status;
+        auto map_paged(VirtAddr base, usize size, bool commit, MapControl control, VmObjectPaged *vmo) -> Status;
 
-        auto activate() -> void;
+        auto check_sburange(VirtAddr base, usize size) const -> bool;
 
-        auto check_sburange(PgOff pgoff, usize nr_pages) const -> bool;
+        virtual auto activate() -> void override; 
 
-        GKTL_CANARY(VmMapping, canary_);
-        char const *name_;
-        MmuFlags mmuf_;
-        VirtAddr base_;
-        VirtAddr size_;
-        ustl::Rc<VmArea> vma_;
+        virtual auto destroy() -> void override; 
+
         ustl::Rc<VmObject> vmo_;
-        ustl::Rc<VmAspace> aspace_;
-        PgOff vmo_pgoff_;
-        ProtectedRegionSet protected_regions_;
+        usize vmo_off_;
+        MappingRegionSet regions_;
         ustl::collections::intrusive::ListMemberHook<> list_hook_;
-    public:
+      public:
         USTL_DECLARE_HOOK_OPTION(Self, list_hook_, VmoListHookOptions);
     };
     USTL_DECLARE_LIST(VmMapping, VmMappingList, VmMapping::VmoListHookOptions);

@@ -16,12 +16,12 @@
 #endif
 #include <ours/arch/vm_aspace.hpp>
 
-#include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_fault.hpp>
 #include <ours/mem/arch_vm_aspace.hpp>
 
 #include <ours/init.hpp>
 
+#include <ustl/rc.hpp>
 #include <ustl/sync/mutex.hpp>
 #include <ustl/sync/atomic.hpp>
 #include <ustl/util/enum_bits.hpp>
@@ -59,6 +59,11 @@ namespace ours::mem {
         auto fault(VirtAddr addr, VmfCause flags) -> void;
 
         FORCE_INLINE
+        auto lock() -> Mutex * {
+            return &mutex_;
+        }
+
+        FORCE_INLINE
         auto is_user() const -> bool {
             return !!(flags_ & VmasFlags::User);
         }
@@ -79,13 +84,13 @@ namespace ours::mem {
         friend class VmArea;
         friend class VmMapping;
 
-        auto init(VmaFlags) -> Status;
+        auto init() -> Status;
 
         GKTL_CANARY(VmAspace, canary_);
-
-        VirtAddr    base_;
-        usize       size_;
-        VmasFlags   flags_;
+        VirtAddr  base_;
+        VirtAddr  size_;
+        VmasFlags flags_;
+        Mutex mutex_;
 
         /// Architecture specific context.
         ArchVmAspace  arch_;

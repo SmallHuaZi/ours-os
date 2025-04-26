@@ -10,13 +10,54 @@
 #include <ktl/new.hpp>
 
 namespace ours::mem {
+     MappingRegionSet::MappingRegionSet(usize size, MmuFlags mmuf)
+        : regions_(kNumInitialRegions) {
+        regions_.emplace_back(size, mmuf);
+     }
+
+     auto MappingRegionSet::update(VirtAddr base, usize size, MmuFlags mmuf, 
+                                   VirtAddr lower_bound, VirtAddr upper_bound) -> Enumerator {
+        using ustl::algorithms::min;
+
+        usize end = base + size, rbase = 0;
+        for (auto i = 0; i < regions_.size(); rbase = regions_[i].end, ++i) {
+            auto rend = regions_[i].end;
+            if (rbase >= end) {
+                break;
+            }
+            if (rend <= base) {
+                continue;
+            }
+
+            if (mmuf == regions_[i].mmuf) {
+                // Have a same MMU flags, no any need to split it.
+                rbase = min(end, rend);
+                continue;
+            }
+
+            // The code bottom will handle the intersection
+            if (rbase < base) {
+                // Rectifies this region to [rbase, base)
+                regions_[i].end = base;
+                base = min(end, rend);
+                regions_.emplace(regions_.begin() + i + 1, base, mmuf);
+            } else if (rend > end) {
+                regions_.emplace(regions_.begin() + i, end, mmuf);
+                regions_[i + 1].end = rend;
+            } else {
+                regions_[i].mmuf = mmuf;
+            }
+            rbase = regions_[i].end;
+        }
+     }
+
     /// This helper class was used to batch mapping requests.
     template <usize MaxNumPages>
     class MappingCoalescer {
     public:
-        MappingCoalescer(VmMapping *mapping, PgOff pgoff, MmuFlags mmuf, MapControl ctrl)
+        MappingCoalescer(VmMapping *mapping, VirtAddr base, MmuFlags mmuf, MapControl ctrl)
             : mapping_(mapping),
-              va_(mapping->base() + (pgoff << PAGE_SHIFT)),
+              va_(base),
               mmuf_(mmuf),
               map_ctrl_(ctrl)
         {}
@@ -67,21 +108,23 @@ namespace ours::mem {
 
     static ObjectCache *s_vm_mapping_cache;
 
-    VmMapping::VmMapping(VirtAddr base, usize size, VmArea *vma,
-                         PgOff vmo_off, ustl::Rc<VmObject> vmo, MmuFlags mmuf, 
+    VmMapping::VmMapping(VmArea *parent, VirtAddr base, usize size, VmaFlags vmaf,
+                         ustl::Rc<VmObject> vmo, usize vmo_off, MmuFlags mmuf, 
                          const char *name)
-        : base_(base), size_(size), vma_(vma), name_(name),
-          vmo_pgoff_(vmo_off), vmo_(ustl::move(vmo)), mmuf_(mmuf)
+        : Base(base, size, vmaf, parent, parent->aspace().as_ptr_mut(), name),
+          vmo_off_(vmo_off), vmo_(ustl::move(vmo)), regions_(size, mmuf)
     {}
 
-    auto VmMapping::create(VirtAddr base, usize size, VmArea *vma, 
-                           PgOff vmo_off, ustl::Rc<VmObject> vmo, MmuFlags mmuf, 
-                           const char *name, ustl::Rc<Self> *out) -> Status {
+    auto VmMapping::create(VmArea *parent, VirtAddr base, usize size, VmaFlags vmaf,
+                           ustl::Rc<VmObject> vmo, usize vmo_off, MmuFlags mmuf, 
+                           char const *name, ustl::Rc<Self> *out) -> Status {
         if (!vmo) {
             return Status::InvalidArguments;
         }
 
-        auto mapping = new (*s_vm_mapping_cache, kGafKernel) VmMapping(base, size, vma, vmo_off, vmo, mmuf, name);
+        auto mapping = new (*s_vm_mapping_cache, kGafKernel) VmMapping(
+            parent, base, size, vmaf, vmo, vmo_off, mmuf, name);
+
         if (!mapping) {
             return Status::OutOfMem; 
         }
@@ -91,27 +134,29 @@ namespace ours::mem {
     }
 
     FORCE_INLINE
-    auto VmMapping::check_sburange(PgOff pgoff, usize nr_pages) const -> bool {
-        return (pgoff + nr_pages) < (size_ >> PAGE_SHIFT);
+    auto VmMapping::check_sburange(VirtAddr base, usize size) const -> bool {
+        return base >= base_ && (base + size) < (base_ + size_);
     }
 
     auto VmMapping::activate() -> void {
-        vma_->mapping_ = this;
     }
 
     FORCE_INLINE
-    auto VmMapping::map_paged(PgOff pgoff, usize nr_pages, bool commit, MapControl control, VmObjectPaged *vmo) -> Status {
+    auto VmMapping::map_paged(VirtAddr base, usize size, bool commit, MapControl control, VmObjectPaged *vmo) -> Status {
+        DEBUG_ASSERT(ustl::mem::is_aligned(base, PAGE_SIZE));
+        DEBUG_ASSERT(ustl::mem::is_aligned(size, PAGE_SIZE));
+
         CXX11_CONSTEXPR
         static auto const kMaxBatchPages = 32;
-        MappingCoalescer<kMaxBatchPages> coalescer(this, pgoff, mmuf_, control);
+        MappingCoalescer<kMaxBatchPages> coalescer(this, base, mmuf_, control);
 
-        auto cursor = vmo->make_cursor(pgoff, nr_pages);
+        auto cursor = vmo->make_cursor(base, size);
         if (!cursor) {
             return cursor.unwrap_err();
         }
 
         PageRequest page_request;
-        for (auto i = 0; i < nr_pages; ++i) {
+        for (auto i = 0; i < size; i += PAGE_SIZE) {
             auto result = cursor->require_owned_page(1, &page_request);
             if (!result) {
                 return result.unwrap_err();
@@ -126,19 +171,21 @@ namespace ours::mem {
     }
 
     /// Do check arguments and dispatch the request to correct sub-routine for different VmObjects.
-    auto VmMapping::map(PgOff pgoff, usize nr_pages, bool commit, MapControl control) -> Status {
+    auto VmMapping::map(VirtAddr offset, usize size, bool commit, MapControl control) -> Status {
         canary_.verify();
 
-        if (!nr_pages) {
+        size = ustl::mem::align_up(size, PAGE_SIZE);
+        if (!size) {
             return Status::InvalidArguments;
         }
 
-        if (!check_sburange(pgoff, nr_pages)) {
+        VirtAddr base = ustl::mem::align_down(base_ + offset, PAGE_SIZE);
+        if (!check_sburange(base, size)) {
             return Status::InvalidArguments;
         }
 
         if (auto vmo = downcast<VmObjectPaged>(vmo_.as_ptr_mut())) {
-            return map_paged(pgoff, nr_pages, commit, control, vmo);
+            return map_paged(base, size, commit, control, vmo);
         } else {
             DEBUG_ASSERT(false, "Unreachable");
         }
@@ -146,11 +193,47 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmMapping::protect(PgOff, usize nr_pages, usize size, MmuFlags mmuf) -> Status {
-        return Status::Unimplemented;
+    auto VmMapping::protect(usize offset, usize size, MmuFlags mmuf) -> Status {
+        canary_.verify();
+
+        if (!is_active()) {
+            return Status::BadState;
+        }
+
+        size = ustl::mem::align_up(size, PAGE_SIZE);
+        if (!size) {
+            return Status::InvalidArguments;
+        }
+
+        ustl::sync::LockGuard guard(*lock());
+        VirtAddr base = ustl::mem::align_down(base_ + offset, PAGE_SIZE);
+        if (!check_sburange(base, size)) {
+            return Status::InvalidArguments;
+        }
+
+        if (!validate_mmuflags(mmuf)) {
+            return Status::InvalidArguments;
+        }
+
+        auto &arch_aspace = aspace_->arch_aspace();
+        auto enumerator = regions_.update(offset, size, mmuf, 0, size);
+        enumerator.shift(base_);
+        while (auto region = enumerator.next()) {
+            auto [base, size, mmuf] = *region;
+
+            if (!(mmuf & MmuFlags::PermMask)) {
+                // Unmap those regions which has no any permission.
+                arch_aspace.unmap(base, size >> PAGE_SHIFT, UnmapControl::None, 0);
+                continue;
+            }
+
+            arch_aspace.protect(base, size >> PAGE_SHIFT, mmuf);
+        }
+
+        return Status::Ok;
     }
 
-    auto VmMapping::unmap(PgOff pgoff, usize size, UnmapControl control) -> Status {
+    auto VmMapping::unmap(usize offset, usize size, UnmapControl control) -> Status {
         return Status::Unimplemented;
     }
 

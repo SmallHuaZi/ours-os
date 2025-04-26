@@ -22,6 +22,12 @@ namespace ktl {
         typedef Element &        RefMut;
         typedef Element const &  Ref;
 
+        typedef Element value_type;
+        typedef PtrMut  pointer;
+        typedef Ptr     const_pointer;
+        typedef RefMut  reference;
+        typedef Ref     const_reference;
+
         template <typename U>
         using RebindT = Allocator<U>;
 

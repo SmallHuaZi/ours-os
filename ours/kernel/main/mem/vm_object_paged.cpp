@@ -46,25 +46,25 @@ namespace ours::mem {
     }
 
     FORCE_INLINE
-    auto VmObjectPaged::commit_range_internal(PgOff pgoff, usize n, CommitOptions option) -> Status {
+    auto VmObjectPaged::commit_range_internal(VirtAddr offset, usize size, CommitOptions option) -> Status {
         if (!!(option & CommitOptions::Pin)) {
-            if (!n) {
+            if (!size) {
                 return Status::InvalidArguments;
             }
         }
 
-        if (!n) {
+        if (!size) {
             return Status::Ok;
         } 
         
         ustl::sync::LockGuard guard(mutex_);
-        if (cow_pages_->num_pages_locked() < n) {
+        if (cow_pages_->size_locked() < size) {
             return Status::OutOfRange;
         }
 
-        while (n > 0) {
+        for (auto i = 0; i < size; i += PAGE_SIZE) {
             usize nr_commited = 0;
-            auto status = cow_pages_->commit_range_locked(pgoff, n, &nr_commited);
+            auto status = cow_pages_->commit_range_locked(offset, size, &nr_commited);
 
             if (status != Status::Ok && status != Status::ShouldWait) {
                 return status;
@@ -74,21 +74,21 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmObjectPaged::commit_range(PgOff pgoff, usize n, CommitOptions option) -> Status {
+    auto VmObjectPaged::commit_range(VirtAddr offset, usize size, CommitOptions option) -> Status {
         canary_.verify();
-        log::trace("VMO Commit Action: [pgoff: {:X}, n: {:X}]", pgoff, n);
-        return commit_range_internal(pgoff, n, option);
+        log::trace("VMO Commit Action: [ofs: {:X}, size: {:X}]", offset, size);
+        return commit_range_internal(offset, size, option);
     }
 
-    auto VmObjectPaged::decommit(PgOff pgoff, usize n) -> Status {
+    auto VmObjectPaged::decommit(VirtAddr offset, usize size) -> Status {
         return Status::Unimplemented;
     }
 
-    auto VmObjectPaged::take_pages(PgOff pgoff, usize n, VmPageList *pagelist) -> Status {
+    auto VmObjectPaged::take_pages(VirtAddr offset, usize size, VmPageList *pagelist) -> Status {
         return Status::Unimplemented;
     }
 
-    auto VmObjectPaged::supply_pages(PgOff pgoff, usize n, VmPageList *pagelist) -> Status {
+    auto VmObjectPaged::supply_pages(VirtAddr offset, usize size, VmPageList *pagelist) -> Status {
         return Status::Unimplemented;
     }
 

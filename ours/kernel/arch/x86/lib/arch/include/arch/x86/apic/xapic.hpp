@@ -107,6 +107,7 @@ namespace arch {
         FORCE_INLINE
         auto set_tsc_deadline(u64 deadline) -> bool {
             // Now i am not sure that if to set a deadline was constrained.
+            return false;
         }
 
         FORCE_INLINE

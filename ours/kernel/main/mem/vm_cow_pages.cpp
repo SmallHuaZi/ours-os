@@ -10,7 +10,7 @@ namespace ours::mem {
 
     VmCowPages::VmCowPages(Gaf gaf, usize nr_pages)
         : gaf_(gaf),
-          num_pages_(nr_pages)
+          size_(nr_pages)
     {}
 
     auto VmCowPages::create(Gaf gaf, usize nr_pages, ustl::Rc<VmCowPages> *out) -> Status {
@@ -23,8 +23,8 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmCowPages::make_cursor(PgOff pgoff, usize nr_pages) -> ustl::Result<Cursor, Status> {
-        return ustl::ok(Cursor(this, pgoff, nr_pages));
+    auto VmCowPages::make_cursor(VirtAddr offset, usize size) -> ustl::Result<Cursor, Status> {
+        return ustl::ok(Cursor(this, offset, size));
     }
 
     auto VmCowPages::alloc_pages(usize order, VmPage **page, PageRequest *page_request) -> Status {
@@ -36,16 +36,16 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmCowPages::commit_range_locked(PgOff pgoff, usize n, ai_out usize *nr_commited) -> Status {
-        if (!n) {
+    auto VmCowPages::commit_range_locked(VirtAddr offset, usize size, ai_out usize *nr_commited) -> Status {
+        if (!size) {
             return Status::InvalidArguments;
         }
 
-        if (pgoff + n > num_pages_) {
+        if (offset + size > size_) {
             return Status::InvalidArguments;
         }
 
-        auto cursor = make_cursor(pgoff, n);
+        auto cursor = make_cursor(offset, size);
         if (!cursor) {
             return Status::InternalError;
         }
@@ -53,13 +53,14 @@ namespace ours::mem {
         auto status = Status::Ok;
         auto commited = 0;
         PageRequest page_request;
-        for (auto commited = 0; commited < n; ++commited) {
+        for (auto i = 0; i < size; i += PAGE_SIZE) {
             auto result = cursor->require_owned_page(1, &page_request);
             if (!result) {
                 status = result.unwrap_err();
                 DEBUG_ASSERT(status != Status::ShouldWait);
                 break;
             }
+            commited += 1;
         }
 
         if (nr_commited) {
@@ -71,7 +72,7 @@ namespace ours::mem {
 
     /// The followings are in class VmCowPages::Cursor.
 
-    VmCowPages::Cursor::Cursor(VmCowPages *cow_pages, PgOff pgoff, usize nr_pages)
+    VmCowPages::Cursor::Cursor(VmCowPages *cow_pages, VirtAddr offset, usize sizer_pages)
         : owner_(cow_pages) 
     {}
 

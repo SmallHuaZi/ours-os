@@ -6,6 +6,9 @@ namespace ours {
     using irq::IrqChip;
     using irq::IrqData;
 
+    static void *s_apic_mmio_base;
+    static bool s_x2apic_enabled = false;
+
     struct XApic: public IrqChip {
         XApic();
 
@@ -16,6 +19,7 @@ namespace ours {
 
         auto mask(IrqData &data) -> void override;
         auto unmask(IrqData &data) -> void override;
+        auto ack(IrqData &data) -> void override;
         auto send_eoi(IrqData &data) -> void override;
         auto send_ack(IrqData &data) -> void override;
         auto send_ipi(IrqData &data, CpuNum cpu) -> void override;
@@ -40,5 +44,13 @@ namespace ours {
 
     auto XApic::send_ipi(IrqData &data, CpuNum cpu) -> void {
     } 
+
+    auto XApic::mask(IrqData &data) -> void {
+        impl_.
+    } 
+
+    auto XApic::ack(IrqData &data) -> void {
+        impl_.send_eoi();
+    }
 
 } // namespace ours

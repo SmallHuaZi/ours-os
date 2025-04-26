@@ -27,8 +27,8 @@ namespace arch::paging {
         PermMask    = Writable | Readable | Executable,
 
         /// Only valid on some architectures.
-        Discache    = BIT(4),
-        User        = BIT(5),
+        Discache    = BIT(5),
+        User        = BIT(4),
     }; // enum class MmuFlags: usize
     USTL_ENABLE_ENUM_BITMASK(MmuFlags);
 

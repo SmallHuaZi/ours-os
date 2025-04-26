@@ -1,6 +1,9 @@
 #include <ours/mem/vm_aspace.hpp>
-#include <ours/arch/aspace_layout.hpp>
+#include <ours/mem/vm_area.hpp>
+#include <ours/mem/vm_mapping.hpp>
 #include <ours/mem/object-cache.hpp>
+
+#include <ours/arch/aspace_layout.hpp>
 
 #include <ustl/lazy_init.hpp>
 #include <ustl/sync/lockguard.hpp>
@@ -53,7 +56,7 @@ namespace ours::mem {
         // it can be created with arbitrary permissions combination.
         CXX11_CONSTEXPR
         static auto const kRootVmaFlags = VmaFlags::PermMask | VmaFlags::Share;
-        aspace->init(kRootVmaFlags);
+        aspace->init();
         {
             // Entrollment into the global list.
             ustl::sync::LockGuard guard(Self::all_aspace_list_mutex_);
@@ -91,13 +94,13 @@ namespace ours::mem {
         return nullptr;
     }
 
-    auto VmAspace::init(VmaFlags vmaf) -> Status {
+    auto VmAspace::init() -> Status {
         auto status = this->arch_.init();
         if (status != Status::Ok) {
             return status;
         }
 
-        status = VmArea::create(this, base_, size_, vmaf, "RootVma", &root_vma_);
+        status = VmArea::create(base_, size_, VmaFlags::PermMask | VmaFlags::Share, 0, this, "RootVma", &root_vma_);
         if (status != Status::Ok) {
             return Status::OutOfMem;
         }

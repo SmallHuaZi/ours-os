@@ -26,7 +26,7 @@ namespace arch {
 
         auto reenable() -> void {
             restore_interrupt_state(state_);
-            state_ = NULL_INTR_SAVED_STATE;
+            state_ = kNullIntrSavedState;
         }
 
         IntrSavedState state_;

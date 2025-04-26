@@ -50,8 +50,7 @@ namespace ours::mem {
     ///    and static traits help achieve this by avoiding unnecessary runtime costs.
     template <typename ArchVmAspace>
     class ArchVmAspaceConstraints
-        : public ustl::traits::TrueType
-    {
+        : public ustl::traits::TrueType {
         USTL_MPL_CREATE_METHOD_DETECTOR(init, Init);
         static_assert(HasFnInit<auto (ArchVmAspace::*)() -> Status>::VALUE,
         "The ArchVmAspace do not implements required method `ArchVmAspace::init`");

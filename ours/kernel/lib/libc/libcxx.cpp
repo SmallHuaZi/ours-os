@@ -99,7 +99,7 @@ inline namespace __1 {
     to_chars_result to_chars(char* __first, char* __last, long double __value, chars_format __fmt, int __precision)GLIBCXX_NOEXCEPT      
     { ours::panic(__func__);  }
 
-#if defined(_LIBCPP_STD_VER) && _LIBCPP_STD_VER == 23
+#if defined(_LIBCPP_STD_VER) && _LIBCPP_STD_VER == 23 && _MSC_VER
 #   define LIBCPP_VERBOSE_ABORT_NOEXCEPT
 #else
 #   define LIBCPP_VERBOSE_ABORT_NOEXCEPT    noexcept
