@@ -39,7 +39,7 @@ namespace ours::mem {
     struct X86PageAllocator {
         static auto alloc_pages(usize nr_pages, usize align) -> PhysAddr {
             PhysAddr phys_addr;
-            auto frame = alloc_frame(kGafKernel, &phys_addr, 0); 
+            auto frame = alloc_frame(kGafKernel | Gaf::Zero, &phys_addr, 0); 
             if (!frame) {
                 return 0;
             }

@@ -34,7 +34,7 @@ namespace gktl {
         {}
 
         auto verify() const -> void {
-            DEBUG_ASSERT(this->magic_ == Magic, "Error type");
+            DEBUG_ASSERT(this->magic_ == Magic, "Error type magic");
         }
 
         u32 const magic_;

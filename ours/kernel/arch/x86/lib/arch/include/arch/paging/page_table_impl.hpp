@@ -212,6 +212,7 @@ namespace arch::paging {
 
         FORCE_INLINE CXX11_CONSTEXPR 
         auto alloc_page_table() -> PhysAddr {
+            // FIXME(SmallHuaZi)
             return get_allocator().alloc_pages(1, PAGE_SIZE);
         }
 
@@ -250,9 +251,9 @@ namespace arch::paging {
         auto update_mapping_at_l0(PteVal volatile *, TravelContext *, PageSynchroniser *) -> Status;
 
         /// Update a entry.
-        auto update_entry(PteVal volatile *, LevelType, PhysAddr, VirtAddr, X86MmuFlags, PageSynchroniser *) -> void;
+        auto update_entry(PteVal volatile *, LevelType, PhysAddr, VirtAddr, X86MmuFlags, PageSynchroniser *, bool terminal) -> void;
 
-        auto unmap_entry(PteVal volatile *, LevelType level, VirtAddr, PageSynchroniser *) -> Status;
+        auto unmap_entry(PteVal volatile *, LevelType level, VirtAddr, PageSynchroniser *) -> void;
 
         FORCE_INLINE
         auto get_allocator() -> PageAllocator & {

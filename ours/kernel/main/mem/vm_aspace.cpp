@@ -32,8 +32,7 @@ namespace ours::mem {
     {}
 
     auto VmAspace::create(VmasFlags flags, char const *name) 
-        -> ustl::Rc<VmAspace>
-    {
+        -> ustl::Rc<VmAspace> {
         VirtAddr base;
         usize size;
         if (bool(flags & VmasFlags::User)) {
@@ -100,7 +99,7 @@ namespace ours::mem {
             return status;
         }
 
-        status = VmArea::create(base_, size_, VmaFlags::PermMask | VmaFlags::Share, 0, this, "RootVma", &root_vma_);
+        status = VmArea::create_root(base_, size_, VmaFlags::PermMask | VmaFlags::Share, this, "RootVma", &root_vma_);
         if (status != Status::Ok) {
             return Status::OutOfMem;
         }

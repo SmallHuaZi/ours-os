@@ -15,10 +15,12 @@ set(source_set
 
     # VMM
     "vm_aspace.cpp"
+    "vm_area_or_mapping.cpp"
     "vm_area.cpp"
     "vm_mapping.cpp"
     "vm_object.cpp"
     "vm_object_paged.cpp"
+    "vm_object_physical.cpp"
     "vm_cow_pages.cpp"
 )
 

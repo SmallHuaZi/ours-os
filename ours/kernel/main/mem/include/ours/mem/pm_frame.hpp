@@ -109,7 +109,7 @@ namespace ours::mem {
 
         FORCE_INLINE CXX11_CONSTEXPR
         auto phys_size() const -> usize {
-            return BIT(order());
+            return BIT(order()) << PAGE_SHIFT;
         }
 
         FORCE_INLINE CXX11_CONSTEXPR

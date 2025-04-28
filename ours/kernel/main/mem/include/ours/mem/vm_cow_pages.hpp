@@ -27,7 +27,7 @@ namespace ours::mem {
     public:
         class Cursor;
 
-        static auto create(Gaf gaf, usize num_page, ustl::Rc<VmCowPages> *out) -> Status;
+        static auto create(Gaf gaf, usize size, ustl::Rc<VmCowPages> *out) -> Status;
 
         auto commit_range_locked(VirtAddr offset, usize size, ai_out usize *nr_commited) -> Status;
 

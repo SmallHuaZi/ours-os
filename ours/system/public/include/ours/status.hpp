@@ -28,6 +28,7 @@ namespace ours {
         NotFound,
         ShouldWait,
         MisAligned,
+        AlreadyExists,
         MaxCount,
     };
 

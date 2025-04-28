@@ -10,9 +10,8 @@ namespace acpi {
 
     template <typename Entry, typename Visitor>
     FORCE_INLINE
-    auto enumerate_madt_entry_for_type(AcpiParser const &parser, u8 const type, Visitor visitor) -> Status {
-        auto const madt = get_table_by_signature(parser, AcpiMadt::kSignature);
-        ustl::io::BinaryReader reader(madt, madt->size());
+    auto enumerate_madt_entry_for_type(AcpiMadt const &madt, u8 const type, Visitor visitor) -> Status {
+        auto reader = ustl::io::BinaryReader::from_payload_of_struct(&madt);
         while (reader) {
             auto header = reader.read<AcpiEntryHeader>();
             if (!header) {
@@ -32,14 +31,14 @@ namespace acpi {
         return Status::Ok;
     }
 
-    auto enumerate_io_apics(AcpiParser const &parser, IoApicCommitFn const &commit) -> Status {
-        return enumerate_madt_entry_for_type<AcpiMadtIoApicEntry>(parser, AcpiMadtTypeIoApic, commit);
+    auto enumerate_io_apics(AcpiMadt const &madt, IoApicCommitFn const &commit) -> Status {
+        return enumerate_madt_entry_for_type<AcpiMadtIoApicEntry>(madt, AcpiMadtTypeIoApic, commit);
     }
 
-    auto enumerate_local_apics(AcpiParser const &parser, LocalApicCommitFn const &commit) -> Status {
+    auto enumerate_local_apics(AcpiMadt const &madt, LocalApicCommitFn const &commit) -> Status {
         // clang-format off
         return enumerate_madt_entry_for_type<AcpiMadtLocalApicEntry>(
-            parser, AcpiMadtTypeLocalApic,
+            madt, AcpiMadtTypeLocalApic,
             [&](AcpiMadtLocalApicEntry const &entry) {
             if (entry.flags & AcpiMadtFlagEnabled) {
                 return commit(entry);
@@ -48,8 +47,8 @@ namespace acpi {
         // clang-format on
     }
 
-    auto enumerate_io_apic_isa_overrides(AcpiParser const &parser, IntrOverridesCommitFn const &commit) -> Status {
-        return enumerate_madt_entry_for_type<AcpiMadtInterruptOverrideEntry>(parser, AcpiMadtTypeInterruptOverride, commit);
+    auto enumerate_io_apic_isa_overrides(AcpiMadt const &madt, IntrOverridesCommitFn const &commit) -> Status {
+        return enumerate_madt_entry_for_type<AcpiMadtInterruptOverrideEntry>(madt, AcpiMadtTypeInterruptOverride, commit);
     }
 
 } // namespace acpi

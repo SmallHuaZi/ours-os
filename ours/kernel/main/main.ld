@@ -38,7 +38,7 @@ SECTIONS {
     .rodata : {
         *(SORT_BY_ALIGNMENT(.rodata*))
     }
-
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     PROVIDE_HIDDEN(__rodata_end = .);
 
     PROVIDE_HIDDEN(__data_start = .);
@@ -123,10 +123,9 @@ SECTIONS {
         PROVIDE_HIDDEN(__counter_start = .);
         *(.kernel.counter)
         PROVIDE_HIDDEN(__counter_end = .);
-
-        /* Aligned to Page Size */
-        . = ALIGN(CONSTANT(MAXPAGESIZE));
     }
+    /* Aligned to Page Size */
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     PROVIDE_HIDDEN(__bss_end = .);
 
     PROVIDE_HIDDEN(__executable_end = .);

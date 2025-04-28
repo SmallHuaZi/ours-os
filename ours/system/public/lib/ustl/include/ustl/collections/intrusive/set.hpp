@@ -23,7 +23,17 @@ namespace ustl::collections::intrusive {
     using Set = boost::intrusive::set<T...>;
 
     template <typename... T>
-    using MultiSet = boost::intrusive::multiset<T...>;
+    struct MultiSet: public boost::intrusive::multiset<T...> {
+        typedef boost::intrusive::multiset<T...>        Base;
+        typedef typename Base::iterator         IterMut;
+        typedef typename Base::const_iterator   Iter;
+        typedef typename Base::value_type       Element;
+        typedef typename Base::pointer          PtrMut;
+        typedef typename Base::const_pointer    Ptr;
+
+        typedef typename Base::reference          RefMut;
+        typedef typename Base::const_reference    Ref;
+    };
 
 } // namespace ustl::collections::intrusive
 

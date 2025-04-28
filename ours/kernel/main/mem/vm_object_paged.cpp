@@ -18,10 +18,10 @@ namespace ours::mem {
           cow_pages_(ustl::move(cowpages))
     {}
 
-    auto VmObjectPaged::create(Gaf gaf, usize nr_pages, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status {
+    auto VmObjectPaged::create(Gaf gaf, usize size, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status {
         // Check vmof
         ustl::Rc<VmCowPages> cow_pages;
-        auto status = VmCowPages::create(gaf, nr_pages, &cow_pages);
+        auto status = VmCowPages::create(gaf, size, &cow_pages);
         if (Status::Ok != status) {
             return status;
         }
@@ -38,7 +38,7 @@ namespace ours::mem {
                 options |= CommitOptions::Pin;
             }
 
-            vmo->commit_range(0, nr_pages, options);
+            vmo->commit_range(0, size, options);
         }
         *out = ustl::make_rc<Self>(vmo);
 

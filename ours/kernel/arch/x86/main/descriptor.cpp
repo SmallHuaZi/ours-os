@@ -1,6 +1,7 @@
 #include <ours/arch/x86/descriptor.hpp>
 #include <ours/cpu-local.hpp>
 #include <ours/mem/vm_aspace.hpp>
+#include <ours/mem/vm_area.hpp>
 #include <arch/x86/descriptor.hpp>
 
 namespace ours {
@@ -30,17 +31,15 @@ namespace ours {
 
     auto x86_setup_gdt() -> void {
         using namespace mem;
+
         CXX11_CONSTEXPR
         static auto kVmaFlags = VmaFlags::Read | VmaFlags::Pinned;
-        // reload here.
-        ustl::Rc<VmArea> gdtvma;
-        auto status = VmAspace::kernel_aspace()
-                              ->root_vma()
-                              ->create_subvma(1, kVmaFlags, "k:GDT", &gdtvma);
-        if (Status::Ok != status) {
-            log::trace("Failed to allocate VMA for GDT: {}", to_string(status));
-        }
-
+        ustl::Rc<VmArea> vma;
+        auto result = VmAspace::kernel_aspace()->root_vma()->map_at(
+            PhysMap::virt_to_phys(&g_gdt), 0, PAGE_SIZE,
+            MmuFlags::Readable, VmMapOption::Commit, "k:GDT"
+        );
+        ASSERT(!result, "Failed to create readonly GDT");
         x86_load_gdt();
     }
 

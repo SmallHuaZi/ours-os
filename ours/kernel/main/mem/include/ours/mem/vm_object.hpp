@@ -56,10 +56,14 @@ namespace ours::mem {
         USTL_ENABLE_INNER_ENUM_BITMASK(CommitOptions);
 
         /// Actively request pages for fulfilling range [pgoff, pgoff + n).
-        virtual auto commit_range(VirtAddr offset, usize size, CommitOptions commit = CommitOptions::None) -> Status = 0;
+        virtual auto commit_range(VirtAddr offset, usize size, CommitOptions commit = CommitOptions::None) -> Status  {
+            return Status::Unimplemented;
+        }
 
         ///
-        virtual auto decommit(VirtAddr offset, usize size) -> Status = 0;
+        virtual auto decommit(VirtAddr offset, usize size) -> Status {
+            return Status::Unimplemented;
+        } 
 
         /// Remove all pages in range [ `|pgoff|`, `|pgoff + n|`) to `|page_list|`.
         virtual auto take_pages(VirtAddr offset, usize size, VmPageList *page_list) -> Status {
@@ -94,6 +98,16 @@ namespace ours::mem {
         FORCE_INLINE
         auto type() const -> Type {
             return type_;
+        }
+
+        FORCE_INLINE
+        auto add_mapping(VmMapping &mapping) -> void {
+            mappings_.push_back(mapping);
+        }
+
+        FORCE_INLINE
+        auto remove_mapping(VmMapping &mapping) -> void {
+            mappings_.erase(mappings_.iterator_to(mapping));
         }
 
         USTL_NO_MOVEABLE_AND_COPYABLE(VmObject);

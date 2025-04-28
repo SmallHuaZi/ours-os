@@ -16,14 +16,14 @@
 #include <ustl/views/span.hpp>
 #include <arch/x86/apic/ioapic.hpp>
 
-namespace ours {
+namespace ours::irq {
     INIT_CODE
-    auto init_io_apic(ustl::views::Span<arch::IoApic> &ioapics,
-                      ustl::views::Span<arch::IoApicIsaOverride> &overrides) -> void;
+    auto init_io_apic(ustl::views::Span<arch::IoApic> const &ioapics,
+                      ustl::views::Span<arch::IoApicIsaOverride> const &overrides) -> void;
 
     INIT_CODE
     auto init_local_apic() -> void;
 
-} // namespace ours
+} // namespace ours::irq
 
 #endif // #ifndef OURS_ARCH_APIC_HPP

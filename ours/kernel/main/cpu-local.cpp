@@ -548,6 +548,7 @@ namespace ours {
             panic("Failed to allaote first dynamic cpu local chunk");
         }
         log::trace("Early first chunk start at 0x{:X}", VirtAddr(dyn_base));
+        clai->base_ = VirtAddr(replica);
         clai->add_dyn(*first_chunk);
         CpuLocalAreaInfo::set_global(clai);
 
@@ -605,8 +606,8 @@ namespace ours {
                 continue;
             }
 
-            // return clai->fix_addr<void>(base);
-            return reinterpret_cast<void *>(base);
+            return clai->fix_addr<void>(base);
+            // return reinterpret_cast<void *>(base);
         }
 
         // Here the new dynamic chunk should be create_globald.

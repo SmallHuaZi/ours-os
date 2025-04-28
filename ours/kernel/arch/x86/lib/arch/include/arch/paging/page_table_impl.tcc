@@ -61,7 +61,7 @@ namespace arch::paging {
 
     TEMPLATE FORCE_INLINE
     auto X86_PAGE_TABLE::unmap_entry(PteVal volatile *pteval, LevelType level, VirtAddr virt, 
-                                     PageSynchroniser *synchroniser) -> Status {  
+                                     PageSynchroniser *synchroniser) -> void {  
         auto const derived = static_cast<Derived *>(this);
         PteVal const old_pte = *pteval;
         *pteval = 0;
@@ -73,11 +73,17 @@ namespace arch::paging {
 
     TEMPLATE
     auto X86_PAGE_TABLE::update_entry(PteVal volatile *pteval, LevelType level, PhysAddr phys, VirtAddr virt, 
-                                      X86MmuFlags flags, PageSynchroniser *synchroniser) -> void {
+                                      X86MmuFlags flags, PageSynchroniser *synchroniser, bool terminal) -> void {
         auto const derived = static_cast<Derived *>(this);
 
+        if (terminal) {
+            flags = derived->make_terminal_mmuflags(level, flags);
+        } else {
+            flags = derived->interminal_mmuflags();
+        }
+
         PteVal const old_pte = *pteval;
-        PteVal const new_pte = derived->make_pteval(level, phys, flags);
+        PteVal const new_pte = derived->make_pteval(phys, flags);
 
         if (new_pte == old_pte) {
             return;
@@ -108,12 +114,12 @@ namespace arch::paging {
 
         auto const lower_level = PagingTraits::next_level(level);
         for (auto i = 0; i < max_entries; ++i) {
-            update_entry(entry + i, lower_level, phys_addr, virt_addr, mmuflags, synchroniser);
+            update_entry(entry + i, lower_level, phys_addr, virt_addr, mmuflags, synchroniser, true);
             phys_addr += page_size;
             virt_addr += page_size;
         }
 
-        update_entry(pte, level, phys_table, virt_addr, mmuflags, synchroniser);
+        update_entry(pte, level, phys_table, virt_addr, mmuflags, synchroniser, false);
         return Status::Ok;
     }
 
@@ -129,14 +135,14 @@ namespace arch::paging {
     auto X86_PAGE_TABLE::prepare_map_pages(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapContext *context)
         -> Status {
         auto const derived = static_cast<Derived *>(this);
-        if (derived->check_virt_addr(va)) {
+        if (!derived->check_virt_addr(va)) {
             return Status::InvalidArguments;
         }
-        if (derived->is_flags_allowed(flags)) {
+        if (!derived->is_flags_allowed(flags)) {
             return Status::InvalidArguments;
         }
         for (auto i = 0; i < len; ++i) {
-            if (derived->check_phys_addr(pa[i])) {
+            if (!derived->check_phys_addr(pa[i])) {
                 return Status::InvalidArguments;
             }
         }
@@ -226,7 +232,7 @@ namespace arch::paging {
     auto X86_PAGE_TABLE::create_mapping(LevelType level, ai_virt PteVal volatile *table, MapContext *context, 
                                         MapControl control, PageSynchroniser *synchroniser) -> Status {
         if (level == PagingTraits::kFinalLevel) {
-            this->create_mapping_at_l0(table, context, control, synchroniser);
+            return this->create_mapping_at_l0(table, context, control, synchroniser);
         }
         auto const derived = static_cast<Derived *>(this);
         auto const level_page_size = Self::page_size(level);
@@ -239,7 +245,7 @@ namespace arch::paging {
         for (; index < max_entries && context->phys_cursor().remaining_size() > 0; ++index) {
             ai_virt PteVal volatile *entry = table + index;
 
-            if (!Derived::is_present(*table)) { // The entry do not exists.
+            if (!Derived::is_present(*entry)) { // The entry do not exists.
                 auto phys_addr = context->phys_addr();
                 auto virt_addr = context->virt_addr();
                 if (allow_large_page_mapping && large_page_supported) {
@@ -248,7 +254,7 @@ namespace arch::paging {
                         context->phys_cursor().remaining_size() >= level_page_size)
                     {
                         // The current address range supports a large mapping.
-                        update_entry(entry, level, phys_addr, virt_addr, mmuflags, synchroniser);
+                        update_entry(entry, level, phys_addr, virt_addr, mmuflags, synchroniser, true);
 
                         context->consume(level_page_size);
                         // Large page mapping entry is leaf of page table, so we directly start to next iteration.
@@ -258,9 +264,9 @@ namespace arch::paging {
 
                 // The request do not cover the whole large page, so create a lower mappings to then map it.
                 PhysAddr new_table = this->alloc_page_table();
-                update_entry(entry, level, new_table, virt_addr, mmuflags, synchroniser);
+                update_entry(entry, level, new_table, virt_addr, mmuflags, synchroniser, false);
             } else {  
-                if (Derived::is_large_page_mapping(*table)) {
+                if (Derived::is_large_page_mapping(*entry)) {
                     if (bool(control & MapControl::ErrorIfExisting)) {
                         // The entry exists and it is a large page mapping, if specifies options 
                         // MapControl::ErrorIfExisting then need we to report an error back to caller.
@@ -290,14 +296,17 @@ namespace arch::paging {
                                               PageSynchroniser *synchroniser) -> Status {
         CXX11_CONSTEXPR
         auto const level = PagingTraits::kFinalLevel;
-        auto const readonly = (context->mmuflags() & X86MmuFlags::PermMask) == X86MmuFlags::Writable;
+
+        auto const derived = static_cast<Derived *>(this);
+        auto const readonly = (context->mmuflags() & X86MmuFlags::PermMask) != X86MmuFlags::Writable;
         auto const page_size = Self::page_size(level);
         auto const max_entries = Self::max_entries(level);
+        auto const mmuflags = derived->make_terminal_mmuflags(level, context->mmuflags());
 
         auto index = virt_to_index(PagingTraits::kFinalLevel, context->virt_addr());
         for (; index < max_entries && context->phys_cursor().remaining_size() > 0; ++index) {
-            ai_phys PteVal volatile *entry = table + index;
-            auto const is_existing = Derived::is_present(*table);
+            PteVal volatile *entry = table + index;
+            auto const is_existing = Derived::is_present(*entry);
 
             if (is_existing) {
                 if (!!(control & MapControl::ErrorIfExisting)) {
@@ -318,7 +327,7 @@ namespace arch::paging {
             }
 
             auto const [phys, virt] = context->take(page_size);
-            update_entry(entry, level, phys, virt, context->mmuflags(), synchroniser);
+            update_entry(entry, level, phys, virt, mmuflags, synchroniser, true);
         }
 
         return Status::Ok;
@@ -438,7 +447,7 @@ namespace arch::paging {
             PteVal volatile *entry = pte + index;
             if (Derived::is_present(*entry)) {
                 PhysAddr const phys = PagingTraits::phys_addr_from_pte(level, *entry);
-                update_entry(entry, level, phys, context->virt_addr(), mmuflags, synchroniser);
+                update_entry(entry, level, phys, context->virt_addr(), mmuflags, synchroniser, true);
             } 
 
             context->consume(level_page_size);
@@ -468,7 +477,7 @@ namespace arch::paging {
                         PhysAddr const phys = PagingTraits::phys_addr_from_pte(level, *entry);
 
                         // The request covers the entire page, just let us to update it.
-                        update_entry(entry, level, phys, virt, mmuflags, synchroniser);
+                        update_entry(entry, level, phys, virt, mmuflags, synchroniser, true);
                         context->consume(level_page_size);
                         continue;
                     }

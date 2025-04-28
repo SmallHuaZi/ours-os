@@ -96,7 +96,7 @@ namespace ustl {
         USTL_FORCEINLINE
         Rc(Rc<U, A, S> &&other) USTL_NOEXCEPT
             : pointer_(other.pointer_),
-              counter_(other.counter_)
+              counter_(reinterpret_cast<Counter *>(other.counter_))
         {
             other.counter_ = nullptr;
             other.pointer_ = nullptr;
@@ -374,6 +374,45 @@ namespace ustl {
         return Rc<Derived, A, S>(
             static_cast<Derived *>(object), 
             reinterpret_cast<RefCounter<Derived, A, S> *>(object)
+        );
+    }
+
+    template <typename Derived, typename Base, typename A, typename S>
+        requires traits::IsBaseOfV<RefCounter<Base, A, S>, Derived>
+    USTL_FORCEINLINE
+    auto downcast(Rc<Base, A, S> *object)
+        -> Rc<Derived, A, S> {
+        /// There are still so many points need  we pay attention to:
+        ///     1. Security of downcast without RTTI.
+        return Rc<Derived, A, S>(
+            static_cast<Derived *>(object->as_ptr_mut()), 
+            reinterpret_cast<RefCounter<Derived, A, S> *>(object->as_ptr_mut())
+        );
+    }
+
+    template <typename Base, typename Derived, typename A, typename S>
+        requires traits::IsBaseOfV<RefCounter<Base, A, S>, Derived>
+    USTL_FORCEINLINE
+    auto make_rc(Rc<Derived, A, S> &object)
+        -> Rc<Base, A, S> {
+        /// There are still so many points need  we pay attention to:
+        ///     1. Security of downcast without RTTI.
+        return Rc<Base, A, S>(
+            static_cast<Base *>(object), 
+            reinterpret_cast<RefCounter<Base, A, S> *>(object)
+        );
+    }
+
+    template <typename Base, typename Derived, typename A, typename S>
+        requires traits::IsBaseOfV<RefCounter<Base, A, S>, Derived>
+    USTL_FORCEINLINE
+    auto make_rc(Rc<Derived, A, S> &&object)
+        -> Rc<Base, A, S> {
+        /// There are still so many points need  we pay attention to:
+        ///     1. Security of downcast without RTTI.
+        return Rc<Base, A, S>(
+            static_cast<Base *>(object.as_ptr_mut()), 
+            reinterpret_cast<RefCounter<Base, A, S> *>(object.as_ptr_mut())
         );
     }
 

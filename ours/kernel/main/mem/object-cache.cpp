@@ -148,6 +148,10 @@ namespace ours::mem {
         object_align_ = align;
         ocflags_ = flags;
         gaf_ = kGafKernel;
+
+        CXX11_CONSTEXPR
+        static auto const kMinPartialSlabs = 32;
+        min_partial_ = kMinPartialSlabs;
         return parse_ocflags(flags);
     }
 
@@ -249,8 +253,8 @@ namespace ours::mem {
             return cache.slab;
         });
         if (slab) {
-            if (nid != slab->nid() || nid != MAX_NODE) {
-                // Mismatch node. We should let it then try to get slab on target node 
+            if (nid != slab->nid() && nid != MAX_NODE) {
+                // Mismatched node. We should forget it then try to get slab on target node 
                 // in another ways.
                 slab = nullptr;
             }
@@ -294,7 +298,7 @@ namespace ours::mem {
 
         auto node = cache_node_[slab->nid()];
         if (node->num_partial >= min_partial_) {
-            free_slab(slab);
+            node->free_slab(slab);
         }
     }
 

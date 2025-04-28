@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef ARCH_X86_APIC_XAPIC_HPP
 #define ARCH_X86_APIC_XAPIC_HPP 1
 
@@ -71,12 +70,13 @@ namespace arch {
     /// can also be configured to run in legacy mode so that it emulates
     /// an 8259 device.
     struct XApic {
-        XApic(u32 *mmio_base)
-            : mmio_virt_(mmio_base),
-              id_(read_reg(XApicRegType::Id)),
-              logic_id_(read_reg(XApicRegType::Ldr)),
-              version_(read_reg(XApicRegType::Version))
-        {}
+        FORCE_INLINE
+        auto init(u32 *mmio_base) -> void {
+            mmio_virt_ = mmio_base;
+            id_ = read_reg(XApicRegType::Id);
+            logic_id_ = read_reg(XApicRegType::Ldr);
+            version_ = read_reg(XApicRegType::Version);
+        }
 
         FORCE_INLINE
         auto id() const -> u32 {

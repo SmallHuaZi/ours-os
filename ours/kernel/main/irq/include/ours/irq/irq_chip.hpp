@@ -17,6 +17,9 @@
 
 namespace ours::irq {
     struct IrqChip {
+        IrqChip() = default;
+        virtual ~IrqChip() = default;
+
         virtual auto startup(IrqData &data) -> void {}
         virtual auto teawdown(IrqData &data) -> void {}
 
@@ -25,26 +28,25 @@ namespace ours::irq {
 
         virtual auto mask(IrqData &data) -> void = 0;
         virtual auto unmask(IrqData &data) -> void = 0;
-        virtual auto ack(IrqData &data) -> void = 0;
         virtual auto send_eoi(IrqData &data) -> void {}
         virtual auto send_ack(IrqData &data) -> void {}
 
-        virtual auto set_affinity(IrqData &data, CpuMask *dest, bool force) -> Status;
-        virtual auto retrigger(IrqData &data) -> int;
-        virtual auto set_type(IrqData &data, unsigned int flow_type) -> int;
-        virtual auto set_wake(IrqData &data, unsigned int on) -> int;
+        virtual auto set_affinity(IrqData &data, CpuMask *dest, bool force) -> Status {};
+        virtual auto retrigger(IrqData &data) -> int {}
+        virtual auto set_type(IrqData &data, unsigned int flow_type) -> int {}
+        virtual auto set_wake(IrqData &data, unsigned int on) -> int {}
 
-        virtual auto lock_bus(IrqData &data) -> void;
-        virtual auto sync_unlock_bus(IrqData &data) -> void;
+        virtual auto lock_bus(IrqData &data) -> void {}
+        virtual auto sync_unlock_bus(IrqData &data) -> void {}
 
-        virtual auto suspend(IrqData &data) -> void;
-        virtual auto resume(IrqData &data) -> void;
+        virtual auto suspend(IrqData &data) -> void {}
+        virtual auto resume(IrqData &data) -> void {}
 
         virtual auto send_ipi(IrqData &data, CpuNum cpu) -> void {}
 
         auto send_ipi(IrqData &data, CpuMask const &dest) -> void {
             for_each_cpu(dest, [&] (CpuNum cpunum) {
-                this->send_ipi(data, cpunum);
+                send_ipi(data, cpunum);
             });
         }
 

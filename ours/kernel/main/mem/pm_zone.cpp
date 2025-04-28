@@ -6,6 +6,7 @@
 #include <ours/cpu-local.hpp>
 
 #include <logz4/log.hpp>
+#include <ustl/algorithms/generation.hpp>
 
 namespace ours::mem {
     FORCE_INLINE
@@ -161,21 +162,27 @@ namespace ours::mem {
     }
 
     auto PmZone::alloc_frame(Gaf gaf, usize order) -> PmFrame * {
-        PmFrame *result = nullptr;
+        PmFrame *frame = nullptr;
         if (is_order_within_pcpu_cache_limit(order)) {
-            result = frame_cache_.with_current([order] (PcpuCache &cache) {
+            frame = frame_cache_.with_current([order] (PcpuCache &cache) {
                 return nullptr;
             });
         }
 
-        if (!result) {
-            result = fset_.acquire_frame(order);
+        if (!frame) {
+            frame = fset_.acquire_frame(order);
         }
 
-        if (result) {
-            finish_allocation(result, gaf, order);
+        if (!frame) {
+            return nullptr;
         }
-        return result;
+
+        if (!!(Gaf::Zero & gaf)) {
+            ustl::algorithms::fill_n(frame_to_virt<isize>(frame), BIT(order) * PAGE_SIZE / sizeof(usize), 0);
+        }
+
+        finish_allocation(frame, gaf, order);
+        return frame;
     }
 
     auto PmZone::free_frame(PmFrame *frame, usize order) -> void {

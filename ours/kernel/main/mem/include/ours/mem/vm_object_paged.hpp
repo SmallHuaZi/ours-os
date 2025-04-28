@@ -23,7 +23,7 @@ namespace ours::mem {
         typedef VmObject        Base;
         typedef VmObjectPaged   Self;
     public:
-        static auto create(Gaf gaf, usize nr_pages, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
+        static auto create(Gaf gaf, usize size, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
 
         static auto create_contiguous(Gaf gaf, usize size, VmoFLags vmof, ustl::Rc<VmObjectPaged> *out) -> Status;
 
@@ -56,7 +56,6 @@ namespace ours::mem {
     private:
         auto commit_range_internal(PgOff offset, usize n, CommitOptions option) -> Status;
 
-        VmMappingList mappings_;
         ustl::Rc<VmCowPages> cow_pages_;
         Mutex mutex_;
     };

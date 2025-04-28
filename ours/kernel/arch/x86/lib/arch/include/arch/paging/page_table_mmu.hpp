@@ -42,7 +42,10 @@ namespace arch::paging {
         }
 
         static auto check_phys_addr(PhysAddr phys_addr) -> bool {
-            return false;
+            if (!is_aligned(phys_addr, PAGE_SIZE)) {
+                return false;
+            }
+            return true;
         }
 
         static auto check_virt_addr(VirtAddr virt_addr) -> bool {
@@ -53,7 +56,7 @@ namespace arch::paging {
         }
 
         static auto is_flags_allowed(MmuFlags) -> bool {
-            return false;
+            return true;
         }
 
         FORCE_INLINE
@@ -71,14 +74,23 @@ namespace arch::paging {
             return PagingTraits::level_can_be_terminal(level);
         }
 
-        static auto make_pteval(LevelType level, PhysAddr phys, X86MmuFlags flags) -> PteVal {
-            auto arch_flags = flags | X86MmuFlags::Present;
+        FORCE_INLINE
+        static auto interminal_mmuflags() -> ArchMmuFlags {
+            return ArchMmuFlags::Writable | ArchMmuFlags::User;
+        }
+
+        FORCE_INLINE
+        static auto make_terminal_mmuflags(LevelType level, ArchMmuFlags mmuflags) -> ArchMmuFlags {
             if (level != PagingTraits::kFinalLevel) {
-                arch_flags |= X86MmuFlags::PageSize;
+                mmuflags |= X86MmuFlags::PageSize;
             }
 
+            return mmuflags;
+        }
+
+        static auto make_pteval(PhysAddr phys, X86MmuFlags flags) -> PteVal {
             // FIXME(SmallHuaZi) `phys` should does bit-and with address mask.
-            return PteVal(PteVal(arch_flags) | phys);
+            return PteVal(PteVal(flags | X86MmuFlags::Present) | phys);
         }
     };
 

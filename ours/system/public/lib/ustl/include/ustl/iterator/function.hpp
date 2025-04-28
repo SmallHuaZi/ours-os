@@ -113,8 +113,7 @@ namespace details {
     //! @param n
     template <typename Iterator, typename Distance>
     USTL_FORCEINLINE USTL_CONSTEXPR 
-    auto advance(Iterator &iter, Distance n) -> void
-    {
+    auto advance(Iterator &iter, Distance n) -> void {
         USTL_REQUIRES(IS_ITER_V<Iterator>);
         return details::advance_impl(iter, n, CategoryT<Iterator>{});
     }
@@ -127,10 +126,9 @@ namespace details {
     //! @return Distance of between both iterators.
     //! @example
     //! iter
-    template <typename Iterator, typename Distance>
+    template <typename Iterator>
     USTL_FORCEINLINE USTL_CONSTEXPR
-    auto distance(Iterator first, Iterator last) -> Distance
-    {
+    auto distance(Iterator first, Iterator last) -> DistanceOfT<Iterator> {
         USTL_REQUIRES(IS_ITER_V<Iterator>);
         return details::distance_impl(first, last, CategoryT<Iterator>{});
     }

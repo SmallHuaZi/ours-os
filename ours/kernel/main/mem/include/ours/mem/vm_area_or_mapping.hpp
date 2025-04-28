@@ -27,6 +27,16 @@
 #include <gktl/canary.hpp>
 
 namespace ours::mem {
+    enum class VmMapOption {
+        // For semenatics, no any effects.
+        None,
+        Commit = BIT(0),
+        Pinned = BIT(1),
+        Fixed = BIT(2),
+        FixedNoReplace = BIT(3),
+    };
+    USTL_ENABLE_ENUM_BITMASK(VmMapOption);
+
     enum class VmaFlags: u32 {
         // For semantics, no any actual effects.
         None,
@@ -68,9 +78,6 @@ namespace ours::mem {
         return mmuf;
     }
 
-    class VmArea;
-    class VmMapping;
-
     class VmAreaOrMapping: public ustl::RefCounter<VmAreaOrMapping> {
         typedef VmAreaOrMapping         Self;
         typedef ustl::RefCounter<Self>  Base;
@@ -102,23 +109,48 @@ namespace ours::mem {
             return aspace_->lock();
         }
 
+        FORCE_INLINE
+        auto check_range(VirtAddr base, usize size) const -> bool {
+            return base >= base_ && size <= size_ && (base - base_) <= size_ - size;
+        }
+
+        FORCE_INLINE
+        auto is_mapping() const -> bool {
+            return !!(vmaf_ & VmaFlags::Mapping);
+        }
+
         /// This for the collections to compare two VMA.
         FORCE_INLINE
         friend auto operator<(Self const &x, Self const &y) -> bool {
             return x.base_ < y.base_;
         }
       protected:
-        /// Check whether a given `|mmflags|` is valid. True if valid, otherwise invalid.
+        /// Check whether a given `|mmuflags|` is valid. True if valid, otherwise invalid.
         auto validate_mmuflags(MmuFlags mmuf) const -> bool;
 
-        virtual auto activate() -> void = 0; 
-        virtual auto destroy() -> void = 0; 
+        /// Check whether a given `|vmaflags|` is valid. True if valid, otherwise invalid.
+        FORCE_INLINE
+        auto validate_vmaflags(VmaFlags vmaf) const -> bool {
+            auto perm_allowed = (vmaf_ & VmaFlags::PermMask);
+            if (((vmaf & VmaFlags::PermMask) | perm_allowed) != perm_allowed) {
+                return false;
+            }
+
+            return true;
+        }
+
+        FORCE_INLINE
+        auto mark_active() -> void {
+            vmaf_ |= VmaFlags::Active;
+        }
+
+        virtual auto activate() -> void; 
+        virtual auto destroy() -> void; 
 
         friend class VmObject;
         friend class VmAspace;
-        friend class VmArea;
-        friend class VmMapping;
         friend class VmaSet;
+        friend class VmArea;
 
         GKTL_CANARY(VmAreaOrMapping, canary_);
         char const *name_;
@@ -131,22 +163,59 @@ namespace ours::mem {
       public:
         USTL_DECLARE_HOOK_OPTION(Self, children_hook_, ManagedOptions);
     };
-    USTL_DECLARE_MULTISET(VmAreaOrMapping, VmaSetInner, VmAreaOrMapping::ManagedOptions);
+    USTL_DECLARE_MULTISET(VmAreaOrMapping, VmaSetBase, VmAreaOrMapping::ManagedOptions);
 
-    class VmaSet: public VmaSetInner {
+    class VmaSet: public VmaSetBase {
         typedef VmaSet       Self;
-        typedef VmaSetInner  Base;
+        typedef VmaSetBase   Base;
       public:
-        typedef VmAreaOrMapping Element;
-        typedef Element *       PtrMut;
-        typedef Element const * Ptr;
-        typedef Element &       RefMut;
-        typedef Element const & Ref;
+        class Enumerator;
+        typedef Base::Element   Element;
+        typedef Base::PtrMut    PtrMut;
+        typedef Base::Ptr       Ptr;
+        typedef Base::RefMut    RefMut;
+        typedef Base::Ref       Ref;
 
+        /// Determine that in this set if a region contains the range [base, base + size).
+        ///
+        /// Return true if contains, otherwise false.
         auto has_range(VirtAddr base, usize size) const -> bool;
 
         auto find_spot(usize size, AlignVal align, VirtAddr lower_bound, VirtAddr upper_bound)
             const -> ustl::Result<VirtAddr, Status>;
+        
+        /// Find the first existent VMA whose'end < addr.
+        FORCE_INLINE
+        auto lower_bound(VirtAddr addr) -> IterMut {
+            return Base::lower_bound(addr, [] (Ref x, VirtAddr y) { return x.base_ < y; });
+        }
+
+        FORCE_INLINE
+        auto lower_bound(VirtAddr addr) const -> Iter {
+            return Base::lower_bound(addr, [] (Ref x, VirtAddr y) { return x.base_ < y; });
+        }
+
+        /// Find the first existent VMA whose'base > addr.
+        FORCE_INLINE
+        auto upper_bound(VirtAddr addr) -> IterMut {
+            return Base::upper_bound(addr, [] (VirtAddr y, Ref x) { return y <= x.base_; });
+        }
+
+        FORCE_INLINE CXX11_CONSTEXPR
+        auto upper_bound(VirtAddr addr) const -> Iter {
+            return Base::upper_bound(addr, [] (VirtAddr y, Ref x) { return y <= x.base_; });
+        }
+    };
+
+    class VmaSet::Enumerator {
+      public:
+        Enumerator(VmaSet &, VirtAddr min, VirtAddr max);
+        Enumerator(VmArea &, VirtAddr min, VirtAddr max);
+        ~Enumerator() = default;
+
+      private:
+        IterMut iter_;
+        VmaSet *vmaset_;
     };
 
 } // namespace ours::mem

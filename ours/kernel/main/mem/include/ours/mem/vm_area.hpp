@@ -21,6 +21,7 @@
 #include <ustl/option.hpp>
 #include <ustl/collections/intrusive/set.hpp>
 
+#include <ktl/result.hpp>
 #include <gktl/range.hpp>
 #include <gktl/canary.hpp>
 
@@ -30,27 +31,42 @@ namespace ours::mem {
         typedef VmArea          Self;
         typedef VmAreaOrMapping Base;
     public:
-        static auto create(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *, ustl::Rc<Self> *) 
-            -> Status;
+        FORCE_INLINE
+        static auto create(VirtAddr va, usize size, VmaFlags vmaf, VmArea *parent, VmAspace *aspace, 
+                           char const *name, ustl::Rc<Self> *out) -> Status {
+            DEBUG_ASSERT(parent);
+            return create_common(va, size, vmaf, parent, aspace, name, out);
+        }
+
+        FORCE_INLINE
+        static auto create_root(VirtAddr va, usize size, VmaFlags vmaf, VmAspace *aspace, char const *name, 
+                                ustl::Rc<Self> *out) -> Status {
+            return create_common(va, size, vmaf, nullptr, aspace, name, out);
+        }
 
         /// Create a mapping unit in page range [vma_off, vma_off + size).
         auto create_mapping(usize vma_ofs, usize size, usize vmo_ofs, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
-                            char const *name, ustl::Rc<VmMapping> *out) -> Status;
-
-        /// Create a mapping of the specified size.
-        auto create_mapping(usize size, usize vmo_ofs, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
-                            char const *name, ustl::Rc<VmMapping> *out) -> Status;
-
-        /// Create a mapping of the specified size.
-        auto create_mapping(usize size, MmuFlags mmuf, char const *name, ustl::Rc<VmMapping> *out) 
-            -> Status;
+                            char const *name, VmMapOption option, ustl::Rc<VmMapping> *out) -> Status;
 
         /// Create a sub-VMA in page range [vma_off, vma_off + nr_pages).
-        auto create_subvma(usize offset, usize size, VmaFlags vmaf, char const *name, ustl::Rc<VmArea> *out) 
-            -> Status;
+        auto create_subvma(usize offset, usize size, VmaFlags vmaf, char const *name, VmMapOption option, 
+                          ustl::Rc<VmArea> *out) -> Status;
 
-        /// Create a sub-VMA of the specified size.
-        auto create_subvma(usize nr_pages, VmaFlags, char const *name, ustl::Rc<VmArea> *) -> Status;
+        /// A coarse-grained interface to provide a convenient way to map a segment of VMA.
+        ///
+        /// When offer option |VmMapOption::Overwrite| the range [base, base + size) 
+        /// would be forcely used, namely those existing mappings which overlaps with it 
+        /// will be replaced with expected one.
+        ///
+        /// When offer option |VmMapOption::Commit|, this mapping request will be committed 
+        /// intermideately. Rather than wait a page fault. 
+        ///
+        /// On success return a object of VmMapping.
+        auto map_at(PhysAddr phys_base, VirtAddr virt_base, usize size, MmuFlags, VmMapOption, char const *name)
+            -> ktl::Result<ustl::Rc<VmMapping>>;
+
+        auto map(VirtAddr base, usize size, MmuFlags, VmMapOption, char const * name)
+            -> ktl::Result<ustl::Rc<VmMapping>>;
 
         auto unmap(usize offset, usize size) -> Status;
 
@@ -61,16 +77,29 @@ namespace ours::mem {
         auto reserve(usize offset, usize size, MmuFlags flags, char const *name) -> Status;
 
         auto contains(VirtAddr addr) const -> bool;
+
+        auto dump() const -> void;
     protected:
         VmArea(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *);
 
-        virtual auto activate() -> void override; 
-        virtual auto destroy() -> void override; 
+        auto alloc_spot(usize size, AlignVal align, VirtAddr upper_limit) -> ktl::Result<VirtAddr>;
+
+        struct CreateVmAomArgs;
+        /// Create a sub-VMA or sub-Mapping and do not check the given range in packet
+        auto create_subaom_internal(CreateVmAomArgs &packet, ustl::Rc<VmAreaOrMapping> *out) -> Status;
+
+        auto map_with_vmo(VirtAddr, usize, MmuFlags, ustl::Rc<VmObject>, VmMapOption, char const *)
+            -> ktl::Result<ustl::Rc<VmMapping>>;
+
+        static auto create_common(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *, ustl::Rc<Self> *) 
+            -> Status;
     private:
         friend class VmObject;
         friend class VmAspace;
         friend class VmMapping;
+        friend class VmAreaOrMapping;
 
+        usize num_mappings_;
         VmaSet subvmas_;
     };
 } // namespace ours::mem

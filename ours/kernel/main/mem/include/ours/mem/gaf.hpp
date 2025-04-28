@@ -82,7 +82,7 @@ namespace ours::mem {
     static_assert(gaf_zone_type(Gaf::ZoneNormal) == ZoneType::Normal);
 
     CXX11_CONSTEXPR
-    static auto const kGafBoot = Gaf::OnlyThisNode | Gaf::ZoneNormal;
+    static auto const kGafBoot = Gaf::OnlyThisNode | Gaf::ZoneNormal | Gaf::Zero;
 
     CXX11_CONSTEXPR
     static auto const kGafKernel = Gaf::OnlyThisNode | Gaf::Reclaim | Gaf::ZoneNormal;

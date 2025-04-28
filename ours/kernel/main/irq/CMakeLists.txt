@@ -14,4 +14,5 @@ target_sources(kernel_main_irq
 INTERFACE
     "cpu-local.cpp"
     "init.cpp"
+    "mod.cpp"
 )

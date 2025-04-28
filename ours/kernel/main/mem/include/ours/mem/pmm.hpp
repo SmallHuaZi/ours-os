@@ -68,8 +68,9 @@ namespace ours::mem {
     static auto alloc_frame(Gaf gaf, ai_out PhysAddr *addr, usize order = 0) -> PmFrame * {
         if (auto frame = alloc_frame(gaf, order)) {
             if (addr) {
-                *addr = frame_to_virt(frame);
+                *addr = frame_to_phys(frame);
             }
+            return frame;
         }
 
         return nullptr;
@@ -88,8 +89,9 @@ namespace ours::mem {
     static auto alloc_frame(NodeId nid, Gaf gaf, ai_out PhysAddr *addr, usize order = 0) -> PmFrame * {
         if (auto frame = alloc_frame(nid, gaf, order)) {
             if (addr) {
-                *addr = frame_to_virt(frame);
+                *addr = frame_to_phys(frame);
             }
+            return frame;
         }
 
         return nullptr;

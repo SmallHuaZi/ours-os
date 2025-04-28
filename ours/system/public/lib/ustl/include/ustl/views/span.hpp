@@ -35,6 +35,9 @@ namespace ustl::views {
         typedef typename Base::const_reverse_iterator   RevIter;
     };
 
+    template<typename R, std::size_t E = boost::dynamic_extent>
+    Span(R &r) -> Span<typename R::Element>;
+
     template <typename T, std::size_t E = boost::dynamic_extent>
     constexpr auto make_span(T *t, std::size_t n) -> Span<T, E> {
         return {t, n};

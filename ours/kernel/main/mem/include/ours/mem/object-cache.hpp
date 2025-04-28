@@ -121,6 +121,12 @@ namespace ours::mem {
             return num_partial != 0;
         }
 
+        FORCE_INLINE
+        auto free_slab(Slab *slab) -> void {
+            slab->unlink();
+            num_slabs -= 1;
+        }
+
         /// Slabs which contains partial available objects.
         SlabList<> slabs_partial;
         /// Slabs which contains all objects inused.
@@ -136,7 +142,6 @@ namespace ours::mem {
         typedef Slab::ObjectList    ObjectList;
     public:
         struct CacheOnCpu;
-        struct CacheOnNode;
 
         static auto create(char const *name, usize obj_size, AlignVal align, OcFlags flags) -> Self *;
 
@@ -216,11 +221,6 @@ namespace ours::mem {
             }
 
             return slab;
-        }
-
-        FORCE_INLINE
-        auto free_slab(Slab *slab) -> void {
-            return slab->destory();
         }
 
         GKTL_CANARY(ObjectCache, canary_);

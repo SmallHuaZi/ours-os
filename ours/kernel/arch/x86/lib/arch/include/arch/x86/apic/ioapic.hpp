@@ -97,7 +97,7 @@ namespace arch {
         }
 
         FORCE_INLINE
-        auto id() -> const u32 {
+        auto id() const -> u32 {
             return id_;
         }
 
@@ -114,6 +114,16 @@ namespace arch {
         FORCE_INLINE
         auto virt_base() const -> VirtAddr {
             return VirtAddr(mmio_virt_);
+        }
+
+        FORCE_INLINE
+        auto gsi_base() const -> usize {
+            return gsi_base_;
+        }
+
+        FORCE_INLINE
+        auto max_local_irqnum() const -> usize {
+            return max_local_irqnum_;
         }
 
         FORCE_INLINE
@@ -172,8 +182,8 @@ namespace arch {
         u8 version_;
         u8 max_local_irqnum_;
 
-        /// The first IRQ which this IOAPIC handles. This is only found in the
-        /// IOAPIC entry of the ACPI 2.0 MADT. It isn't found in the IOAPIC
+        /// The first IRQ which this IO-APIC handles. This is only found in 
+        /// the IO-APIC entry of the ACPI 2.0 MADT. It isn't found in the IO-APIC
         /// registers.
         u32 gsi_base_;
     };

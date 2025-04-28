@@ -6,50 +6,146 @@
 #include <ours/mem/page_request.hpp>
 
 #include <ustl/mem/align.hpp>
+#include <ustl/algorithms/search.hpp>
+#include <ustl/collections/static-vec.hpp>
+#include <ustl/iterator/function.hpp>
 #include <gktl/init_hook.hpp>
 #include <ktl/new.hpp>
 
+#include <iterator>
+
 namespace ours::mem {
-     MappingRegionSet::MappingRegionSet(usize size, MmuFlags mmuf)
-        : regions_(kNumInitialRegions) {
-        regions_.emplace_back(size, mmuf);
-     }
+    static ObjectCache *s_vm_mapping_cache;
+    static ObjectCache *s_vm_mapping_region_cache;
 
-     auto MappingRegionSet::update(VirtAddr base, usize size, MmuFlags mmuf, 
-                                   VirtAddr lower_bound, VirtAddr upper_bound) -> Enumerator {
-        using ustl::algorithms::min;
+    template <typename... Args>
+    FORCE_INLINE
+    auto MappingRegionSet::alloc_region(Args &&...args) -> Region * {
+        return new (*s_vm_mapping_region_cache, kGafKernel) Region(args...);
+    }
 
-        usize end = base + size, rbase = 0;
-        for (auto i = 0; i < regions_.size(); rbase = regions_[i].end, ++i) {
-            auto rend = regions_[i].end;
-            if (rbase >= end) {
-                break;
-            }
-            if (rend <= base) {
-                continue;
-            }
+    FORCE_INLINE
+    auto MappingRegionSet::free_region(Region *region) -> void {
+        s_vm_mapping_region_cache->deallocate(region);
+    }
 
-            if (mmuf == regions_[i].mmuf) {
-                // Have a same MMU flags, no any need to split it.
-                rbase = min(end, rend);
-                continue;
-            }
-
-            // The code bottom will handle the intersection
-            if (rbase < base) {
-                // Rectifies this region to [rbase, base)
-                regions_[i].end = base;
-                base = min(end, rend);
-                regions_.emplace(regions_.begin() + i + 1, base, mmuf);
-            } else if (rend > end) {
-                regions_.emplace(regions_.begin() + i, end, mmuf);
-                regions_[i + 1].end = rend;
-            } else {
-                regions_[i].mmuf = mmuf;
-            }
-            rbase = regions_[i].end;
+    FORCE_INLINE
+    auto MappingRegionSet::init(VirtAddr end, MmuFlags mmuf) -> Status {
+        auto first_region = alloc_region(end, mmuf);
+        if (!first_region) {
+            return Status::OutOfMem;
         }
-     }
+
+        regions_.insert(*first_region);
+        return Status::Ok;
+    }
+
+    auto MappingRegionSet::make_enumerator(VirtAddr base, usize size) -> Enumerator {
+        using namespace ustl::algorithms;
+        auto first = lower_bound(regions_.begin(), regions_.end(), base, [] (auto const &x, auto y) {
+            return x.end < y;
+        });
+
+        auto last = upper_bound(regions_.begin(), regions_.end(), base, [] (auto const &x, auto y) {
+            return x <= y.end;
+        });
+
+        if (last != regions_.end()) {
+            ++last;
+        }
+
+        return Enumerator(base, first, last, base, base + size);
+    }
+
+    auto MappingRegionSet::update(VirtAddr base, usize size, MmuFlags mmuf,
+                                  VirtAddr lower_limit, VirtAddr upper_limit) -> Status {
+        using namespace ustl::algorithms;
+
+        // First, find the range that need to be handled.
+        VirtAddr end = base + size;
+        auto first = lower_bound(regions_.begin(), regions_.end(), base, [] (auto const &x, auto y) {
+            return x.end < y;
+        });
+        auto last = upper_bound(first, regions_.end(), end, [] (auto x, auto const &y) {
+            return x <= y.end;
+        });
+
+        auto const same_region = first == last;
+        auto const first_mmuf = first->mmuf;
+        auto const last_mmuf = last->mmuf;
+
+        i32 new_regions_needed = 0;
+        VirtAddr covered_end = last->end;
+        if (first_mmuf == mmuf) {
+            if (last_mmuf != mmuf) {
+                // `first` and `last` do not represent the same region, 
+                // so need we to reserve `first` and `last` simoutaneously.
+                first->end = max(first->end, base + size);
+                ++first;
+            }
+
+            // Otherwise it is enough to just reserve `last`.
+        } else {
+            // The ranges [base, end) and [first->end, last->end) may be mergeable.
+            // It mainly occurs at the following cases:
+            //      1. The former covers entire the latter.
+            //      2. The former ownes the same MMU flags with the latter.
+            // However which case happened, we all insert the range [xx, end), so
+            // code after can just determines the cases `new_regions_needed != 0` and
+            // `new_regions_needed > 1`.
+            new_regions_needed = (base + size != covered_end && last_mmuf != mmuf) + same_region;
+
+            // This case requires us to forcely reserve `first`.
+            first->end = base;
+            ++first;
+        }
+
+        // Before to do split, we should check if there are any reclaimable regions to avoid explicit 
+        // memory allocation latter as far as possible, because it is possible failed to allocate 
+        // a new region and that will lead us into an unrecoverable status.
+        i32 nr_reclaimable;
+        if (same_region) {
+            nr_reclaimable = 0;
+        } else {
+            nr_reclaimable = std::distance(first, last);
+        }
+
+        // Reclaimable regions are insufficient to support this split operation.
+        // We have to allocate remaining regions.
+        ustl::collections::StaticVec<Region *, 2> reuse;
+        if (nr_reclaimable < new_regions_needed) {
+            auto const n = new_regions_needed - nr_reclaimable;
+            while (reuse.size() != n) {
+                auto new_region = alloc_region();
+                if (!new_region) {
+                    return Status::OutOfMem;
+                }
+                reuse.push_back(new_region);
+            }
+        }
+
+        // There is no any memory allocation request, so we can start to reclaim those unused regions.
+        regions_.erase_and_dispose(first, last, [&, new_regions_needed] (Region *region) { 
+            if (reuse.size() < new_regions_needed) {
+                reuse.push_back(region);
+            } else {
+                free_region(region);
+            }
+        });
+
+        // Now we have done all memory allocation.
+        if (new_regions_needed) {
+            if (new_regions_needed > 1) { // The case `new_regions_needed == 2`
+                new (reuse[1]) Region(base + size, mmuf);
+                last = regions_.insert(last, *reuse[1]);
+            }
+
+            new (reuse[0]) Region(covered_end, last_mmuf);
+            regions_.insert(last, *reuse[0]);
+        }
+
+        return Status::Ok;
+    }
 
     /// This helper class was used to batch mapping requests.
     template <usize MaxNumPages>
@@ -59,7 +155,9 @@ namespace ours::mem {
             : mapping_(mapping),
               va_(base),
               mmuf_(mmuf),
-              map_ctrl_(ctrl)
+              nr_pages_(0),
+              map_ctrl_(ctrl),
+              total_mapped_(0)
         {}
 
         auto append(VmPage *page) -> Status;
@@ -106,13 +204,10 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    static ObjectCache *s_vm_mapping_cache;
-
     VmMapping::VmMapping(VmArea *parent, VirtAddr base, usize size, VmaFlags vmaf,
-                         ustl::Rc<VmObject> vmo, usize vmo_off, MmuFlags mmuf, 
-                         const char *name)
-        : Base(base, size, vmaf, parent, parent->aspace().as_ptr_mut(), name),
-          vmo_off_(vmo_off), vmo_(ustl::move(vmo)), regions_(size, mmuf)
+                         ustl::Rc<VmObject> vmo, usize vmo_off, const char *name)
+        : Base(base, size, vmaf | VmaFlags::Mapping, parent, parent->aspace().as_ptr_mut(), name),
+          vmo_off_(vmo_off), vmo_(ustl::move(vmo)), regions_()
     {}
 
     auto VmMapping::create(VmArea *parent, VirtAddr base, usize size, VmaFlags vmaf,
@@ -123,49 +218,56 @@ namespace ours::mem {
         }
 
         auto mapping = new (*s_vm_mapping_cache, kGafKernel) VmMapping(
-            parent, base, size, vmaf, vmo, vmo_off, mmuf, name);
+            parent, base, size, vmaf, vmo, vmo_off, name);
 
         if (!mapping) {
             return Status::OutOfMem; 
         }
-        *out = ustl::make_rc<Self>(mapping);
+        auto status = mapping->regions_.init(base + size, mmuf);
+        if (Status::Ok != status) {
+            s_vm_mapping_cache->deallocate(mapping);
+            return status;
+        }
+        mapping->activate();
 
+        *out = ustl::make_rc<Self>(mapping);
         return Status::Ok;
     }
 
-    FORCE_INLINE
-    auto VmMapping::check_sburange(VirtAddr base, usize size) const -> bool {
-        return base >= base_ && (base + size) < (base_ + size_);
-    }
-
     auto VmMapping::activate() -> void {
+        Base::activate();
     }
 
     FORCE_INLINE
-    auto VmMapping::map_paged(VirtAddr base, usize size, bool commit, MapControl control, VmObjectPaged *vmo) -> Status {
+    auto VmMapping::map_paged(VmObjectPaged *vmo, VirtAddr base, usize size, bool commit, MapControl control) -> Status {
         DEBUG_ASSERT(ustl::mem::is_aligned(base, PAGE_SIZE));
         DEBUG_ASSERT(ustl::mem::is_aligned(size, PAGE_SIZE));
 
         CXX11_CONSTEXPR
         static auto const kMaxBatchPages = 32;
-        MappingCoalescer<kMaxBatchPages> coalescer(this, base, mmuf_, control);
 
         auto cursor = vmo->make_cursor(base, size);
         if (!cursor) {
             return cursor.unwrap_err();
         }
 
-        PageRequest page_request;
-        for (auto i = 0; i < size; i += PAGE_SIZE) {
-            auto result = cursor->require_owned_page(1, &page_request);
-            if (!result) {
-                return result.unwrap_err();
-            }
+        auto enumerator = regions_.make_enumerator(base, size);
+        while (auto region = enumerator.next()) {
+            auto [base, size, mmuf] = *region;
+            MappingCoalescer<kMaxBatchPages> coalescer(this, base, mmuf, control);
 
-            coalescer.append(*result);
+            PageRequest page_request;
+            for (auto i = 0; i < size; i += PAGE_SIZE) {
+                auto result = cursor->require_owned_page(1, &page_request);
+                if (!result) {
+                    return result.unwrap_err();
+                }
+
+                coalescer.append(*result);
+            }
+            // Commit those uncovered units in for loop above.
+            coalescer.commit();
         }
-        // Commit those uncovered units in loop above.
-        coalescer.commit();
 
         return Status::Ok;
     }
@@ -180,12 +282,12 @@ namespace ours::mem {
         }
 
         VirtAddr base = ustl::mem::align_down(base_ + offset, PAGE_SIZE);
-        if (!check_sburange(base, size)) {
+        if (!check_range(base, size)) {
             return Status::InvalidArguments;
         }
 
         if (auto vmo = downcast<VmObjectPaged>(vmo_.as_ptr_mut())) {
-            return map_paged(base, size, commit, control, vmo);
+            return map_paged(vmo, base, size, commit, control);
         } else {
             DEBUG_ASSERT(false, "Unreachable");
         }
@@ -207,7 +309,7 @@ namespace ours::mem {
 
         ustl::sync::LockGuard guard(*lock());
         VirtAddr base = ustl::mem::align_down(base_ + offset, PAGE_SIZE);
-        if (!check_sburange(base, size)) {
+        if (!check_range(base, size)) {
             return Status::InvalidArguments;
         }
 
@@ -216,8 +318,12 @@ namespace ours::mem {
         }
 
         auto &arch_aspace = aspace_->arch_aspace();
-        auto enumerator = regions_.update(offset, size, mmuf, 0, size);
-        enumerator.shift(base_);
+        auto status = regions_.update(base, size, mmuf, 0, size);
+        if (Status::Ok != status) {
+            return status;
+        }
+
+        auto enumerator = regions_.make_enumerator(base, size);
         while (auto region = enumerator.next()) {
             auto [base, size, mmuf] = *region;
 
@@ -234,7 +340,35 @@ namespace ours::mem {
     }
 
     auto VmMapping::unmap(usize offset, usize size, UnmapControl control) -> Status {
-        return Status::Unimplemented;
+        canary_.verify();
+
+        if (!is_active()) {
+            return Status::BadState;
+        }
+
+        size = ustl::mem::align_up(size, PAGE_SIZE);
+        if (!size) {
+            return Status::InvalidArguments;
+        }
+
+        ustl::sync::LockGuard guard(*lock());
+        VirtAddr base = ustl::mem::align_down(base_ + offset, PAGE_SIZE);
+        if (!check_range(base, size)) {
+            return Status::InvalidArguments;
+        }
+
+        auto &arch_aspace = aspace_->arch_aspace();
+        auto enumerator = regions_.make_enumerator(base, size);
+        while (auto region = enumerator.next()) {
+            auto [base, size, mmuf] = *region;
+            auto status = arch_aspace.unmap(base, size >> PAGE_SHIFT, control, 0);
+            if (Status::Ok != status) {
+                log::error("Failed to unmap range[{:X}, {:X})", base, size);
+                return status;
+            }
+        }
+
+        return Status::Ok;
     }
 
     auto VmMapping::fault(VmFault *vmf) -> void {
@@ -247,6 +381,12 @@ namespace ours::mem {
             panic("Failed to create object cache for VmArea");
         }
         log::trace("VmMappingCache has been created");
+
+        s_vm_mapping_region_cache = ObjectCache::create<MappingRegionSet::Region>("vm-mapping-region-cache", OcFlags::Folio);
+        if (!s_vm_mapping_cache) {
+            panic("Failed to create object cache for VmArea");
+        }
+        log::trace("MappingRegionCache has been created");
     }
     GKTL_INIT_HOOK(VmMappingCacheInit, init_vm_mapping_cache, gktl::InitLevel::PlatformEarly);
 

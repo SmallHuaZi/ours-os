@@ -94,6 +94,9 @@ namespace arch::paging {
 
         CXX11_CONSTEXPR
         auto remaining_size() const -> usize {
+            if (!count_) {
+                return 0;
+            }
             return page_size_ - consumed_;
         }
 

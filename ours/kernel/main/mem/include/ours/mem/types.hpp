@@ -84,7 +84,7 @@ namespace ours::mem {
         static_assert(sizeof(Addr) == sizeof(VirtAddr));
         return {
             (reinterpret_cast<VirtAddr>(base) >> PAGE_SHIFT) << PAGE_SHIFT,
-            ((size + PAGE_SIZE) >> PAGE_SHIFT) << PAGE_SHIFT
+            ((size + PAGE_SIZE - 1) >> PAGE_SHIFT) << PAGE_SHIFT
         };
     }
 

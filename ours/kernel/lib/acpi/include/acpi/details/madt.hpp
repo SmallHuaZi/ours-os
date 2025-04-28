@@ -69,6 +69,16 @@ namespace acpi {
         u32 global_irq_base;  // Global interrupt base
     };
 
+    #define ACPI_MADT_FLAG_POLARITY_CONFORMS 0b00
+    #define ACPI_MADT_FLAG_POLARITY_HIGH 0b01
+    #define ACPI_MADT_FLAG_POLARITY_LOW 0b11
+    #define ACPI_MADT_FLAG_POLARITY_MASK 0b11
+
+    #define ACPI_MADT_FLAG_TRIGGER_CONFORMS 0b0000
+    #define ACPI_MADT_FLAG_TRIGGER_EDGE 0b0100
+    #define ACPI_MADT_FLAG_TRIGGER_LEVEL 0b1100
+    #define ACPI_MADT_FLAG_TRIGGER_MASK 0b1100
+
     // MADT Entry Type 2: Interrupt Override
     struct PACKED AcpiMadtInterruptOverrideEntry {
         AcpiEntryHeader header;

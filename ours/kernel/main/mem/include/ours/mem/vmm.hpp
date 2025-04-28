@@ -12,6 +12,7 @@
 #define OURS_MEM_VMM_HPP 1
 
 #include <ours/mem/types.hpp>
+#include <ours/mem/physmap.hpp>
 
 namespace ours::mem {
     /// Do not use the following symbols directly.

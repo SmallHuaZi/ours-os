@@ -49,7 +49,17 @@ namespace arch::paging {
         static auto level_can_be_terminal(LevelType level) -> bool
         { return false;  }
 
-        static auto make_pteval(LevelType level, PhysAddr phys, X86MmuFlags flags) -> PteVal
+        FORCE_INLINE
+        static auto interminal_mmuflags() -> ArchMmuFlags {
+            return ArchMmuFlags{};
+        }
+
+        FORCE_INLINE
+        static auto make_terminal_mmuflags(LevelType level, ArchMmuFlags mmuflags) -> ArchMmuFlags {
+            return mmuflags;
+        }
+
+        static auto make_pteval(PhysAddr phys, X86MmuFlags flags) -> PteVal
         { return {};  }
     };
 

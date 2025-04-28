@@ -2,6 +2,7 @@
 
 #include <ours/mem/vmm.hpp>
 #include <ours/mem/vm_aspace.hpp>
+#include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_page.hpp>
 #include <ours/mem/physmap.hpp>
 #include <ours/mem/vm_object_paged.hpp>
@@ -86,10 +87,14 @@ namespace ours::mem {
 
     INIT_CODE
     static auto entrol_preset_vma(PhysVma const &phys_vma) -> void {
+        auto [base, end] = resolve_page_range(phys_vma.base, phys_vma.base + phys_vma.size);
+        log::trace("Reserve area {}: [{:X}, {:X})", phys_vma.name, base, end);
+
         auto kaspace = VmAspace::kernel_aspace();
         auto root_vma = kaspace->root_vma();
         ustl::Rc<VmArea> vma;
-        auto status = root_vma->create_subvma(phys_vma.base - root_vma->base(), phys_vma.size, phys_vma.vmaf, phys_vma.name, &vma);
+        auto status = root_vma->create_subvma(phys_vma.base - root_vma->base(), phys_vma.size, phys_vma.vmaf, 
+            phys_vma.name, VmMapOption::None, &vma);
         DEBUG_ASSERT(Status::Ok == status);
 
         status = vma->reserve(0, phys_vma.size, extract_permissions(phys_vma.vmaf), phys_vma.name);
@@ -110,6 +115,8 @@ namespace ours::mem {
         }
         g_zero_page = role_cast<PfRole::Vmm>(frame);
         g_zero_page->mark_pinned();
+
+        VmAspace::kernel_aspace()->root_vma()->dump();
     }
 
     INIT_CODE

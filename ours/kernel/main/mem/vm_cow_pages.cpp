@@ -13,8 +13,8 @@ namespace ours::mem {
           size_(nr_pages)
     {}
 
-    auto VmCowPages::create(Gaf gaf, usize nr_pages, ustl::Rc<VmCowPages> *out) -> Status {
-        auto cow_pages = new (*s_vm_cow_pages_cache, kGafKernel) Self(gaf, nr_pages);
+    auto VmCowPages::create(Gaf gaf, usize size, ustl::Rc<VmCowPages> *out) -> Status {
+        auto cow_pages = new (*s_vm_cow_pages_cache, kGafKernel) Self(gaf, size);
         if (!cow_pages) {
             return Status::OutOfMem;
         }
@@ -78,9 +78,10 @@ namespace ours::mem {
 
     auto VmCowPages::Cursor::require_owned_page(usize nr_pages, PageRequest *page_request)
         -> ustl::Result<VmPage *, Status> {
-        auto status = owner_->alloc_pages(0, 0, page_request);
+        VmPage *page = nullptr;
+        auto status = owner_->alloc_pages(0, &page, page_request);
         if (Status::Ok == status) {
-            return ustl::ok(nullptr);
+            return ustl::ok(page);
         }
 
         // No any available pages for current request, try to create asynchronous page request.
