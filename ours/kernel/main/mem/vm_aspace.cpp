@@ -31,8 +31,8 @@ namespace ours::mem {
     VmAspace::~VmAspace()
     {}
 
-    auto VmAspace::create(VmasFlags flags, char const *name) 
-        -> ustl::Rc<VmAspace> {
+    auto VmAspace::create(VmasFlags flags, char const *name, ustl::Rc<VmAspace> *out) 
+        -> Status {
         VirtAddr base;
         usize size;
         if (bool(flags & VmasFlags::User)) {
@@ -40,15 +40,15 @@ namespace ours::mem {
             size = USER_ASPACE_SIZE;
         }
 
-        return Self::create(base, size, flags, name);
+        return Self::create(base, size, flags, name, out);
     }
 
-    auto VmAspace::create(VirtAddr base, usize size, VmasFlags flags, char const *name) 
-        -> ustl::Rc<VmAspace>
+    auto VmAspace::create(VirtAddr base, usize size, VmasFlags flags, char const *name, 
+                          ustl::Rc<VmAspace> *out) -> Status 
     {
         auto aspace = new (*s_aspace_cache, kGafKernel) VmAspace(base, size, flags, name);
         if (!aspace) {
-            return nullptr;
+            return Status::OutOfMem;
         }
 
         // In the normal case, the root VMA always ownes RWX permissions so that the sub-VMA derived from
@@ -61,7 +61,8 @@ namespace ours::mem {
             ustl::sync::LockGuard guard(Self::all_aspace_list_mutex_);
             Self::all_aspace_list_.push_back(*aspace);
         }
-        return ustl::make_rc<VmAspace>(aspace);
+        *out = ustl::make_rc<VmAspace>(aspace);
+        return Status::Ok;
     }
 
     INIT_CODE
@@ -75,12 +76,11 @@ namespace ours::mem {
         }
         s_aspace_cache = caches;
 
-        auto kaspace = Self::create(KERNEL_ASPACE_BASE, KERNEL_ASPACE_SIZE, flags, "K:Aspace");
-        if (!kaspace) {
-            panic("Failed to create kernel VmAspace");
-        }
+        ustl::Rc<Self> aspace;
+        auto status = Self::create(KERNEL_ASPACE_BASE, KERNEL_ASPACE_SIZE, flags, "K:Aspace", &aspace);
+        ASSERT(Status::Ok == status, "Failed to create kernel VmAspace");
 
-        Self::kernel_aspace_ = kaspace.take();
+        Self::kernel_aspace_ = aspace.take();
     }
 
     auto VmAspace::sync_kernel_aspace() -> void {
@@ -89,8 +89,8 @@ namespace ours::mem {
     auto VmAspace::switch_aspace(Self *, Self *) -> void {
     }
 
-    auto VmAspace::clone(VmasFlags flags) -> ustl::Rc<VmAspace> {
-        return nullptr;
+    auto VmAspace::clone(VmasFlags flags, ustl::Rc<VmAspace> *out) -> Status {
+        return Status::Unimplemented;
     }
 
     auto VmAspace::init() -> Status {
@@ -105,6 +105,12 @@ namespace ours::mem {
         }
 
         return Status::Ok;
+    }
+
+    /// Because of cyclic dependency between VmAspace and VmArea, there is not yet
+    /// a better way to inline it.
+    auto VmAspace::root_vma() -> ustl::Rc<VmArea> {
+        return root_vma_;
     }
 
     auto VmAspace::fault(VirtAddr virt_addr, VmfCause cause) -> void {

@@ -14,14 +14,14 @@
 namespace ours {
     enum class Status {
         Ok,
-        Fail,
-        OutOfMem,
-        OutOfRange,
-        InvalidArguments,
         Unimplemented,
         Unsupported,
         Unreachable,
         Error,
+        Fail,
+        OutOfMem,
+        OutOfRange,
+        InvalidArguments,
         InternalError,
         BadState,
         TimeOut,
@@ -29,6 +29,7 @@ namespace ours {
         ShouldWait,
         MisAligned,
         AlreadyExists,
+        NoResource,
         MaxCount,
     };
 

@@ -30,6 +30,9 @@ namespace ustl::collections::intrusive {
     template <typename Comp>
     using Compare = boost::intrusive::compare<Comp>;
 
+    template <typename Box>
+    using PtrBox = boost::intrusive::void_pointer<Box>;
+
 } // namespace ustl::collections::intrusive
 
 #endif // #ifndef USTL_COLLECTIONS_INTRUSIVE_OPTIONS_HPP

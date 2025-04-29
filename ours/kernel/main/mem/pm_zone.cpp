@@ -17,9 +17,6 @@ namespace ours::mem {
         if (self->zone() != buddy->zone()) {
             return false;
         }
-        if (self->secnum() != buddy->secnum()) {
-            return false;
-        }
         if (self->nid() != buddy->nid()) {
             return false;
         }

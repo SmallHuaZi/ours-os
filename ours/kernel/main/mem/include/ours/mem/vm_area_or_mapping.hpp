@@ -85,7 +85,7 @@ namespace ours::mem {
         VmAreaOrMapping(VirtAddr base, usize size, VmaFlags vmaf, VmArea *, VmAspace *, char const *);
 
         FORCE_INLINE
-        auto aspace() -> ustl::Rc<VmAspace> {
+        auto aspace() -> ustl::Rc<VmAspace> & {
             return aspace_;
         }
 
@@ -159,7 +159,7 @@ namespace ours::mem {
         VmaFlags  vmaf_;
         VmArea   *parent_;
         ustl::Rc<VmAspace> aspace_;
-        ustl::collections::intrusive::SetMemberHook<> children_hook_;
+        ustl::collections::intrusive::SetMemberHook<>   children_hook_;
       public:
         USTL_DECLARE_HOOK_OPTION(Self, children_hook_, ManagedOptions);
     };
@@ -168,6 +168,9 @@ namespace ours::mem {
     class VmaSet: public VmaSetBase {
         typedef VmaSet       Self;
         typedef VmaSetBase   Base;
+
+        using Base::insert;
+        using Base::erase;
       public:
         class Enumerator;
         typedef Base::Element   Element;
@@ -184,6 +187,34 @@ namespace ours::mem {
         auto find_spot(usize size, AlignVal align, VirtAddr lower_bound, VirtAddr upper_bound)
             const -> ustl::Result<VirtAddr, Status>;
         
+        // Now there are so many restrictions that we must manually manage those reference counters 
+        // from instances of VmAom.
+        
+        FORCE_INLINE
+        auto insert(Iter hint, RefMut value) -> IterMut {
+            value.inc_strong_ref();
+            return Base::insert(hint, value);
+        }
+
+        FORCE_INLINE
+        auto insert(RefMut value) -> IterMut {
+            value.inc_strong_ref();
+            return Base::insert(value);
+        }
+ 
+        FORCE_INLINE
+        auto erase(Iter pos) -> IterMut {
+            pos.unconst()->dec_strong_ref();
+            return Base::erase(pos);
+        }       
+ 
+        FORCE_INLINE
+        auto erase(Iter first, Iter last) -> IterMut {
+            return Base::erase_and_dispose(first, last, [] (PtrMut value) {
+                value->dec_strong_ref();
+            });
+        }       
+
         /// Find the first existent VMA whose'end < addr.
         FORCE_INLINE
         auto lower_bound(VirtAddr addr) -> IterMut {

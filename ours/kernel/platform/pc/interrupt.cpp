@@ -65,7 +65,6 @@ namespace ours::irq {
         init_local_apic();
         init_io_apic(ustl::views::Span(io_apics), ustl::views::Span(io_apic_isa_overrides));
 
-        // Do 
     }
     GKTL_INIT_HOOK(ApicInit, platform_init_apic, gktl::InitLevel::Vmm);
 

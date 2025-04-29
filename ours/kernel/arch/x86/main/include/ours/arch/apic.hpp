@@ -21,8 +21,14 @@ namespace ours::irq {
     auto init_io_apic(ustl::views::Span<arch::IoApic> const &ioapics,
                       ustl::views::Span<arch::IoApicIsaOverride> const &overrides) -> void;
 
+    /// Called once after VMM initialized.
     INIT_CODE
     auto init_local_apic() -> void;
+
+    INIT_CODE
+    auto init_local_apic_percpu() -> void;
+
+    auto current_apic_id() -> u32;
 
 } // namespace ours::irq
 

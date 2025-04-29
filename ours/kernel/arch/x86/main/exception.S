@@ -21,9 +21,6 @@
     // assume that the direction flag is unset.
     cld
 
-    // Later on we're going to calculate the percpu pointer using dead reckoning
-    // from %rsp so keep track of what all has been pushed onto the stack.
-    //
     // At this point the stack contains 7 qwords.  5 or 6 pushed by the interrupt
     // and 2 or 1 pushed by the stub.
     save_general_registers
@@ -37,8 +34,8 @@
 
     // At this point the stack contains a complete Iframe.
 
-    // Pass the Iframe in %rdi.
-    movq %rsp, %rdi
+    // Pass the IrqFrame in %rdi.
+    mov %rsp, %rdi
 
     // Check to see if we came from user space by testing the CPL in the
     // %cs selector that was saved on the stack automatically.  Check for != 0.
@@ -52,9 +49,7 @@
     swapgs
 1:
     // Mitigates the swapgs bug. See <arch/code-patches/case-id.h>.
-    // .code_patching.start CASE_ID_SWAPGS_MITIGATION
     lfence
-    // .code_patching.end
 
     call arch_handle_exception
 

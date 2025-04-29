@@ -1,7 +1,8 @@
 #include <ours/arch/x86/descriptor.hpp>
 #include <ours/cpu-local.hpp>
-#include <ours/mem/vm_aspace.hpp>
 #include <ours/mem/vm_area.hpp>
+#include <ours/mem/vm_aspace.hpp>
+#include <ours/mem/vm_mapping.hpp>
 #include <arch/x86/descriptor.hpp>
 
 namespace ours {
@@ -10,11 +11,11 @@ namespace ours {
         arch::TaskStateSegment64 tss[MAX_CPU];
 
         auto load() const -> void {
-            struct {
+            struct PACKED {
                 u16 size;
                 usize addr;
             } desc {
-                desc.size = sizeof(*this),
+                desc.size = sizeof(*this) - 1,
                 desc.addr = reinterpret_cast<usize>(this)
             };
 

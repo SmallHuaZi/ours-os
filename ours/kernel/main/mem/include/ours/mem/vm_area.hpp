@@ -52,19 +52,22 @@ namespace ours::mem {
         auto create_subvma(usize offset, usize size, VmaFlags vmaf, char const *name, VmMapOption option, 
                           ustl::Rc<VmArea> *out) -> Status;
 
-        /// A coarse-grained interface to provide a convenient way to map a segment of VMA.
+        /// Following map* interfaces are the a group of coarse-grained method to provide a convenient way for 
+        /// mapping a segment of VMA.
         ///
-        /// When offer option |VmMapOption::Overwrite| the range [base, base + size) 
-        /// would be forcely used, namely those existing mappings which overlaps with it 
-        /// will be replaced with expected one.
+        /// When offer option |VmMapOption::Fixed| the range [base, base + size) would be forcely 
+        /// used, namely those existing mappings which overlaps with it will be replaced with expected one.
         ///
-        /// When offer option |VmMapOption::Commit|, this mapping request will be committed 
-        /// intermideately. Rather than wait a page fault. 
+        /// When offer option |VmMapOption::Commit|, this mapping request will be committed intermediately, 
+        /// rather than wait a page fault to trigger real mapping action. 
         ///
-        /// On success return a object of VmMapping.
+        /// On success them return a object of VmMapping.
+
+        /// Map |size| bytes space from the given physical address |phys_base| to virtual address |virt_base|.
         auto map_at(PhysAddr phys_base, VirtAddr virt_base, usize size, MmuFlags, VmMapOption, char const *name)
             -> ktl::Result<ustl::Rc<VmMapping>>;
 
+        /// Map |size| bytes space to virtual address |virt_base|.
         auto map(VirtAddr base, usize size, MmuFlags, VmMapOption, char const * name)
             -> ktl::Result<ustl::Rc<VmMapping>>;
 
@@ -82,7 +85,7 @@ namespace ours::mem {
     protected:
         VmArea(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *);
 
-        auto alloc_spot(usize size, AlignVal align, VirtAddr upper_limit) -> ktl::Result<VirtAddr>;
+        auto alloc_spot(usize size, AlignVal align, VirtAddr lower_limit, VirtAddr upper_limit) -> ktl::Result<VirtAddr>;
 
         struct CreateVmAomArgs;
         /// Create a sub-VMA or sub-Mapping and do not check the given range in packet

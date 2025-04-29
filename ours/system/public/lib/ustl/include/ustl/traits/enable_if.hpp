@@ -24,6 +24,9 @@ namespace ustl::traits {
     template <bool Cond, typename T = void>
     using DisableIfT = std::enable_if_t<!Cond, T>;
 
+    template <typename From, typename To>
+    using EnableIfConvertibleT = EnableIfT<std::is_convertible_v<From, To>, To>;
+
 } // namespace ustl::traits
 
 #endif // #ifndef USTL_TRAITS_ENABLE_IF_HPP

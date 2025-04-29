@@ -136,7 +136,7 @@ namespace ours::mem {
         usize num_partial;
     };
 
-    class ObjectCache {
+    class ObjectCache: public ustl::RefCounter<ObjectCache> {
         typedef ObjectCache         Self;
         typedef Slab::Object        Object;
         typedef Slab::ObjectList    ObjectList;

@@ -162,22 +162,15 @@
         "cmake.buildDirectory": "${workspaceFolder}/target",
         "cmake.default.buildDirectory": "${workspaceFolder}/target/build",
         "cmake.copyCompileCommands": "${workspaceFolder}/target/compile_commands.json",
-        "cmake.debugConfig": {
-            "MIMode": "lldb",
-            "miDebuggerPath": "lldb-dap-18"
-        },
         "clangd.path": "clangd-21",
         "editor.lineNumbers": "on",
         "editor.cursorBlinking": "smooth",
         "vim.smartRelativeLine": false,
         "vim.cursorStylePerMode.insert": "line",
-        "lldb.displayFormat": "auto",
-        "lldb.dereferencePointers": true,
-        "lldb.consoleMode": "commands",
-        "lldb.showDisassembly": "auto",
         "editor.fontFamily": "'Fira Code'",
         "editor.codeLensFontFamily": "'Fira Code'",
         "editor.fontLigatures": true,
+        "lldb-dap.executable-path": "/usr/bin/lldb-dap-21"
     },
 
     // Tasks run with the "Tasks: Run Task" command (bind a shortcut!).
@@ -228,7 +221,7 @@
         "configurations": [
             {
                 "name": "Debug Test",
-                "type": "lldb",
+                "type": "lldb-dap",
                 "request": "launch",
                 // ${command:cmake.getLaunchTargetDirectory}
                 "program": "${command:cmake.getLaunchTargetDirectory}/${input:SelectTestProgram}",
@@ -245,7 +238,7 @@
                     "-f", "target/build/Clang-18-x86_64-pc-linux-gnu/ours.kpkg",
                     "-t", "cont",
                     "-o", "target/build/Clang-18-x86_64-pc-linux-gnu/ours.obi",
-                ]
+                ],
             },
             {
                 "name": "Remote launch",

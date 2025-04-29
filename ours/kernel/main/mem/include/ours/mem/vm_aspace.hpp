@@ -37,11 +37,11 @@ namespace ours::mem {
         typedef VmAspace       Self;
         typedef ustl::RefCounter<VmAspace>  Base;
     public:
-        static auto clone(VmasFlags flags) -> ustl::Rc<VmAspace>;
+        static auto clone(VmasFlags, ustl::Rc<VmAspace> *) -> Status;
 
-        static auto create(VmasFlags flags, char const *) -> ustl::Rc<VmAspace>;
+        static auto create(VmasFlags, char const *, ustl::Rc<VmAspace> *out) -> Status;
 
-        static auto create(VirtAddr base, usize size, VmasFlags flags, char const *) -> ustl::Rc<VmAspace>;
+        static auto create(VirtAddr, usize, VmasFlags, char const *, ustl::Rc<VmAspace>*) -> Status;
 
         /// Perform the initialization of kernel address space.
         /// Just once called at boot-time.
@@ -73,10 +73,7 @@ namespace ours::mem {
             return this->arch_;
         }
 
-        FORCE_INLINE
-        auto root_vma() -> ustl::Rc<VmArea> {
-            return root_vma_;
-        }
+        auto root_vma() -> ustl::Rc<VmArea>;
 
         VmAspace(VirtAddr, usize, VmasFlags, char const *);
         ~VmAspace();

@@ -148,8 +148,10 @@ namespace ours::mem {
       private:
         friend class VmArea;
         friend class VmObject;
-        
+
         auto map_paged(VmObjectPaged *vmo, VirtAddr base, usize size, bool commit, MapControl control) -> Status;
+
+        auto map_physical(VmObjectPhysical *vmo, VirtAddr base, usize size, MapControl control) -> Status;
 
         virtual auto activate() -> void override;
 

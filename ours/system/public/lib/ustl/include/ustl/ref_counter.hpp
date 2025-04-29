@@ -89,22 +89,14 @@ namespace ustl {
         USTL_FORCEINLINE
         RefCounter() USTL_NOEXCEPT
             : weak_counter_(0),
-              strong_counter_(1)
+              strong_counter_(0)
         {}
 
         USTL_FORCEINLINE
         virtual ~RefCounter() USTL_NOEXCEPT {
-            DEBUG_ASSERT(weak_counter_ == 0 || weak_counter_ == kPreEnableSentinel, "{}", __func__);
-            DEBUG_ASSERT(strong_counter_ == 0 || strong_counter_  == kPreEnableSentinel, "{}", __func__);
+            DEBUG_ASSERT(weak_counter_ == 0, "{}", __func__);
+            DEBUG_ASSERT(strong_counter_ == 0, "{}", __func__);
         }
-
-        USTL_NO_MOVEABLE_AND_COPYABLE(RefCounter);
-    private:
-        template <typename, typename, typename>
-        friend class Rc;
-
-        template <typename, typename, typename>
-        friend class Weak;
 
         USTL_FORCEINLINE
         auto inc_strong_ref() USTL_NOEXCEPT -> void 
@@ -113,6 +105,14 @@ namespace ustl {
         USTL_FORCEINLINE
         auto dec_strong_ref() USTL_NOEXCEPT -> void
         {  strong_counter_  -= 1;  }
+
+        USTL_NO_MOVEABLE_AND_COPYABLE(RefCounter);
+    private:
+        template <typename, typename, typename>
+        friend class Rc;
+
+        template <typename, typename, typename>
+        friend class Weak;
 
         USTL_FORCEINLINE
         auto inc_weak_ref() USTL_NOEXCEPT -> void 

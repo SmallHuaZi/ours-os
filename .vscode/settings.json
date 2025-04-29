@@ -6,6 +6,7 @@
         "miDebuggerPath": "/usr/bin/lldb-21",
         "MIMode": "lldb"
     },
+    "lldb-dap.executable-path": "/usr/bin/lldb-dap-21",
     "cmake.allowCommentsInPresetsFile": true,
     "editor.defaultFormatter": "xaver.clang-format",
     "editor.codeLensFontFamily": "'Fira Code'",

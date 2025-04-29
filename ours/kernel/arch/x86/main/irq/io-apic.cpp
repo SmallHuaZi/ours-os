@@ -66,8 +66,8 @@ namespace ours::irq {
     auto IoApic::dump() const -> void {
         log::info("IoApic[{}]:", inner_.id());
         log::info("  version: {}", inner_.version());
-        log::info("  Addr: {}", inner_.phys_base());
-        log::info("  MMIO: {}", inner_.virt_base());
+        log::info("  Addr: 0x{:X}", inner_.phys_base());
+        log::info("  MMIO: 0x{:X}", inner_.virt_base());
         log::info("  GBI base: {}", inner_.gsi_base());
         log::info("  Max local IRQ: {}", inner_.max_local_irqnum());
     }
@@ -104,10 +104,12 @@ namespace ours::irq {
 
                 using namespace mem;
                 auto rvma = VmAspace::kernel_aspace()->root_vma();
-                auto result = rvma->map_at(phys_aligned, 0, PAGE_SIZE, MmuFlags::Discache | MmuFlags::Readable | MmuFlags::Writable, 
-                    VmMapOption::Commit | VmMapOption::Pinned, "APIC"
+                auto result = rvma->map_at(phys_aligned, 0, PAGE_SIZE, 
+                    // `Discache` is required to prevent 
+                    MmuFlags::Discache | MmuFlags::Readable | MmuFlags::Writable, 
+                    VmMapOption::Commit | VmMapOption::Pinned, "IO-APIC"
                 );
-                DEBUG_ASSERT(result, "Failed to initializa IO-APIC");
+                DEBUG_ASSERT(result, "Failed to initialize IO-APIC");
 
                 mmio_virt = (*result)->base() + (phys - phys_aligned);
             }

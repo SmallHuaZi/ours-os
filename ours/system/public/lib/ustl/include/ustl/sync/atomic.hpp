@@ -9,7 +9,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef USTL_SYNC_ATOMIC_HPP
 #define USTL_SYNC_ATOMIC_HPP 1
 
@@ -39,6 +38,9 @@ namespace ustl::sync {
         static auto constexpr AcqRel = std::memory_order::acq_rel; // acquire | release
         static auto constexpr SeqCst = std::memory_order::seq_cst; // acq_rel | 8
     };
+
+    using std::atomic_signal_fence;
+    using std::atomic_thread_fence;
 
 } // namespace ustl::sync
 

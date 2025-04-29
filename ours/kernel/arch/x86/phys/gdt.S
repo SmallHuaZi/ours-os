@@ -12,9 +12,11 @@
 .object g_early_gdt, type=data, scope=global, align=8
     .quad 0                   # NULL
     .quad 0x00cf9a000000ffff  # code32 (0x08)
-    .quad 0x00cf92000000ffff  # data32 (0x10)
+    .quad 0x00cf92000000ffff  # data (0x10)
 #ifdef OURS_CONFIG_TARGET_64BIT
-    .quad 0x00af9a000000ffff  # code64 (0x18)
+    .quad 0x0080890000000000  # User code (0x18)
+    .quad 0x0080890000000000  # User data (0x20)
+    .quad 0x00af9a000000ffff  # code64 (0x28)
     .quad 0x0080890000000000  # TSS
 #else
 #error "Only supports x86_64 now"

@@ -1,5 +1,6 @@
 #include <ours/arch/x86/idt.hpp>
 #include <ours/arch/x86/faults.hpp>
+#include <ours/arch/x86/descriptor.hpp>
 #include <ours/init.hpp>
 
 #include <logz4/log.hpp>
@@ -9,9 +10,9 @@ namespace ours {
     struct PACKED IdtEntry {
         auto set(usize handler) -> void {
             offset_low  = handler & 0xFFFF;
-            selector    = 0x08;
+            selector    = X86_GDT_KERNEL_CODE64;
             ist         = 0;
-            type_attr   = 0x8E;
+            type_attr   = 0x8F; // Present, DPL=0 and INT gate
             offset_mid  = (handler >> 16) & 0xFFFF;
             offset_high = (handler >> 32) & 0xFFFFFFFF;
             zero        = 0;
@@ -31,7 +32,7 @@ namespace ours {
             struct PACKED {
                 u16 len;
                 usize addr;
-            } desc { sizeof(*this), reinterpret_cast<usize>(this) };
+            } desc { sizeof(*this) - 1, reinterpret_cast<usize>(this) };
             asm volatile("lidt %0" :: "m"(desc));
         }
 
@@ -65,7 +66,7 @@ namespace ours {
             rectify_idt(entry);
         }
 
-        x86_load_idt();
+        x86_dump_idt();
     }
 
     auto x86_setup_idt() -> void {
@@ -74,6 +75,15 @@ namespace ours {
     }
 
     auto x86_dump_idt() -> void {
+        log::info("IDT Dumpping Infomation");
+        for (auto i = 0; i < std::size(g_idt.entries_); ++i) {
+            auto &entry = g_idt.entries_[i];
+            log::info("  [0]=(handler=0x{:X}, DPL={}, TYPE={})", 
+                entry.offset_low | (entry.offset_mid << 16) | (u64(entry.offset_high) << 32),
+                (entry.type_attr >> 5) & 0x3,
+                (entry.type_attr & 0xF) == 0xE ? "INTR" : "TRAP"
+            );
+        }
     }
 
 } // namespace ours

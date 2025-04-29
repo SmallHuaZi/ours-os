@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_ARCH_X86_INIT_HPP
 #define OURS_ARCH_X86_INIT_HPP 1
 
@@ -17,7 +16,6 @@ namespace ours {
     auto x86_setup_gdt_percpu() -> void;
     auto x86_setup_gdt() -> void;
 
-    auto x86_setup_idt_early() -> void;
     auto x86_setup_idt_percpu() -> void;
     auto x86_setup_idt() -> void;
 

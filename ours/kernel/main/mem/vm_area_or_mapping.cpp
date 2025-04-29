@@ -71,20 +71,23 @@ namespace ours::mem {
             align = PAGE_SIZE;
         }
 
-        auto request_size = ustl::mem::align_up(size, align);
+        // The core logic is to find a gap between two existing areas, if the gap has enough size
+        // then we return the base address of it. Range [low_limit, high_limit) must be a available
+        // address interval to avoid doing additional bound check.
+        auto requested_size = ustl::mem::align_up(size, align);
         VirtAddr addr = ustl::mem::align_up(low_limit, PAGE_SIZE);
-        for (auto i = lower_bound(addr), last = end(); i != last; ++i) {
+        for (auto i = upper_bound(addr), last = end(); i != last; ++i) {
             if (addr > high_limit) {
                 return ustl::err(Status::NotFound);
             }
-            if (i->base_ >= addr + request_size) {
+            if (i->base_ >= addr + requested_size) {
                 return ustl::ok(addr);
             }
 
             addr = ustl::mem::align_up(i->base_ + i->size_, align);
         }
 
-        if (addr + request_size <= high_limit) {
+        if (addr + requested_size <= high_limit) {
             return ustl::ok(addr);
         }
         return ustl::err(Status::NotFound);

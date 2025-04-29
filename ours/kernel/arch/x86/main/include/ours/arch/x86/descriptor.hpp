@@ -11,13 +11,15 @@
 #ifndef OURS_ARCH_X86_DESCRIPTOR_HPP
 #define OURS_ARCH_X86_DESCRIPTOR_HPP 1
 
-/// GDT selectors
+/// GDT selectors. Using the following layout can help us
+/// to avoid the thing that repeatedly defines multiple kind 
+/// of GDT selectors respectively for 32bit and 64 bit system.
 #define X86_GDT_KERNEL_CODE32    (1 << 3)
 #define X86_GDT_KERNEL_DATA      (2 << 3)
-#define X86_GDT_KERNEL_CODE64    (3 << 3)
-#define X86_GDT_USER_CODE32      (4 << 3)
-#define X86_GDT_USER_CODE64      (5 << 3)
-#define X86_GDT_USER_DATA        (6 << 3)
+#define X86_GDT_USER_CODE32      (3 << 3)
+#define X86_GDT_USER_DATA        (4 << 3)
+#define X86_GDT_KERNEL_CODE64    (5 << 3)
+#define X86_GDT_USER_CODE64      (6 << 3)
 #define X86_GDT_MAX_SELECTORS    (6 + 1) // Has also the first null descriptor
 
 #define TSS_SELECTOR(i) ((uint16_t)(0x38 + 16 * (i)))

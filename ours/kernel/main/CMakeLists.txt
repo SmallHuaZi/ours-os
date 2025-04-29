@@ -95,6 +95,7 @@ PRIVATE
     "-fno-exceptions"
     "-fno-stack-protector"
     "-fno-use-cxa-atexit"
+    "-fno-elide-constructors"
     "-Wno-write-strings"
     "-mno-sse" 
     "-mno-mmx"

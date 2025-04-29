@@ -1,6 +1,7 @@
 #include <ours/mem/vm_mapping.hpp>
 #include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_object_paged.hpp>
+#include <ours/mem/vm_object_physical.hpp>
 #include <ours/mem/vm_aspace.hpp>
 #include <ours/mem/object-cache.hpp>
 #include <ours/mem/page_request.hpp>
@@ -160,7 +161,7 @@ namespace ours::mem {
               total_mapped_(0)
         {}
 
-        auto append(VmPage *page) -> Status;
+        auto append(PhysAddr phys) -> Status;
         auto commit() -> Status;
 
     private:
@@ -175,8 +176,8 @@ namespace ours::mem {
 
     template <usize MaxNumPages>
     FORCE_INLINE
-    auto MappingCoalescer<MaxNumPages>::append(VmPage *page) -> Status {
-        pa_[nr_pages_++] = frame_to_phys(page);
+    auto MappingCoalescer<MaxNumPages>::append(PhysAddr phys) -> Status {
+        pa_[nr_pages_++] = phys;
         if (nr_pages_ == MaxNumPages) {
             return commit();
         }
@@ -218,7 +219,7 @@ namespace ours::mem {
         }
 
         auto mapping = new (*s_vm_mapping_cache, kGafKernel) VmMapping(
-            parent, base, size, vmaf, vmo, vmo_off, name);
+            parent, base, size, vmaf, ustl::move(vmo), vmo_off, name);
 
         if (!mapping) {
             return Status::OutOfMem; 
@@ -236,6 +237,11 @@ namespace ours::mem {
 
     auto VmMapping::activate() -> void {
         Base::activate();
+
+        // Note when a mapping was added into a VMO's mapping list, the inside counter
+        // has not been increased implicitly. It is required to pay attention to manually 
+        // install and uninstall a mapping, avoiding lifecycle problem.
+        vmo_->add_mapping(*this);
     }
 
     FORCE_INLINE
@@ -263,9 +269,35 @@ namespace ours::mem {
                     return result.unwrap_err();
                 }
 
-                coalescer.append(*result);
+                coalescer.append(frame_to_phys(*result));
             }
             // Commit those uncovered units in for loop above.
+            coalescer.commit();
+        }
+
+        return Status::Ok;
+    }
+
+    FORCE_INLINE
+    auto VmMapping::map_physical(VmObjectPhysical *vmo, VirtAddr base, usize size, MapControl control) -> Status {
+        DEBUG_ASSERT(vmo);
+        PhysAddr phys_base;
+        auto status = vmo->lookup_range(base - base_, size, &phys_base);
+        if (Status::Ok != status) {
+            return status;
+        }
+
+        CXX11_CONSTEXPR
+        static auto const kMaxBatchPages = 32;
+
+        auto enumerator = regions_.make_enumerator(base, size);
+        while (auto region = enumerator.next()) {
+            auto [base, size, mmuf] = *region;
+            MappingCoalescer<kMaxBatchPages> coalescer(this, base, mmuf, control);
+            for (auto offset = 0; offset < size; offset += PAGE_SIZE) {
+                coalescer.append(phys_base + offset);
+            }
+
             coalescer.commit();
         }
 
@@ -286,10 +318,10 @@ namespace ours::mem {
             return Status::InvalidArguments;
         }
 
-        if (auto vmo = downcast<VmObjectPaged>(vmo_.as_ptr_mut())) {
-            return map_paged(vmo, base, size, commit, control);
-        } else {
-            DEBUG_ASSERT(false, "Unreachable");
+        if (auto paged = downcast<VmObjectPaged>(vmo_.as_ptr_mut())) {
+            return map_paged(paged, base, size, commit, control);
+        } else if (auto physical = downcast<VmObjectPhysical>(vmo_.as_ptr_mut())) {
+            return map_physical(physical, base, size, control);
         }
 
         return Status::Ok;

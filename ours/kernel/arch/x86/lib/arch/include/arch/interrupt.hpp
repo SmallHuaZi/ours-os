@@ -12,19 +12,37 @@
 #define ARCH_INTERRUPT_HPP 1
 
 #include <arch/types.hpp>
+#include <arch/processor/cpu-states.hpp>
+
+#include <ustl/sync/atomic.hpp>
 
 namespace arch {
-    typedef usize   IntrSavedState;
+    typedef ArchCpuState   IntrSavedState;
 
     CXX11_CONSTEXPR
     static auto const kNullIntrSavedState = IntrSavedState();
 
     FORCE_INLINE
-    auto save_interrupt_state() -> IntrSavedState {
+    static auto save_interrupt_state() -> IntrSavedState {
+        auto state = ArchCpuState::read();
+        if (state.get<state.IF>()) {
+            // If the interrupt enable bit was set, clear it and write back.
+            state.set<state.IF>(0)
+                 .write()
+                 .set<state.IF>(1);
+        }
+
+        // Prevent CPU's disorder performing behaviour
+        atomic_signal_fence(ustl::sync::MemoryOrder::SeqCst);
+        return state;
     }
 
     FORCE_INLINE
-    auto restore_interrupt_state(IntrSavedState) -> void {
+    static auto restore_interrupt_state(IntrSavedState state) -> void {
+        // Prevent CPU's disorder performing behaviour
+        atomic_signal_fence(ustl::sync::MemoryOrder::SeqCst);
+
+        state.write();
     }
 
 } // namespace arch

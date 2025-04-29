@@ -8,6 +8,7 @@
 #include <logz4/log.hpp>
 #include <ktl/new.hpp>
 #include <gktl/init_hook.hpp>
+#include <ustl/algorithms/minmax.hpp>
 
 using ustl::mem::align_up;
 using ustl::mem::align_down;
@@ -40,6 +41,15 @@ namespace ours::mem {
         return Status::Ok;
     }
 
+    auto VmArea::alloc_spot(usize size, AlignVal align, VirtAddr lower_limit, VirtAddr upper_limit) 
+        -> ktl::Result<VirtAddr> {
+
+        if (align < PAGE_SIZE) {
+            align = PAGE_SIZE;
+        }
+        return subvmas_.find_spot(size, align, lower_limit, upper_limit);
+    }
+
     struct VmArea::CreateVmAomArgs {
         VirtAddr base;
         usize size;
@@ -62,14 +72,9 @@ namespace ours::mem {
             // Unallowed permissions.
             return Status::InvalidArguments;
         }
-        if (!check_range(packet.base, packet.size)) {
-            // Not in this VMA 
-            return Status::InvalidArguments;
-        }
 
         auto const is_fixed_noreplace = (!!(packet.option & VmMapOption::FixedNoReplace));
         auto const is_fixed = (!!(packet.option & VmMapOption::Fixed)) || is_fixed_noreplace;
-
         if (is_fixed) {
             if (subvmas_.has_range(packet.base, packet.size)) {
                 if (is_fixed_noreplace) {
@@ -80,7 +85,9 @@ namespace ours::mem {
                 DEBUG_ASSERT(false, "Now we don't support overwrite");
             }
         } else {
-            auto result = subvmas_.find_spot(packet.base, PAGE_SIZE, base_, base_ + size_);
+            // If no given Fixed* options, the specific address would be overwritten.
+            // FIXME(SmallHuaZi) (base_ + size_) may causes an overflow error.
+            auto result = alloc_spot(packet.size, PAGE_SIZE, base_, base_ + size_ - 1);
             if (!result) {
                 return Status::InvalidArguments;
             }
@@ -90,7 +97,7 @@ namespace ours::mem {
 
         if (packet.vmo) {
             ustl::Rc<VmMapping> mapping;
-            auto status = VmMapping::create(this, packet.base, packet.size, packet.vmaf, packet.vmo, 
+            auto status = VmMapping::create(this, packet.base, packet.size, packet.vmaf, ustl::move(packet.vmo),
                                            packet.vmo_ofs, packet.mmuf, packet.name, &mapping);
             if (Status::Ok != status) {
                 return status;
@@ -125,7 +132,7 @@ namespace ours::mem {
         if (Status::Ok != status) {
             return status;
         }
-        *out = ustl::downcast<VmArea>(&aom);
+        *out = ustl::downcast<VmArea>(ustl::move(aom));
 
         return Status::Ok;
     }
@@ -161,7 +168,7 @@ namespace ours::mem {
         if (Status::Ok != status) {
             return status;
         }
-        *out = ustl::downcast<VmMapping>(&aom);
+        *out = ustl::downcast<VmMapping>(ustl::move(aom));
         num_mappings_ += 1;
 
         return Status::Ok;
@@ -206,13 +213,16 @@ namespace ours::mem {
     auto VmArea::map_with_vmo(VirtAddr base, usize size, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
                               VmMapOption option, char const *name) -> ktl::Result<ustl::Rc<VmMapping>> {
         ustl::Rc<VmMapping> mapping;
-        auto status = create_mapping(base - base_, size, 0, mmuf, ustl::move(vmo), name, option, &mapping);
+        auto status = create_mapping(base - base_, size, 0, mmuf, vmo, name, option, &mapping);
         if (Status::Ok != status) {
             return ustl::err(status);
         }
 
         if (!!(VmMapOption::Commit & option)) {
-            vmo->commit_range(0, size);
+            status = vmo->commit_range(0, size);
+            if (Status::Ok != status) {
+                return ustl::err(status);
+            }
 
             status = mapping->map(0, size, true, MapControl::ErrorIfExisting);
             if (Status::Ok != status) {
@@ -250,7 +260,7 @@ namespace ours::mem {
         }
 
         ustl::Rc<VmMapping> mapping;
-        status = VmMapping::create(this, base, size, vmaf_,vmo,  0, mmuf, name, &mapping);
+        status = VmMapping::create(this, base, size, vmaf_, ustl::move(vmo),  0, mmuf, name, &mapping);
         if (Status::Ok != status) {
             return status;
         }

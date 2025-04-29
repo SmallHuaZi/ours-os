@@ -144,6 +144,10 @@ namespace ours::mem {
             if (vmo->type() == VmObject::Type::Paged) {
                 return static_cast<VmObjectDerived *>(vmo);
             }
+        } else if CXX17_CONSTEXPR (ustl::traits::IsSameV<VmObjectDerived, VmObjectPhysical>) {
+            if (vmo->type() == VmObject::Type::Physical) {
+                return static_cast<VmObjectDerived *>(vmo);
+            }
         }
         return nullptr;
     }

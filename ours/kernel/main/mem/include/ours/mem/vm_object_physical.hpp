@@ -20,8 +20,26 @@ namespace ours::mem {
       public:
         static auto create(PhysAddr pa, usize size, VmoFLags vmoflags, ustl::Rc<Self> *out) -> Status;
 
+        /// 
+        virtual auto commit_range(VirtAddr offset, usize size, CommitOptions option) -> Status override {
+            if (offset > size_ || size > size_ || offset > size_ - size) {
+                return Status::OutOfRange;
+            }
+            return Status::Ok;
+        }
+
+        auto lookup_range(usize offset, usize size, PhysAddr *pa) -> Status {
+            if (offset > size_ || size > size_ || offset > size_ - size) {
+                return Status::OutOfRange;
+            }
+
+            *pa = phys_base_ + offset;
+            return Status::Ok;
+        }
+
       private:
         VmObjectPhysical(PhysAddr pa, usize size, VmoFLags vmoflags);
+
         PhysAddr phys_base_;
         usize size_;
     };

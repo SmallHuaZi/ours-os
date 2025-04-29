@@ -17,7 +17,7 @@
     .ifeq isr.current
         .balign 64
     .endif
-    .function \name, cfi=custom, nosection=nosection
+    .function \name, cfi=custom, align=8, nosection=nosection
         // Set CFI for an interrupt frame.
         .cfi_signal_frame
         isr.current.has_error = isr.current == 8 || \

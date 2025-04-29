@@ -94,7 +94,7 @@ namespace ours::mem {
         auto root_vma = kaspace->root_vma();
         ustl::Rc<VmArea> vma;
         auto status = root_vma->create_subvma(phys_vma.base - root_vma->base(), phys_vma.size, phys_vma.vmaf, 
-            phys_vma.name, VmMapOption::None, &vma);
+            phys_vma.name, VmMapOption::Fixed, &vma);
         DEBUG_ASSERT(Status::Ok == status);
 
         status = vma->reserve(0, phys_vma.size, extract_permissions(phys_vma.vmaf), phys_vma.name);

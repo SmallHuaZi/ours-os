@@ -2,40 +2,40 @@
 #include <arch/x86/interrupt.hpp>
 
 namespace ours {
-    static auto x86_dispatch_exception(arch::IrqVector vector, arch::IrqFrame *frame) -> void
-    {
-        if (vector == arch::IrqVector::PageFault) {
+    static auto x86_dispatch_exception(arch::IrqVec vector, arch::IrqFrame *frame) -> void {
+        if (vector == arch::IrqVec::PageFault) {
             if (Status::Ok != x86_handle_page_fault(frame)) {
             }
         }
             
         switch (vector) {
-            case arch::IrqVector::DivideError:
-            case arch::IrqVector::Debug:
-            case arch::IrqVector::Nmi:
-            case arch::IrqVector::Breakpoint:
-            case arch::IrqVector::Overflow:
-            case arch::IrqVector::BoundRangeExceeded:
-            case arch::IrqVector::InvalidOpcode:
-            case arch::IrqVector::DeviceNotAvailable:
-            case arch::IrqVector::DoubleFault:
-            case arch::IrqVector::CoprocessorSegmentOverrun:
-            case arch::IrqVector::InvalidTss:
-            case arch::IrqVector::SegmentNotPresent:
-            case arch::IrqVector::StackFaultException:
-            case arch::IrqVector::GeneralProtection:
-            case arch::IrqVector::X87FloatingPoint:
-            case arch::IrqVector::AlignmentCheck:
-            case arch::IrqVector::MachineCheck:
-            case arch::IrqVector::SimdFloatingPoint:
-            case arch::IrqVector::Virtualizatoin:
-            case arch::IrqVector::ControlProtection:
+            case arch::IrqVec::DivideError:
+            case arch::IrqVec::Debug:
+            case arch::IrqVec::Nmi:
+            case arch::IrqVec::Breakpoint:
+            case arch::IrqVec::Overflow:
+            case arch::IrqVec::BoundRangeExceeded:
+            case arch::IrqVec::InvalidOpcode:
+            case arch::IrqVec::DeviceNotAvailable:
+            case arch::IrqVec::DoubleFault:
+            case arch::IrqVec::CoprocessorSegmentOverrun:
+            case arch::IrqVec::InvalidTss:
+            case arch::IrqVec::SegmentNotPresent:
+            case arch::IrqVec::StackFaultException:
+            case arch::IrqVec::GeneralProtection:
+            case arch::IrqVec::X87FloatingPoint:
+            case arch::IrqVec::AlignmentCheck:
+            case arch::IrqVec::MachineCheck:
+            case arch::IrqVec::SimdFloatingPoint:
+            case arch::IrqVec::Virtualizatoin:
+            case arch::IrqVec::ControlProtection:
                 break;
         }
     }
 
     NO_MANGLE
-    auto arch_handle_exception(arch::IrqVector vector, arch::IrqFrame *frame) -> void
-    {}
+    auto arch_handle_exception(arch::IrqFrame *frame) -> void {
+        x86_dispatch_exception(frame->vector, frame);
+    }
 
 } // namespace ours

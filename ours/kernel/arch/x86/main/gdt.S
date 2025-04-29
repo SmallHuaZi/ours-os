@@ -13,7 +13,7 @@
     /* null entry */
     .quad 0
 
-    /* CODE_SELECTOR */
+    /* Code32 Selector */
     .short 0xffff           /* limit 15:00 */
     .short 0x0000           /* base 15:00 */
     .byte  0x00             /* base 23:16 */
@@ -21,15 +21,7 @@
     .byte  0b11001111       /* G(1) D(1) 0 0 limit 19:16 */
     .byte  0x0              /* base 31:24 */
 
-    /* CODE_64_SELECTOR */
-    .short 0xffff           /* limit 15:00 */
-    .short 0x0000           /* base 15:00 */
-    .byte  0x00             /* base 23:16 */
-    .byte  0b10011010       /* P(1) DPL(00) S(1) 1 C(0) R(1) A(0) */
-    .byte  0b10101111       /* G(1) D(0) L(1) AVL(0) limit 19:16 */
-    .byte  0x0              /* base 31:24 */
-
-    /* DATA_SELECTOR */
+    /* Data Selector */
     .short 0xffff           /* limit 15:00 */
     .short 0x0000           /* base 15:00 */
     .byte  0x00             /* base 23:16 */
@@ -40,7 +32,7 @@
     /* Disable 32bit ring3 code descriptor on 64bit kernel */
     .quad 0
 
-    /* USER_DATA_SELECTOR */
+    /* User Data Selector */
     .short 0xffff           /* limit 15:00 */
     .short 0x0000           /* base 15:00 */
     .byte  0x00             /* base 23:16 */
@@ -48,7 +40,15 @@
     .byte  0b11001111       /* G(1) B(1) 0 0 limit 19:16 */
     .byte  0x0              /* base 31:24 */
 
-    /* USER_CODE_64_SELECTOR */
+    /* Code64 Selector */
+    .short 0xffff           /* limit 15:00 */
+    .short 0x0000           /* base 15:00 */
+    .byte  0x00             /* base 23:16 */
+    .byte  0b10011010       /* P(1) DPL(00) S(1) 1 C(0) R(1) A(0) */
+    .byte  0b10101111       /* G(1) D(0) L(1) AVL(0) limit 19:16 */
+    .byte  0x0              /* base 31:24 */
+
+    /* User Code64 Selector */
     .short 0xffff           /* limit 15:00 */
     .short 0x0000           /* base 15:00 */
     .byte  0x00             /* base 23:16 */

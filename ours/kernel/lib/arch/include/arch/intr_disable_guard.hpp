@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef ARCH_INTR_DISABLE_GUARD_HPP
 #define ARCH_INTR_DISABLE_GUARD_HPP 1
 
@@ -18,7 +17,8 @@ namespace arch {
     /// RAII Object to enable/disable interrupt handler.
     struct IntrDisableGuard {
         IntrDisableGuard()
-            : state_(save_interrupt_state()) {}
+            : state_(save_interrupt_state()) {
+        }
 
         ~IntrDisableGuard() {
             reenable();
