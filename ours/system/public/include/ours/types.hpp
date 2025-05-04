@@ -34,6 +34,7 @@ namespace ours {
     typedef u32   HIrqNum;
     typedef u32   VIrqNum;
     typedef u32   NodeId;
+    typedef usize MonoTicks;
 
     /// For type check.
     struct CpuSet   { u32 _0; };

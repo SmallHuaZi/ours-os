@@ -16,6 +16,7 @@
 
 namespace arch {
     struct Pic {
+        static auto disable() -> void;
         static auto send_eoi(u8 irq) -> void;
         static auto remap(u8 pic1, u8 pic2) -> void;
         static auto wait_io() -> void;

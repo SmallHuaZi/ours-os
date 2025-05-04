@@ -9,19 +9,24 @@
 /// https://opensource.org/license/gpl-2-0
 ///
 #ifndef OURS_OBJECT_RESOURCE_DISPATCHER_HPP
-#define OURS_OBJECT_RESOURCE_DISPATCHER_HPP
+#define OURS_OBJECT_RESOURCE_DISPATCHER_HPP 1
 
 #include <ours/object/dispatcher.hpp>
+#include <ktl/name.hpp>
 
 namespace ours::object {
     class ResourceDispatcher;
     using ResourceDispatcherBase = SoloDispatcher<ResourceDispatcher, Rights::Read, {}>;
 
     class ResourceDispatcher: public ResourceDispatcherBase {
-    
-    private:
+      public:
+        CXX11_CONSTEXPR
+        static auto const kMaxNameLength = 32;
+        
+      private:
         PhysAddr base_;
         PhysAddr size_;
+        ktl::Name<kMaxNameLength> name_;
     };
 } // namespace ours::object
 

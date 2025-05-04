@@ -33,15 +33,22 @@ namespace ours::mem {
         return !!(mmuf & MmuFlags::PermMask);
     }
 
-    auto VmAreaOrMapping::activate() -> void {
+    auto VmAreaOrMapping::activate() -> Status {
+        canary_.verify();
         mark_active();
         parent_->subvmas_.insert(*this);
+        return Status::Ok;
     }
 
-    auto VmAreaOrMapping::destroy() -> void {
-        vmaf_ &= ~VmaFlags::Area;
-        auto to_erase = parent_->subvmas_.iterator_to(*this);
-        parent_->subvmas_.erase(to_erase);
+    auto VmAreaOrMapping::destroy() -> Status {
+        canary_.verify();
+        vmaf_ &= ~VmaFlags::Active;
+        if (parent_) {
+            auto to_erase = parent_->subvmas_.iterator_to(*this);
+            parent_->subvmas_.erase(to_erase);
+            parent_ = nullptr;
+        }
+        return Status::Ok;
     }
 
     auto VmaSet::has_range(VirtAddr base, usize size) const -> bool {

@@ -1,12 +1,18 @@
 #include <ours/arch/x86/idt.hpp>
 #include <ours/arch/x86/faults.hpp>
 #include <ours/arch/x86/descriptor.hpp>
+#include <ours/arch/x86/percpu.hpp>
+
+#include <ours/mem/vm_aspace.hpp>
+#include <ours/mem/vm_area.hpp>
+#include <ours/mem/vm_mapping.hpp>
 #include <ours/init.hpp>
 
 #include <logz4/log.hpp>
 #include <arch/x86/descriptor.hpp>
 
 namespace ours {
+    // We should migrate it to `lib/arch` in the future.
     struct PACKED IdtEntry {
         auto set(usize handler) -> void {
             offset_low  = handler & 0xFFFF;
@@ -61,16 +67,44 @@ namespace ours {
         s_pidt->load();
     }
 
+    static auto x86_set_vector_ist(arch::IrqVec vec, u8 ist) -> void {
+        auto const index = usize(vec);
+        DEBUG_ASSERT(index < std::size(g_idt.entries_), "Invalid vector: {}", index);
+        auto &entry = g_idt.entries_[index];
+        entry.ist = ist;
+
+        log::info("Vector[{}] was bind to IST[{}]", index, ist);
+    }
+
     auto x86_init_idt_early() -> void {
         for (auto &entry: g_idt) {
             rectify_idt(entry);
         }
 
+        x86_set_vector_ist(arch::IrqVec::DoubleFault, kDoubleFaultStack);
+        x86_set_vector_ist(arch::IrqVec::MachineCheck, kMachineCheckStack);
+        x86_set_vector_ist(arch::IrqVec::MachineCheck, kMachineCheckStack);
+
         x86_dump_idt();
     }
 
     auto x86_setup_idt() -> void {
+        using namespace mem;
+
+        VirtAddr virt_addr = 0;
         // Remap IDT to a readonly page
+        auto rvma = VmAspace::kernel_aspace()->root_vma(); 
+        DEBUG_ASSERT(rvma);
+        auto result = rvma->map_at(
+            PhysMap::virt_to_phys(s_pidt), 
+            &virt_addr, 
+            PAGE_SIZE, 
+            MmuFlags::Readable, 
+            VmMapOption::Commit | VmMapOption::Pinned, 
+            "k:IDT");
+        ASSERT(result, "Failed to set readonly GDT");
+
+        s_pidt = reinterpret_cast<decltype(s_pidt)>(virt_addr);
         x86_load_idt(); 
     }
 

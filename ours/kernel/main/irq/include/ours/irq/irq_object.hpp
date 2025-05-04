@@ -14,23 +14,37 @@
 #include <ours/irq/mod.hpp>
 #include <ours/irq/types.hpp>
 #include <ours/irq/irq_observer.hpp>
+#include <ours/mutex.hpp>
 
+#include <ustl/rc.hpp>
 #include <ustl/sync/mutex.hpp>
 #include <ustl/collections/intrusive/list.hpp>
 
 #include <gktl/canary.hpp>
 
 namespace ours::irq {
-    /// Run in user address space.
-    struct IrqObject {
+    class IrqObject: public ustl::RefCounter<IrqObject> {
         typedef IrqObject Self;
+      public:
+        static auto create(HIrqNum hirq, VIrqNum virq, IrqFlags flags, char const *name)
+            -> ustl::Rc<Self>;
+
+        auto attach(IrqObserver &observer) -> void;
+
+        auto detach(IrqObserver &observer) -> void;
+
+        auto notify() -> void;
+      private:
+        friend IrqHandler;
+
+        IrqObject(HIrqNum, VIrqNum, IrqFlags flags, char const *name);
 
         GKTL_CANARY(IrqObject, canary_);
+        usize nr_intrs_;
+        Mutex request_mutex_;
         IrqData data_;
-        ustl::sync::Mutex mutex_;
-
-        USTL_DECLARE_LIST(IrqObserver, ActionList, IrqObserver::ManagedOptions);
-        ActionList actions_;
+        IrqObserverList observers_;
+        char const *name_;
     };
 
 } // namespace ours::irq

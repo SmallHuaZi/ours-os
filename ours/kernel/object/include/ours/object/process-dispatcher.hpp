@@ -8,22 +8,23 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
-#ifndef OURS_TASK_PROCESS_HPP
-#define OURS_TASK_PROCESS_HPP 1
+#ifndef OURS_OBJECT_PROCESS_DISPATCHER_HPP
+#define OURS_OBJECT_PROCESS_DISPATCHER_HPP 1
 
 #include <ours/task/thread.hpp>
+#include <ours/object/dispatcher.hpp>
+
 #include <ustl/collections/intrusive/list.hpp>
 
 namespace ours::task {
     class VmAspace;
 
-    class Process
-    {
-        typedef Process     Self;
-    public:
+    class ProcessDispatcher {
+        typedef ProcessDispatcher     Self;
+      public:
 
-    private:
+
+      private:
         Self *parent_;
 
         /// Unique address space per each process.
@@ -53,12 +54,11 @@ namespace ours::task {
         USTL_DECLARE_LIST(Self, Processlist, ProcListOptions);
         static Processlist ALL_PROCESS_LIST;
 
-    public:
+      public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOptions);
     };
-
-    USTL_DECLARE_LIST(Process, ProcessManagedList, Process::ManagedOptions);
+    USTL_DECLARE_LIST(Process, ProcessManagedList, ProcessDispatcher::ManagedOptions);
 
 } // namespace ours::task
 
-#endif // #ifndef OURS_TASK_PROCESS_HPP 
+#endif // OURS_OBJECT_PROCESS_DISPATCHER_HPP

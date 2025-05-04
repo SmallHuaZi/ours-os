@@ -36,6 +36,7 @@ namespace arch {
         IA32Debugctl = 0x0000'01d9, // Debug control.
 
         IA32PerfCapabilities = 0x0000'0345, // Performance monitoring features available.
+        IA32TscDeadline = 0x000006e0,       // TSC deadline 
 
         // Related to Last Branch Records.
         MSR_LbrSelect = 0x0000'01c8,            // Control register for the LBR feature

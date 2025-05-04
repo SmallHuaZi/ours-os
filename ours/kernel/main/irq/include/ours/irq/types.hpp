@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_IRQ_TYPES_HPP
 #define OURS_IRQ_TYPES_HPP 1
 
@@ -18,6 +17,11 @@ namespace ours::irq {
     class IrqChip;
     class IrqObject;
     class IrqDispatcher;
+
+    enum class IrqType {
+        Edge,
+        Level,
+    };
 
     struct IrqData {
         u32 mask;

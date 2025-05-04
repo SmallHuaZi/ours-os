@@ -6,8 +6,6 @@
 #include <gktl/command.hpp>
 
 namespace ours::mem {
-    GKTL_COUNTER(EACH_ROLE_FRAMES_COUNTER, )
-
     auto PageFrameBase::dump() const -> void {
         log::info("PmFrame at 0x{:0>8X}:", usize(this));
         log::info("  [role: {:5} |zone: {:6} |section: {} |node: {} |pa: 0x{:0>8X}]",

@@ -1,8 +1,12 @@
 #include <ours/task/thread.hpp>
+#include <ours/mem/object-cache.hpp>
 
 namespace ours::task {
-    auto Thread::spawn(char const *name, ThreadStartEntry entry) -> Self *
-    {  return 0;  }
+    static ustl::Rc<mem::ObjectCache>   s_thread_cache;
+
+    auto Thread::spawn(char const *name, ThreadStartEntry entry) -> Self * {  
+        return 0;  
+    }
 
     auto Thread::resume() -> void
     {}
@@ -11,6 +15,9 @@ namespace ours::task {
     {}
 
     auto Thread::Current::preempt() -> void {
+    }
+
+    auto Thread::Current::idle() -> void {
     }
 
 } // namespace ours::task

@@ -1,5 +1,8 @@
 #include <ours/arch/x86/faults.hpp>
 #include <arch/x86/interrupt.hpp>
+#include <ours/platform/init.hpp>
+
+#include <logz4/log.hpp>
 
 namespace ours {
     static auto x86_dispatch_exception(arch::IrqVec vector, arch::IrqFrame *frame) -> void {
@@ -29,6 +32,13 @@ namespace ours {
             case arch::IrqVec::SimdFloatingPoint:
             case arch::IrqVec::Virtualizatoin:
             case arch::IrqVec::ControlProtection:
+                break;
+            
+            case arch::IrqVec::PlatformIrqMin ... arch::IrqVec::PlatformIrqMax:
+                break;
+
+            case arch::IrqVec::ApicTimer:
+                log::info("APIC-PM Tick");
                 break;
         }
     }

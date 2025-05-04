@@ -1,6 +1,7 @@
 #include <ours/arch/x86/init.hpp>
 #include <ours/arch/x86/idt.hpp>
 #include <ours/arch/x86/feature.hpp>
+#include <ours/arch/x86/descriptor.hpp>
 
 #include <ours/cpu-mask.hpp>
 #include <ours/arch/cpu.hpp>
@@ -16,9 +17,9 @@ namespace ours {
         x86_init_idt_early();
 
         x86_init_percpu(0);
-        
-        *reinterpret_cast<usize *>((KERNEL_ASPACE_BASE - 64)) = 0;
 
+        x86_dump_gdt();
+        
         x86_setup_mmu_early();
 
         set_current_cpu_online(true);
@@ -27,6 +28,9 @@ namespace ours {
     NO_MANGLE INIT_CODE 
     auto init_arch() -> void {
         x86_setup_idt();
+
+        x86_setup_gdt();
+
         x86_setup_mmu();
     }
 

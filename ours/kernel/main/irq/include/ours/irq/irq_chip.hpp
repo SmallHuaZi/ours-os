@@ -31,9 +31,9 @@ namespace ours::irq {
         virtual auto send_eoi(IrqData &data) -> void {}
         virtual auto send_ack(IrqData &data) -> void {}
 
-        virtual auto set_affinity(IrqData &data, CpuMask *dest, bool force) -> Status {};
+        virtual auto set_affinity(IrqData &data, CpuMask *dest, bool force) -> Status {}
         virtual auto retrigger(IrqData &data) -> int {}
-        virtual auto set_type(IrqData &data, unsigned int flow_type) -> int {}
+        virtual auto set_type(IrqData &data, IrqType) -> int {}
         virtual auto set_wake(IrqData &data, unsigned int on) -> int {}
 
         virtual auto lock_bus(IrqData &data) -> void {}

@@ -37,8 +37,6 @@ namespace ours::mem {
     {
         typedef PageFrameBase     Self;
 
-        PageFrameBase() = default;
-
         /// A frame can not be moved and copied in any way.
         PageFrameBase(Self &&) = delete;
         PageFrameBase(Self const &) = delete;
@@ -130,6 +128,8 @@ namespace ours::mem {
 
         auto dump() const -> void;
 
+        PageFrameBase() = default;
+
         FrameFlags flags_;
         // The size of following fields type should be hanf of a word.
         mutable ustl::sync::AtomicU32 num_references_;
@@ -151,20 +151,23 @@ namespace ours::mem {
     struct RoleViewDispatcher;
 
     /// Set the role for frame and return the expected role view. 
-    template <PfRole Role>
+    template <PfRole Role, typename T>
+        requires ustl::traits::IsBaseOfV<PageFrameBase, T>
     FORCE_INLINE
-    auto role_cast(PageFrameBase &frame) -> RoleViewDispatcher<Role>::Type * {
+    auto role_cast(T &frame) -> RoleViewDispatcher<Role>::Type * {
+        static_assert(kFrameDescSize >= sizeof(T) || ustl::traits::IsSameV<T, PmFolio>);
         typedef typename RoleViewDispatcher<Role>::Type View;
         static_assert(ustl::traits::IsBaseOfV<PageFrameBase, View>);
         static_assert(kFrameDescSize >= sizeof(View));
 
         frame.set_role(Role);
-        return reinterpret_cast<View *>(&frame);
+        return static_cast<View *>(static_cast<PageFrameBase *>(&frame));
     }
 
-    template <PfRole Role>
+    template <PfRole Role, typename T>
+        requires ustl::traits::IsBaseOfV<PageFrameBase, T>
     FORCE_INLINE
-    auto role_cast(PageFrameBase *frame) -> RoleViewDispatcher<Role>::Type * {
+    auto role_cast(T *frame) -> RoleViewDispatcher<Role>::Type * {
         return role_cast<Role>(*frame);
     }
 

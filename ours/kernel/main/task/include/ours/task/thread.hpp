@@ -17,13 +17,16 @@
 #include <ours/task/types.hpp>
 
 #include <ours/mem/types.hpp>
+#include <ours/mem/stack.hpp>
 #include <ours/sched/sched_object.hpp>
 
 /// ours::object::ThreadDispatcher (PS: It is namely user-thread)
 #include <ours/object/thread_dispatcher.hpp>
 
-#include <ustl/collections/intrusive/list.hpp>
 #include <ustl/rc.hpp>
+#include <ustl/collections/intrusive/list.hpp>
+
+#include <gktl/canary.hpp>
 
 namespace ours::task {
     class Process;
@@ -75,13 +78,20 @@ namespace ours::task {
 
         auto suspend() -> void;
 
+        auto set_cpu_affinity(CpuMask const &) -> void;
+
         class Current;
       private:
-        CpuNum this_cpu_;
-        CpuMask cpu_mask_;
+        GKTL_CANARY(Thread, canary_);
+        CpuNum recent_cpu_;
+        CpuMask cpumask_;
         ArchThread arch_thread_;
         ustl::Weak<mem::VmAspace> aspace_;
         ustl::Rc<object::ThreadDispatcher> user_thread_;
+        mem::Stack kernel_stack_;
+
+        Signals singals_;
+
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
         ustl::collections::intrusive::ListMemberHook<> proclist_hook_; // Used by process
 
@@ -100,8 +110,7 @@ namespace ours::task {
             return 0;
         }
 
-        static auto idle() -> void {
-        }
+        static auto idle() -> void;
 
         static auto exit(isize retcode) -> void;
 

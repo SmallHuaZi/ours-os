@@ -1,52 +1,58 @@
 #include <ours/sched/scheduler.hpp>
 #include <ours/sched/sched_object.hpp>
 
+#include <ustl/ratio.hpp>
+#include <ustl/mem/address_of.hpp>
 #include <ustl/collections/intrusive/set.hpp>
 
-using ustl::collections::intrusive::MultiSet;
-using ustl::collections::intrusive::AnyToSetHook;
+using namespace ustl::collections::intrusive;
 
 namespace ours::sched {
-    class EevdfScheduler
-        : public Scheduler
-    {
-        typedef EevdfScheduler  Self;
+    using AvgRuntime = ustl::Ratio<usize>;
 
-    public:
-        OURS_SCHEDULER_API;
-    
-    private:
-        auto is_eligible(SchedObject const &) const -> bool;
-
-    private:
-        usize runnable_;
-        usize interruptable_;
-
-        using RunQueueOption = AnyToSetHook<SchedObject::ManagedOption>;
-        using RunQueue = MultiSet<SchedObject, RunQueueOption>;
-        RunQueue  task_queue_;
+    struct EevdffObjectCompare {
+        CXX23_STATIC
+        auto operator()(SchedObject const &x, SchedObject const &y) -> bool {
+            return x.deadline() < y.deadline(); 
+        }
     };
 
-    /// Entity is eligible once it received less service than it ought to have,
-    /// eg. lag >= 0.
-    ///
-    /// lag_i = S - s_i = w_i*(V - v_i)
-    ///
-    /// lag_i >= 0 -> V >= v_i
-    ///
-    ///     \Sum (v_i - v)*w_i
-    /// V = ------------------ + v
-    ///          \Sum w_i
-    ///
-    /// lag_i >= 0 -> \Sum (v_i - v)*w_i >= (v_i - v)*(\Sum w_i)
-    ///
-    /// Note: using 'avg_vruntime() > se->vruntime' is inaccurate due
-    ///       to the loss in precision caused by the division.
-    auto EevdfScheduler::is_eligible(SchedObject const &) const -> bool
-    {}
+    using RunQueueOption = AnyToSetHook<SchedObject::ManagedOption>;
+    using RunQueue = MultiSet<SchedObject, RunQueueOption, Compare<EevdffObjectCompare>>;
 
-    /// [Earliest Eligible Virtual Deadline First] EEVDF
-    /// 
+    class EevdfScheduler: public IScheduler {
+        typedef EevdfScheduler  Self;
+      public:
+        OURS_SCHEDULER_API;
+    
+      private:
+        auto is_eligible(SchedObject const &) const -> bool;
+
+        auto update(SchedObject &) -> void;
+
+        usize num_runnable_;
+        RunQueue runqueue_;
+
+        SchedObject *current_;
+
+        /// Avage runtime = vt_numerator_ / vi_denominator_ + min_vruntime_
+        AvgRuntime avg_vruntime_;
+        SchedTime min_vruntime_;
+
+        SchedWeight weight_;
+    };
+
+    /// When the lag of a task is greater than or equal to zero, it is eligible,
+    /// otherwise ineligible.
+    auto EevdfScheduler::is_eligible(SchedObject const &object) const -> bool {
+        auto const avg_num = avg_vruntime_.numerator();
+        auto const avg_den = avg_vruntime_.denominator();
+        return avg_num > ((object.vruntime() - min_vruntime_) * avg_den).count();
+    }
+
+    auto EevdfScheduler::on_tick() -> void {
+    }
+
     /// In order to provide latency guarantees for different request sizes
     /// EEVDF selects the best runnable task from two criteria:
     ///  (1) the task must be eligible (must be owed service)
@@ -59,21 +65,21 @@ namespace ours::sched {
     /// heap based on the vruntime by keeping:
     /// 
     /// Which allows tree pruning through eligibility.
-    auto EevdfScheduler::pick_next() -> SchedObject *
-    {
-        auto first = task_queue_.begin();
-        for (auto const last = task_queue_.end(); first != last; ++first) {
-            if (this->is_eligible(*first)) {
+    auto EevdfScheduler::pick_next() -> SchedObject * {
+        auto iter = runqueue_.begin();
+        for (auto const last = runqueue_.end(); iter != last; ++iter) {
+            if (!is_eligible(*iter)) {
                 break;
             }
         }
 
-        return first.operator->();
+        return ustl::mem::address_of(*iter);
     }
 
-    auto EevdfScheduler::dequeue(SchedObject &) -> void
-    {}
+    auto EevdfScheduler::dequeue(SchedObject &object) -> void {
+        runqueue_.insert(object);
+    }
 
-    auto EevdfScheduler::enqueue(SchedObject &) -> void
-    {}
+    auto EevdfScheduler::enqueue(SchedObject &object) -> void {
+    }
 }

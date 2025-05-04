@@ -48,8 +48,7 @@ namespace arch {
     struct Cr4;
 
     template <>
-    struct SysRegTraits<Cr0>
-    {
+    struct SysRegTraits<Cr0> {
         typedef usize   ValueType;
         enum RegisterBits {
             Pe,
@@ -66,17 +65,17 @@ namespace arch {
         };
 
         typedef TypeList<
-            Field<Id<Pe>, Name<"x87">>,
-            Field<Id<Mp>, Name<"Sse">>,
-            Field<Id<Em>, Name<"Avx">>,
-            Field<Id<Ts>, Name<"BndReg">>,
-            Field<Id<Et>, Name<"BndCsr">>,
-            Field<Id<Ne>, Name<"OpMask">>,
-            Field<Id<Wp>, Name<"ZmmHi256">, StartBit<16>>,
-            Field<Id<Am>, Name<"Hi16Zmm">, StartBit<18>>,
-            Field<Id<Nw>, Name<"P0">, StartBit<29>>,
-            Field<Id<Cd>, Name<"Pkru">>,
-            Field<Id<Pg>, Name<"Pkru">>
+            Field<Id<Pe>, Name<"Pe">>,
+            Field<Id<Mp>, Name<"Mp">>,
+            Field<Id<Em>, Name<"Em">>,
+            Field<Id<Ts>, Name<"Ts">>,
+            Field<Id<Et>, Name<"Et">>,
+            Field<Id<Ne>, Name<"Ne">>,
+            Field<Id<Wp>, Name<"Wp">, StartBit<16>>,
+            Field<Id<Am>, Name<"Am">, StartBit<18>>,
+            Field<Id<Nw>, Name<"Nw">, StartBit<29>>,
+            Field<Id<Cd>, Name<"Cd">>,
+            Field<Id<Pg>, Name<"Pg">>
         > FieldList;
     };
 

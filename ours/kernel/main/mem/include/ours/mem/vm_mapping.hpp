@@ -27,14 +27,12 @@
 #include <ktl/allocator.hpp>
 
 namespace ours::mem {
-    /// Helper class to trace the mapping status in region.
+    /// Helper class to trace the mapping status in region. Its internal implementation
+    /// is based on multiple adjacent intervals whose left bound is the end of the previous one.
     class MappingRegionSet {
         typedef MappingRegionSet    Self;
       public:
         class Enumerator;
-
-        CXX11_CONSTEXPR
-        static auto const kNumInitialRegions = 4;
 
         auto init(VirtAddr end, MmuFlags) -> Status;
 
@@ -153,7 +151,8 @@ namespace ours::mem {
 
         auto map_physical(VmObjectPhysical *vmo, VirtAddr base, usize size, MapControl control) -> Status;
 
-        virtual auto activate() -> void override;
+        virtual auto activate() -> Status override;
+        virtual auto destroy() -> Status override;
 
         ustl::Rc<VmObject> vmo_;
         usize vmo_off_;

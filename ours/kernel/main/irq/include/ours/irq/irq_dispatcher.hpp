@@ -12,12 +12,22 @@
 #define OURS_IRQ_IRQ_DISPATCHER_HPP 1
 
 #include <ours/irq/irq_object.hpp>
+#include <ours/irq/irq_chip.hpp>
+
 #include <ustl/views/span.hpp>
+#include <ktl/result.hpp>
 
 namespace ours::irq {
-    struct IrqDispatcher {
-        
+    class IrqDispatcher {
+      public:
+        auto entrol_hwirq(HIrqNum irqnum, IrqFlags flags, IrqChip *chip, char const *name) -> Status;
+
+        auto request_irq(VIrqNum, IrqHandler, IrqFlags, char const *name) -> Status;
+
+        auto release_irq(VIrqNum) -> Status;
       private:
+        auto irqnum_to_object(VIrqNum virqnum) -> IrqObject *;
+
         ustl::views::Span<IrqObject>  objects_;
     };
 

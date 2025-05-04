@@ -8,14 +8,20 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_TASK_TIMER_HPP
 #define OURS_TASK_TIMER_HPP 1
 
-namespace ours::task {
-    class Timer
-    {
+#include <ours/cpu-local.hpp>
 
+namespace ours::task {
+    class Timer {
+
+    };
+
+    class TimerQueue {
+        typedef TimerQueue  Self;
+      public:
+        auto tick(CpuNum cpu) -> void;
     };
 
 } // namespace ours::task

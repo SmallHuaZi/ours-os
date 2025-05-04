@@ -174,46 +174,57 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmArea::map_at(PhysAddr phys_base, VirtAddr virt_base, usize size, MmuFlags mmuf, 
+    auto VmArea::map_at(PhysAddr phys_base, VirtAddr *virt_base, usize size, MmuFlags mmuf, 
                         VmMapOption options, char const *name) -> ktl::Result<ustl::Rc<VmMapping>> {
         DEBUG_ASSERT(ustl::mem::is_aligned(phys_base, PAGE_SIZE));
-        auto [base_aligned, size_aligned] = resolve_page_range(virt_base, size);
-        if (!size_aligned) {
+        size = ustl::mem::align_up(size, PAGE_SIZE);
+        if (!size) {
             return ustl::err(Status::InvalidArguments);
+        }
+        if (virt_base) {
+            *virt_base = ustl::mem::align_down(*virt_base, PAGE_SIZE);
         }
 
         ustl::Rc<VmObjectPhysical> vmo;
-        auto status = VmObjectPhysical::create(phys_base, size_aligned, VmoFLags::Pinned, &vmo);
+        auto status = VmObjectPhysical::create(phys_base, size, VmoFLags::Pinned, &vmo);
         if (Status::Ok != status) {
             return ustl::err(status);
         }
 
-        return map_with_vmo(base_aligned, size_aligned, mmuf, ustl::move(vmo), options, name);
+        return map_with_vmo(virt_base, size, mmuf, ustl::move(vmo), options, name);
     }
 
-    auto VmArea::map(VirtAddr base, usize size, MmuFlags mmuf, VmMapOption options, 
+    auto VmArea::map(VirtAddr *base, usize size, MmuFlags mmuf, VmMapOption options, 
                      char const *name) -> ktl::Result<ustl::Rc<VmMapping>> {
         DEBUG_ASSERT(!(options & VmMapOption::Fixed), "Now we don't support the overwritting option");
-
-        auto [base_aligned, size_aligned] = resolve_page_range(base, size);
-        if (!size_aligned) {
+        size = ustl::mem::align_up(size, PAGE_SIZE);
+        if (!size) {
             return ustl::err(Status::InvalidArguments);
         }
+        if (base) {
+            *base = ustl::mem::align_down(*base, PAGE_SIZE);
+        }
+
 
         ustl::Rc<VmObjectPaged> vmo;
-        auto status = VmObjectPaged::create(kGafKernel, size_aligned, VmoFLags::Pinned, &vmo);
+        auto status = VmObjectPaged::create(kGafKernel, size, VmoFLags::Pinned, &vmo);
         if (Status::Ok != status) {
             return ustl::err(status);
         }
 
-        return map_with_vmo(base_aligned, size_aligned, mmuf, ustl::move(vmo), options, name);
+        return map_with_vmo(base, size, mmuf, ustl::move(vmo), options, name);
 
     }
 
-    auto VmArea::map_with_vmo(VirtAddr base, usize size, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
+    auto VmArea::map_with_vmo(VirtAddr *base, usize size, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
                               VmMapOption option, char const *name) -> ktl::Result<ustl::Rc<VmMapping>> {
+        VirtAddr vma_ofs = 0; 
+        if (base) {
+            vma_ofs = *base - base_;
+        }
+
         ustl::Rc<VmMapping> mapping;
-        auto status = create_mapping(base - base_, size, 0, mmuf, vmo, name, option, &mapping);
+        auto status = create_mapping(vma_ofs, size, 0, mmuf, vmo, name, option, &mapping);
         if (Status::Ok != status) {
             return ustl::err(status);
         }
@@ -228,6 +239,10 @@ namespace ours::mem {
             if (Status::Ok != status) {
                 return ustl::err(status);
             }
+        }
+
+        if (base) {
+            *base = mapping->base();
         }
 
         return ustl::ok(ustl::move(mapping)); 
@@ -268,6 +283,40 @@ namespace ours::mem {
         // The mappings are existing, just update the permission of them.
         status = aspace_->arch_aspace().protect(base, size >> PAGE_SHIFT, mmuf);
         return status;
+    }
+
+    auto VmArea::destroy() -> Status {
+        canary_.verify();
+
+        ustl::Rc<Self> curr(this);
+        while (curr) {
+            while (!curr->subvmas_.empty()) {
+                ustl::Rc<Base> aom(&*curr->subvmas_.begin());
+                if (!aom->is_mapping()) {
+                    // If not a mapping, recursive to keep destroying.
+                    curr = ustl::move(aom);
+                    continue;
+                }
+
+                auto status = aom->destroy();
+                if (Status::Ok != status) {
+                    return status;
+                }
+            }
+
+            // Destroy current node. 
+            auto parent = parent_;
+            curr->Base::destroy();
+            if (curr == this) {
+                break;
+            }
+
+            // Traverse up.
+            curr = parent;
+        }
+
+        num_mappings_ = 0;
+        return Status::Ok;
     }
 
     auto VmArea::dump() const -> void {

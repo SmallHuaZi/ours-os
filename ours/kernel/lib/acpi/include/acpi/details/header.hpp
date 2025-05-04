@@ -91,6 +91,20 @@ namespace acpi {
         return reinterpret_cast<Dest const *>(src);
     }
 
+    struct PACKED AcpiGenericAddress {
+        u8 address_space_id;    // 0 - system memory, 1 - system I/O
+        u8 register_bit_width;
+        u8 register_bit_offset;
+        u8 reserved;
+        u64 address;
+    };
+
+    CXX11_CONSTEXPR
+    static auto const kAspaceSysMemId = 0;
+
+    CXX11_CONSTEXPR
+    static auto const kAspaceSysIoId = 1;
+
 } // namespace acpi
 
 #endif // #ifndef ACPI_DETAILS_HEADER_HPP

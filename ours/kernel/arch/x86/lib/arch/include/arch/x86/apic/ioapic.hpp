@@ -80,12 +80,13 @@ namespace arch {
             write_redtbl(global_irqnum, entry);
         }
 
+        template <typename IrqVec>
         FORCE_INLINE
         auto config_irq(u32 global_irqnum, ApicTriggerMode trimode, ApicInterruptPolarity polarity, 
                         ApicDeliveryMode delmode, ApicDestinationMode dstmode, 
-                        u8 dst, u8 vector, bool mask = true) -> void {
+                        u8 dst, IrqVec vector, bool mask = true) -> void {
             u64 entry = 0;
-            entry |= vector;                    // Vector
+            entry |= static_cast<u8>(vector);   // Vector
             entry |= (u64(delmode) & 0xF) << 8; // Delivery Mode (Nmi, ...)
             entry |= u64(dstmode) << 11;        // Destination Mode (physical core or logical)
             entry |= u64(polarity) << 13;       // Pin Polarity (active low or high)

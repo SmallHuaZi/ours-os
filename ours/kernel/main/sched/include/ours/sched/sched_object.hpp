@@ -8,50 +8,58 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_SCHED_SCHED_OBJECT_HPP
 #define OURS_SCHED_SCHED_OBJECT_HPP
 
 #include <ours/cpu-mask.hpp>
-#include <ours/sched/sched_states.hpp>
+#include <ours/sched/types.hpp>
 
 #include <ustl/collections/intrusive/any_hook.hpp>
 
 namespace ours::sched {
-    class Scheduler;
-
-    // Classes `Process`, `Thread` and `SchedGroup` Derived from this class.
     class SchedObject {
         typedef SchedObject         Self;
-    public:
-        // auto state() -> State
-        // {  return this->_state;  }
+      public:
+        FORCE_INLINE
+        auto deadline() const -> SchedTime {
+            return deadline_;
+        }
 
-        // auto set_state(State state) -> void 
-        // {  this->_state = state;  }
+        FORCE_INLINE
+        auto vruntime() const -> SchedTime {
+            return vruntime_;
+        }
 
-        auto get_scheduler() -> Scheduler *
-        {  return this->scheduler_;  }
+        /// Update the object's deadline.
+        ///
+        /// Return true if current object has consumed its request.
+        FORCE_INLINE
+        auto update(SchedTime delta) -> bool {
+            if (vruntime_ >= deadline_) {
+                return true;
+            }
+            vruntime_ += delta;
+            return false;
+        }
+      protected:
+        friend class Scheduler;
 
-        auto set_scheduler(Scheduler *scheduler) -> void
-        {  this->scheduler_ = scheduler;  }
+        FORCE_INLINE
+        auto get_scheduler() -> Scheduler * {
+            return this->scheduler_;
+        }
 
-        static auto current() -> Self *;
+        FORCE_INLINE
+        auto set_scheduler(Scheduler *scheduler) -> void {
+            this->scheduler_ = scheduler;
+        }
 
-        // friend auto operator<(Self const &x, Self const &y) -> bool
-        // {  return x._weight < y._weight;  }
-
-    protected:
-        friend Scheduler;
-
-        Self        *parent_;
-        Scheduler   *scheduler_;
-        SchedTime    runtime_;
-        CpuMask      cpumask_;
-        // State        _state;
-        // LoadWeight   _weight;
+        SchedTime deadline_;
+        SchedTime vruntime_;
+        SchedTime time_slice_;
+        SchedWeight weight_;
+        Scheduler *scheduler_;
         ustl::collections::intrusive::AnyMemberHook<> managed_hook_;
-
     public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOption);
     };

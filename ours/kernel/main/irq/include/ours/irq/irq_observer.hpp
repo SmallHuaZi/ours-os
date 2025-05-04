@@ -12,17 +12,33 @@
 #define OURS_IRQ_IRQ_OBSERVER_HPP 1
 
 #include <ours/irq/mod.hpp>
-#include <ustl/collections/intrusive/list_hook.hpp>
+#include <ours/irq/types.hpp>
+
+#include <ustl/collections/intrusive/list.hpp>
 #include <gktl/canary.hpp>
 
 namespace ours::irq {
-    struct IrqObserver {
+    class IrqObserver {
         typedef IrqObserver Self;
+      public:
+        FORCE_INLINE
+        auto on_event(IrqData &data) -> IrqReturn {
+            if (handler_) {
+                return handler_(virqnum_, data_);
+            }
+            return IrqReturn::Handled;
+        }
+
+      protected:
         IrqFlags flags_;
         VIrqNum virqnum_;
+        IrqHandler handler_;
+        void *data_;
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
+      public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOptions);
     };
+    USTL_DECLARE_LIST(IrqObserver, IrqObserverList, IrqObserver::ManagedOptions);
 
 } // namespace ours::irq
 

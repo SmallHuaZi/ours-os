@@ -12,10 +12,14 @@
 #define OURS_MEM_STACK_HPP 1
 
 #include <ours/mem/types.hpp>
+#include <ours/mem/vm_mapping.hpp>
 
 namespace ours::mem {
     class Stack {
+      public:
 
+      private:
+        ustl::Rc<VmMapping> stack_;
     };
 
 } // namespace ours::mem

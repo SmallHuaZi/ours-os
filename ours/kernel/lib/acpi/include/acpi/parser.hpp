@@ -81,6 +81,11 @@ namespace acpi {
 
     auto get_table_by_signature(IAcpiParser const &, AcpiSignature) -> AcpiTableHeader const *;
 
+    template <typename Table>
+    auto get_table_by_type(IAcpiParser const &parser) -> Table const * {
+        return reinterpret_cast<Table const *>(get_table_by_signature(parser, Table::kSignature));
+    }
+
 } // namespace acpi
 
 #endif // #ifndef ACPI_PARSER_HPP

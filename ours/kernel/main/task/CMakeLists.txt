@@ -4,7 +4,7 @@ INTERFACE
 )
 set(source_set
     "thread.cpp"
-    "process.cpp"
+    "timer.cpp"
 )
 
 add_library(kernel_task INTERFACE)

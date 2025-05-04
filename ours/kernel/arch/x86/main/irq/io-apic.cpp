@@ -7,10 +7,13 @@
 #include <arch/x86/apic/ioapic.hpp>
 #include <arch/intr_disable_guard.hpp>
 
+#include <ustl/mem/box.hpp>
 #include <ktl/new.hpp>
 #include <logz4/log.hpp>
 
-namespace ours::irq {
+namespace ours {
+    using namespace irq;
+
     class IoApic: public IrqChip {
         typedef IoApic      Self;
         typedef IrqChip     Base;
@@ -73,15 +76,21 @@ namespace ours::irq {
     }
 
     static ustl::views::Span<IoApic> s_ioapics;
+    static ustl::views::Span<arch::IoApicIsaOverride> s_ioapic_isa_overrides;
 
     INIT_CODE
     auto init_io_apic(ustl::views::Span<arch::IoApic> const &ioapics,
                       ustl::views::Span<arch::IoApicIsaOverride> const &overrides) -> void {
         auto const nr_ioapics = ioapics.size();
+        auto const nr_overrides = overrides.size();
         {
-            auto raw = new (mem::kGafKernel) IoApic[nr_ioapics]();
-            ASSERT(raw, "Failed to allocate IO-APIC");
-            s_ioapics = ustl::views::make_span(raw, nr_ioapics);
+            auto raw_ioapics = new (mem::kGafKernel) IoApic[nr_ioapics]();
+            ASSERT(raw_ioapics, "Failed to allocate IO-APIC");
+            s_ioapics = ustl::views::make_span(raw_ioapics, nr_ioapics);
+
+            auto raw_overrides = new (mem::kGafKernel) arch::IoApicIsaOverride[nr_overrides]();
+            ASSERT(raw_overrides, "Failed to allocate IO-APIC");
+            s_ioapic_isa_overrides = ustl::views::make_span(raw_overrides, nr_overrides);
         }
 
         for (auto i = 0; i < nr_ioapics; ++i) {
@@ -117,6 +126,34 @@ namespace ours::irq {
             s_ioapics[i].arch_ioapic().reset_mmio(mmio_virt);
             s_ioapics[i].dump();
         }
+
+        for (auto i = 0; i < nr_overrides; ++i) {
+            s_ioapic_isa_overrides[i] = overrides[i];
+        }
     }
 
-} // namespace ours::irq
+    auto apic_configure_irq(HIrqNum global_irq, arch::ApicTriggerMode trimode, 
+                            arch::ApicInterruptPolarity polarity, arch::ApicDeliveryMode delmode, 
+                            bool mask, arch::ApicDestinationMode dstmode, u8 dst, arch::IrqVec vector) -> void {
+        IoApic *ioapic;
+        ioapic->arch_ioapic().config_irq(global_irq, trimode, polarity, delmode, dstmode, dst, vector);
+        if (mask) {
+            ioapic->arch_ioapic().mask_irq(global_irq);
+        }
+    }
+
+    auto apic_configure_isa_irq(u8 isa_irq, arch::ApicDeliveryMode del_mode, bool mask,
+                                arch::ApicDestinationMode dst_mode, u8 dst, arch::IrqVec vector) -> void {
+        HIrqNum irq = isa_irq;
+        arch::ApicTriggerMode trigger_mode; 
+        arch::ApicInterruptPolarity polarity; 
+        if (s_ioapic_isa_overrides[isa_irq].remapped) {
+            irq = s_ioapic_isa_overrides[isa_irq].global_irq;
+            trigger_mode = s_ioapic_isa_overrides[isa_irq].tri_mode;
+            polarity = s_ioapic_isa_overrides[isa_irq].polarity;
+        }
+
+        apic_configure_irq(irq, trigger_mode, polarity, del_mode, mask, dst_mode, dst, vector);
+    }
+
+} // namespace ours

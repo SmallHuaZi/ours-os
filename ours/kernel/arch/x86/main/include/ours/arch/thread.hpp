@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_ARCH_THREAD_HPP
 #define OURS_ARCH_THREAD_HPP 1
 
@@ -16,15 +15,15 @@
 #include <ours/config.hpp>
 
 namespace ours::task {
-    class X86Thread
-    {
+    class X86Thread {
         typedef X86Thread  Self;
-
-    public:
+      public:
         static auto switch_context(Self &prev, Self &next) -> void;
     
-    private:
+      private:
         friend class Thread;
+        usize fs_base_;
+        usize gs_base_;
     };
 
     typedef X86Thread   ArchThread;

@@ -235,13 +235,31 @@ namespace ours::mem {
         return Status::Ok;
     }
 
-    auto VmMapping::activate() -> void {
+    auto VmMapping::activate() -> Status {
         Base::activate();
 
         // Note when a mapping was added into a VMO's mapping list, the inside counter
         // has not been increased implicitly. It is required to pay attention to manually 
         // install and uninstall a mapping, avoiding lifecycle problem.
         vmo_->add_mapping(*this);
+
+        return Status::Ok;
+    }
+
+    auto VmMapping::destroy() -> Status {
+        canary_.verify();
+
+        auto status = aspace_->arch_aspace().unmap(base_, size_ >> PAGE_SHIFT, {}, 0);
+        if (Status::Ok != status) {
+            log::trace("Failed to destroy Mapping with unmapping {} pages at {}", size_ >> PAGE_SHIFT, base_);
+            return status;
+        }
+
+        if (vmo_) {
+            vmo_->remove_mapping(*this);
+        }
+        Base::destroy();
+        return Status::Ok;
     }
 
     FORCE_INLINE

@@ -22,7 +22,7 @@
 #define X86_GDT_USER_CODE64      (6 << 3)
 #define X86_GDT_MAX_SELECTORS    (6 + 1) // Has also the first null descriptor
 
-#define TSS_SELECTOR(i) ((uint16_t)(0x38 + 16 * (i)))
+#define TSS_SELECTOR(i) ((u16)(0x38 + 16 * (i)))
 /* 0x40 is used by the second half of the first TSS descriptor */
 
 /// selector priviledge level
@@ -37,12 +37,22 @@
 #define SEG_TYPE_CODE_RW    0xa
 
 #ifndef __ASSEMBLY__
+
+#include <ours/config.hpp>
+#include <ours/cpu-cfg.hpp>
+#include <ours/mem/cfg.hpp>
+
+#include <arch/x86/descriptor.hpp>
+#include <ustl/array.hpp>
+
 namespace ours {
     auto x86_setup_gdt() -> void;
 
     auto x86_load_gdt() -> void;
 
     auto x86_dump_gdt() -> void;
+
+    auto x86_init_tss_percpu() -> void;
 
 } // namespace ours
 #endif // #ifndef __ASSEMBLY__

@@ -11,7 +11,7 @@
 #include <gktl/init_hook.hpp>
 #include <ktl/vec.hpp>
 
-namespace ours::irq {
+namespace ours {
     static auto parse_io_apic_isa_overrides(acpi::AcpiMadtInterruptOverrideEntry const &entry) 
         -> arch::IoApicIsaOverride {
         arch::IoApicIsaOverride object;
@@ -46,6 +46,9 @@ namespace ours::irq {
     }
 
     static auto platform_init_apic() -> void {
+        // Before enable the APIC, we should shutdown the PIC.
+        arch::Pic::disable();
+
         auto acpi_parser = get_acpi_parser();
 
         ktl::Vec<arch::IoApic> io_apics;
@@ -65,15 +68,22 @@ namespace ours::irq {
         init_local_apic();
         init_io_apic(ustl::views::Span(io_apics), ustl::views::Span(io_apic_isa_overrides));
 
+        using namespace arch;
+        auto const bspid = current_apic_id(); 
+        // Manually configing the ISA IRQs
+        for (auto i = 0; i < 8; ++i) {
+            if (i == 2) {
+                apic_configure_isa_irq(i, ApicDeliveryMode::Fixed, true, 
+                               ApicDestinationMode::Physical, bspid, IrqVec());
+            }
+            apic_configure_isa_irq(i + 8, ApicDeliveryMode::Fixed, true, 
+                                   ApicDestinationMode::Physical, bspid, IrqVec());
+        }
     }
     GKTL_INIT_HOOK(ApicInit, platform_init_apic, gktl::InitLevel::Vmm);
-
-    static auto platform_init_irq() -> void {
-        
-    }
 
     auto platform_handle_irq(HIrqNum irqnum) -> void {
         irq::handle_irq_generic(irqnum);
     }
 
-} // namespace ours::irq
+} // namespace ours

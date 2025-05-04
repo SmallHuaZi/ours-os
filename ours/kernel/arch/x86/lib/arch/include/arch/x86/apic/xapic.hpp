@@ -115,22 +115,26 @@ namespace arch {
             return version_;
         }
 
+        enum class TscMode {
+            OneShot,
+            Periodic,
+            Deadline,
+        };
+
         template <typename Vector>
         FORCE_INLINE
-        auto enable_tsc(Vector vector) -> void {
+        auto enable_tsc(Vector vector, TscMode mode = TscMode::OneShot) -> void {
             auto lvt = read_reg(XApicRegType::LvtTimer);
             lvt &= 0xff;
             lvt |= static_cast<u32>(vector);
-            lvt &= ~BIT(16);
-            lvt &= ~BIT(17);
-            lvt |= BIT(18);
+            lvt &= ~(BIT(16) | BIT(17));
+            lvt |= static_cast<u32>(mode) << 16;
             write_reg(XApicRegType::LvtTimer, lvt);
         }
 
         FORCE_INLINE
-        auto set_tsc_deadline(u64 deadline) -> bool {
-            // Now i am not sure that if to set a deadline was constrained.
-            return false;
+        auto set_tsc_deadline(u64 deadline) -> void {
+            MsrIo::write(MsrRegAddr::IA32TscDeadline, deadline);
         }
 
         FORCE_INLINE

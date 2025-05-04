@@ -369,7 +369,7 @@ namespace bitfields {
         {
             template <typename Wrapper>
             struct Matcher
-                : traits::BoolConstant<Field::ID == Wrapper()>
+                : traits::BoolConstant<Field::kId == Wrapper()>
             {  typedef bool    RetType;  };
 
             USTL_CONSTEXPR
@@ -447,59 +447,89 @@ namespace bitfields {
 
         template<usize Id>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto get() const USTL_NOEXCEPT -> ValueTypeOf<Id> {
+        auto set(ValueTypeOf<Id> const &value) volatile USTL_NOEXCEPT -> Self volatile & {
+            priv_set<Id>(value, traits::BoolConstant<IsFieldEnabledV<Id>>());
+            return *this;
+        }
+
+        template<usize Id>
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        auto get() const volatile USTL_NOEXCEPT -> ValueTypeOf<Id> {
             return priv_get<Id>(traits::BoolConstant<IsFieldEnabledV<Id>>());
         }
 
-        template <typename Container, usize... Ids>
+        template <typename Integer, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto pack(IndexSequence<Ids...>) const USTL_NOEXCEPT -> Container {
-            return pack<Container, Ids...>();
+        auto pack(IndexSequence<Ids...>) const USTL_NOEXCEPT -> Integer {
+            return pack<Integer, Ids...>();
         }
 
         /// Takes multiple fields and combines them into a single `Int`.
-        template <typename Container, usize... Ids>
+        template <typename Integer, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto pack() const USTL_NOEXCEPT -> Container {
-            static_assert(traits::IsTrivillyConstructibleV<Container>, "[Error]: ");
-            Container out;
-            pack_to<Container, Ids...>(out);
+        auto pack() const USTL_NOEXCEPT -> Integer {
+            static_assert(traits::IsTrivillyConstructibleV<Integer>, "[Error]: ");
+            Integer out{};
+            pack_to<Integer, Ids...>(out);
             return out;
         }
 
+        template <typename Integer, usize BitSum, usize Id, usize... Ids>
+        struct PackHelper {
+            USTL_FORCEINLINE USTL_CONSTEXPR USTL_CXX23_STATIC
+            auto operator()(Self const &self, Integer &out) const USTL_NOEXCEPT -> void {
+                auto field = self.get<Id>();
+                out |= static_cast<Integer>(field) << BitSum;
+
+                USTL_IF_CONSTEXPR (sizeof...(Ids) > 0) {
+                    typedef PackHelper<Integer, BitSum + GetFieldT<FieldList, Id>::kBits, Ids...>
+                        HandleNextItem;
+                    HandleNextItem{}(self, out);
+                }
+            }
+        };
+
         /// Takes multiple fields and combines them into a single `Layout`.
-        template <typename Layout, usize Id, usize... Ids>
+        template <typename Integer, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto pack_to(Layout &out) const USTL_NOEXCEPT -> void {
-            static_assert(sizeof(Layout) * 8 >= TotalOccupiedUsizeByIds<FieldList, Id, Ids...>::VALUE,
+        auto pack_to(Integer &out) const USTL_NOEXCEPT -> void {
+            static_assert(sizeof(Integer) * 8 >= TotalOccupiedUsizeByIds<FieldList, Ids...>::VALUE,
                           "[ustl-error]: The size of the specified type must be at least as large as the required size.");
-            typedef IndexSequence<0, GetFieldT<FieldList, Ids>::BITS...>     BitsOfAllField;
+            typedef IndexSequence<0, GetFieldT<FieldList, Ids>::kBits...>     BitsOfAllField;
             typedef IntegerSequenceCalculatePresumT<BitsOfAllField>         ShiftsOnFlatLayout;
 
-            // TODO(SmallHuaZi) using class template instead of fold expression to provide
-            // compatibility for older version of c++.
-            out = Layout(get<Id>()) | (((Layout(get<Ids>()) << GetFieldT<FieldList, Id>::BITS)) | ...);
+            PackHelper<Integer, 0, Ids...>()(*this, out);
         }
 
-        template <typename Container, usize... Ids>
-        USTL_FORCEINLINE USTL_CONSTEXPR
-        auto unpack(Container const &container, IndexSequence<Ids...>) const USTL_NOEXCEPT -> void {
-            return unpack<Container, Ids...>(container);
-        }
+        template <typename Integer, usize BitSum, usize Id, usize... Ids>
+        struct UnpackHelper {
+            USTL_FORCEINLINE USTL_CONSTEXPR USTL_CXX23_STATIC
+            auto operator()(Self &self, Integer value) const USTL_NOEXCEPT -> void {
+                self.set<Id>(static_cast<ValueTypeOf<Id>>(
+                    (value >> BitSum) & MakeBitMask<usize, 0, GetFieldT<FieldList, Id>::kBits>::VALUE)
+                );
 
-        template <typename Container, usize Id, usize... Ids>
+                USTL_IF_CONSTEXPR (sizeof...(Ids) > 0) {
+                    typedef UnpackHelper<Integer, BitSum + GetFieldT<FieldList, Id>::kBits, Ids...>
+                        HandleNextItem;
+                    HandleNextItem{}(self, value);
+                }
+            }
+        };
+
+        template <typename Integer, usize... Ids>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto unpack(Container const &container) const USTL_NOEXCEPT -> void {
+        auto unpack(Integer value, IndexSequence<Ids...>) USTL_NOEXCEPT -> void {
+            UnpackHelper<Integer, 0, Ids...>()(*this, value);
         }
 
         template <typename Enum>
         USTL_FORCEINLINE USTL_CONSTEXPR
         auto operator|(Enum value) -> Self;
-
     private:
         template<usize Id>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto priv_set(ValueTypeOf<Id> const &value, traits::TrueType) USTL_NOEXCEPT -> void {
+        auto priv_set(ValueTypeOf<Id> const &value, traits::TrueType) volatile USTL_NOEXCEPT -> void {
             // Defining the variables is just to observe their value. Usually them will
             // be optimized out. So don't worry that them occupy the statck space.
             USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::kUnit;
@@ -517,7 +547,7 @@ namespace bitfields {
 
         template<usize Id>
         USTL_FORCEINLINE USTL_CONSTEXPR
-        auto priv_get(traits::TrueType) const USTL_NOEXCEPT -> ValueTypeOf<Id> {
+        auto priv_get(traits::TrueType) const volatile USTL_NOEXCEPT -> ValueTypeOf<Id> {
             typedef ValueTypeOf<Id> Result;
             USTL_CONSTEXPR usize const idx = GetFieldT<FieldList, Id>::kUnit;
             USTL_CONSTEXPR usize const mask = GetFieldT<FieldList, Id>::kMask;

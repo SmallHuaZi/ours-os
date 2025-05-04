@@ -43,6 +43,14 @@ namespace arch {
         outb(0x80, 0);
     }
 
+
+    auto Pic::disable() -> void {
+        outb(PIC1_DATA, 0xFF);
+        wait_io();
+        outb(PIC2_DATA, 0xFF);
+        wait_io();
+    }
+
     /// init the PICs and remap them
     ///
     /// `pic1` is vector offset for master PIC

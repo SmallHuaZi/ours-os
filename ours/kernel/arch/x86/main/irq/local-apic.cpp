@@ -11,7 +11,9 @@
 
 #include <logz4/log.hpp>
 
-namespace ours::irq {
+namespace ours {
+    using namespace irq;
+
     static void *s_apic_mmio_base;
     static bool s_x2apic_enabled = false;
 
@@ -70,6 +72,14 @@ namespace ours::irq {
 
     INIT_CODE
     auto init_local_apic() -> void {
+        // Section 10.4.1 has the following:
+        // In MP system configurations, the APIC registers for Intel 64 or IA-32 processors on 
+        // the system bus are initially mapped to the same 4-KByte region of the physical address 
+        // space. Software has the option of changing initial mapping to a different 4-KByte region 
+        // for all the local APICs or of mapping the APIC registers for each local APIC to its own 
+        // 4-KByte region.
+        //
+        // We map it to the same 4K region for all the local APICs.
         using namespace mem;
         auto rvma = VmAspace::kernel_aspace()->root_vma();
         auto result = rvma->map_at(arch::kApicPhysBase, 0, PAGE_SIZE, 
@@ -90,14 +100,16 @@ namespace ours::irq {
 
     INIT_CODE
     static auto init_apic_timer() -> void {
-        s_xapic_chip.inner_.enable_tsc(arch::IrqVec::ApicTimer);
-        s_xapic_chip.inner_.mask(arch::XApicRegType::LvtTimer);
+        using namespace arch;
+        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::OneShot);
+        s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
 
         if (x86_has_feature(CpuFeatureType::TscDeadlineTimer)) {
             // Stub
         }
     }
 
+    /// Initialize APIC performance monitoring interrupt.
     INIT_CODE
     static auto init_apic_pmi() -> void {
         using namespace arch;
@@ -133,6 +145,36 @@ namespace ours::irq {
         init_apic_timer();
         init_apic_error();
         init_apic_pmi();
+    }
+
+    INIT_CODE
+    auto init_apic_deadline_tsc() -> void {
+        using namespace arch;
+        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::Deadline);
+        s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
+    }
+
+    auto apic_timer_set_oneshot(u32 n, u8 divisor, bool mask) -> Status {
+        using namespace arch;
+        CXX11_CONSTEXPR
+        static u32 const kDivisor[] = {0xb, 0, 1, 2, 3, 8, 9, 10};
+
+        if (divisor == 0 || divisor > std::size(kDivisor)) {
+            return Status::InvalidArguments;
+        }
+
+        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::OneShot);
+        if (mask) {
+            s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
+        }
+
+        s_xapic_chip.inner_.write_reg(XApicRegType::TimerInitCount, n);
+        s_xapic_chip.inner_.write_reg(XApicRegType::TimerDivConf, kDivisor[divisor - 1]);
+        return Status::Ok;
+    }
+
+    auto apic_timer_current_count() -> u32 {
+        return s_xapic_chip.inner_.read_reg(arch::XApicRegType::TimerCurrentCount);
     }
 
 } // namespace ours::irq

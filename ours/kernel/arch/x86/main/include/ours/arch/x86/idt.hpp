@@ -11,6 +11,8 @@
 #ifndef OURS_ARCH_X86_IDT_HPP
 #define OURS_ARCH_X86_IDT_HPP 1
 
+#include <arch/x86/interrupt.hpp>
+
 namespace ours {
     auto x86_init_idt_early() -> void;
 

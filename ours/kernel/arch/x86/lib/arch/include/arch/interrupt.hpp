@@ -19,6 +19,16 @@
 namespace arch {
     typedef ArchCpuState   IntrSavedState;
 
+    FORCE_INLINE
+    static auto disable_interrupt() -> void {
+        asm ("cli;" ::: "memory");
+    }
+
+    FORCE_INLINE
+    static auto enable_interrupt() -> void {
+        asm ("sti;" ::: "memory");
+    }
+
     CXX11_CONSTEXPR
     static auto const kNullIntrSavedState = IntrSavedState();
 

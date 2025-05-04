@@ -51,6 +51,12 @@ namespace ustl {
               counter_(nullptr)
         {}
 
+        USTL_FORCEINLINE
+        Rc(decltype(nullptr)) USTL_NOEXCEPT
+            : pointer_(nullptr),
+              counter_(nullptr)
+        {}
+
         Rc(Self const &other) 
             : pointer_(other.pointer_),
               counter_(other.counter_)
@@ -72,11 +78,9 @@ namespace ustl {
         /// In this case, we assert that the raw pointer is firstly into 
         /// Rc construction. 
         template <typename U>
-            requires (traits::IsBaseOfV<SameCounter<T>, U> || // Derived -> Base, allowed.
-                      traits::IsBaseOfV<SameCounter<U>, T> || // Base -> Derived, disallowed.
-                      traits::IsSameV<T, U>) // Same type, allowed.
+            requires (traits::IsBaseOfV<U, T>)
         USTL_FORCEINLINE
-        Rc(U *other) USTL_NOEXCEPT
+        Rc(RefCounter<U, A, S> *other) USTL_NOEXCEPT
             : pointer_(static_cast<PtrMut>(other)),
               // First static_cast will help us to get correct pointer about inside counter.
               counter_(reinterpret_cast<Counter *>(static_cast<SameCounter<U> *>(other)))
@@ -263,6 +267,16 @@ namespace ustl {
         USTL_FORCEINLINE USTL_CONSTEXPR
         operator bool() USTL_NOEXCEPT
         {  return pointer_ != nullptr;  }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        friend auto operator ==(Self const &x, Self const &y) USTL_NOEXCEPT -> bool {
+            return x.pointer_ == y.pointer_;
+        }
+
+        USTL_FORCEINLINE USTL_CONSTEXPR
+        friend auto operator ==(Self const &x, Ptr y) USTL_NOEXCEPT -> bool {
+            return x.pointer_ == y;
+        }
 
         USTL_FORCEINLINE USTL_CONSTEXPR
         auto release() -> void {

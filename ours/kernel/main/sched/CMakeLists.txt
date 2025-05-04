@@ -1,8 +1,6 @@
 set(source_set
-    "cpu_local.cpp"
     "eevdf.cpp"
-    "main_scheduler.hpp"
-    "main_scheduler.cpp"
+    "scheduler.cpp"
     "mod.cpp"
 )
 

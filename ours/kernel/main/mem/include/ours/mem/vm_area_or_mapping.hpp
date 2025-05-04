@@ -144,8 +144,10 @@ namespace ours::mem {
             vmaf_ |= VmaFlags::Active;
         }
 
-        virtual auto activate() -> void; 
-        virtual auto destroy() -> void; 
+        virtual auto activate() -> Status; 
+
+        /// This routine by default just remove itself.
+        virtual auto destroy() -> Status; 
 
         friend class VmObject;
         friend class VmAspace;

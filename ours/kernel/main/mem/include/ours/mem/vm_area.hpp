@@ -64,11 +64,11 @@ namespace ours::mem {
         /// On success them return a object of VmMapping.
 
         /// Map |size| bytes space from the given physical address |phys_base| to virtual address |virt_base|.
-        auto map_at(PhysAddr phys_base, VirtAddr virt_base, usize size, MmuFlags, VmMapOption, char const *name)
+        auto map_at(PhysAddr phys_base, VirtAddr ai_out *virt_base, usize size, MmuFlags, VmMapOption, char const *name)
             -> ktl::Result<ustl::Rc<VmMapping>>;
 
         /// Map |size| bytes space to virtual address |virt_base|.
-        auto map(VirtAddr base, usize size, MmuFlags, VmMapOption, char const * name)
+        auto map(VirtAddr ai_out *base, usize size, MmuFlags, VmMapOption, char const * name)
             -> ktl::Result<ustl::Rc<VmMapping>>;
 
         auto unmap(usize offset, usize size) -> Status;
@@ -83,6 +83,9 @@ namespace ours::mem {
 
         auto dump() const -> void;
     protected:
+        static auto create_common(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *, ustl::Rc<Self> *) 
+            -> Status;
+
         VmArea(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *);
 
         auto alloc_spot(usize size, AlignVal align, VirtAddr lower_limit, VirtAddr upper_limit) -> ktl::Result<VirtAddr>;
@@ -91,11 +94,10 @@ namespace ours::mem {
         /// Create a sub-VMA or sub-Mapping and do not check the given range in packet
         auto create_subaom_internal(CreateVmAomArgs &packet, ustl::Rc<VmAreaOrMapping> *out) -> Status;
 
-        auto map_with_vmo(VirtAddr, usize, MmuFlags, ustl::Rc<VmObject>, VmMapOption, char const *)
+        auto map_with_vmo(VirtAddr *, usize, MmuFlags, ustl::Rc<VmObject>, VmMapOption, char const *)
             -> ktl::Result<ustl::Rc<VmMapping>>;
-
-        static auto create_common(VirtAddr, usize, VmaFlags, VmArea *, VmAspace *, char const *, ustl::Rc<Self> *) 
-            -> Status;
+        
+        virtual auto destroy() -> Status override;
     private:
         friend class VmObject;
         friend class VmAspace;

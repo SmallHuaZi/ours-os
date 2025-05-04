@@ -33,7 +33,8 @@ namespace gktl {
 
     /// Trace the the initialization level of system during boot.
     enum class InitLevel: u32 {
-        ArchEarlyInternal,
+        LowestLevel,
+        ArchEarlyInternal = LowestLevel,
         ArchEarly = ArchEarlyInternal + kDeltaBetweenLevels,
 
         PlatformEarlyInternal = ArchEarly + kDeltaBetweenLevels,

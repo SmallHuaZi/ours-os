@@ -4,6 +4,8 @@ add_library(kernel::platform::pc ALIAS kernel_platform_pc)
 set(platform_source_set 
     "init.cpp"
     "memory.cpp"
+    "hpet.cpp"
+    "timer.cpp"
     "interrupt.cpp"
 )
 if (CONFIG_ACPI)

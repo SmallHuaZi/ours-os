@@ -14,38 +14,47 @@
 #include <ours/macro_abi.hpp>
 #include <ours/status.hpp>
 #include <ours/types.hpp>
+#include <ours/config.hpp>
 
 #include <ustl/function/fn.hpp>
 #include <ustl/result.hpp>
 
 namespace ours::irq {
+    CXX11_CONSTEXPR
+    static auto const kInvalidVIrqNum = VIrqNum(-1);
+
     enum class IrqReturn {
         None = (0 << 0),
         Handled = (1 << 0),
         WakeThread = (1 << 1),
     };
-    using IrqHandler = ustl::function::Fn<IrqReturn(int, void *)>;
+    using IrqHandler = ustl::function::Fn<IrqReturn(VIrqNum, void *)>;
 
-    /// TODO(SmallHuaZi) Most of the following types are from Linux, and we rarely
-    /// use them. We should remove as many as possible, but we are not yet certain
-    /// which flags are necessary.
     enum class IrqFlags {
+        // For semantics, no any real effects
         None = 0,
-        Shared = 1 << 0,
-        Exclusive = 1 << 1,
-        Disabled = 1 << 2,
-        Fast = 1 << 3,
-        NoSuspend = 1 << 4,
-        NoAutoen = 1 << 5,
-        WakeThread = 1 << 6,
-        Permanent = BIT(7),
+
+        TriggerRising  = BIT(0),
+        TriggerFalling = BIT(1),
+        TriggerHigh = BIT(2),
+        TriggerLow	= BIT(3),
+        TriggerMask = TriggerRising | TriggerFalling | TriggerHigh | TriggerLow,
+
+        Shared = BIT(4),
+        Disabled = BIT(5),
+        Fast = BIT(6),
+        NoSuspend = BIT(7),
+        NoAutoen = BIT(8),
+        WakeThread = BIT(9),
+        Permanent = BIT(10),
+
     };
 
-    auto request_irq(HIrqNum irqnum, IrqHandler handler, IrqFlags flags) -> ustl::Result<VIrqNum, Status>;
+    auto request_irq(VIrqNum, IrqHandler, IrqFlags, char const *) -> Status;
 
-    auto release_irq(VIrqNum virqnum) -> Status;
+    auto release_irq(VIrqNum) -> Status;
 
-    auto handle_irq_generic(HIrqNum irqnum) -> Status;
+    auto handle_irq_generic(VIrqNum irqnum) -> Status;
 
 } // namespace ours::irq
 

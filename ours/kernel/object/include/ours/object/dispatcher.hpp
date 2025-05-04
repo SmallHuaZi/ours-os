@@ -20,17 +20,21 @@
 #include <ustl/sync/atomic.hpp>
 
 namespace ours::object {
-    class Dispatcher
-        : private ustl::RefCounter<Dispatcher>
-    {
+    class Dispatcher: private ustl::RefCounter<Dispatcher> {
         typedef Dispatcher   Self;
-    public:
-        auto id() const -> KoId
-        {  return koid_;  }
+        typedef ustl::RefCounter<Dispatcher>    Base;
+      public:
+        FORCE_INLINE
+        auto id() const -> KoId {  
+            return koid_;  
+        }
 
-        auto name() const -> char const *
-        {  return this->name_;  }
+        FORCE_INLINE
+        auto name() const -> char const * {  
+            return this->name_;  
+        }
 
+        FORCE_INLINE
         auto set_name(char const *name) -> void
         {}
 
@@ -39,9 +43,9 @@ namespace ours::object {
 
         auto remove_observer()
         {}
-    protected:
+      protected:
         Dispatcher(char const *name);
-    protected:
+
         KoId koid_;
         ustl::sync::AtomicU32  handle_count_;
         ustl::sync::AtomicU32  signal_count_;
@@ -52,9 +56,7 @@ namespace ours::object {
     };
 
     template <typename Derived, Rights default_rights, Signals>
-    class SoloDispatcher
-        : public Dispatcher
-    {
+    class SoloDispatcher: public Dispatcher {
 
     };
 
