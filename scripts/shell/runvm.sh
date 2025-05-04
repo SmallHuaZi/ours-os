@@ -47,5 +47,5 @@ qemu-system-x86_64 -drive file=ours.iso,format=raw \
     --nographic \
     -no-reboot \
     -d int,cpu_reset \
-    -serial file:logfile.txt
-    # -serial mon:stdio \
+    -D file:qemu-log.txt \
+    -serial mon:stdio

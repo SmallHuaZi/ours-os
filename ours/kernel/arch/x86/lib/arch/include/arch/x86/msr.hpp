@@ -12,6 +12,7 @@
 #define ARCH_X86_MSR_HPP 1
 
 #include <arch/types.hpp>
+#include <arch/macro/msr.hpp>
 
 namespace arch {
     // MSR identifiers.  These use the ALL_CAPS name style to be consistent with
@@ -31,12 +32,18 @@ namespace arch {
         IA32ArchCapabilities = 0x0000'010a, // Enumeration of architectural features.
 
         IA32TsxCtrl = 0x0000'0122,    // TSX control.
-        IA32MiscEnable = 0x0000'01a0, // Miscellaneous processor features.
+        IA32MiscEnable = X86_MSR_IA32_MISC_ENABLE, // Miscellaneous processor features.
+       
+        IA32Star = X86_MSR_IA32_STAR, // 64-bit syscall entry point.
+        IA32Lstar = X86_MSR_IA32_LSTAR, // 64-bit syscall entry point.
+        IA32Fmask = X86_MSR_IA32_FMASK, //  
 
-        IA32Debugctl = 0x0000'01d9, // Debug control.
+        IA32TscAux = X86_MSR_IA32_TSC_AUX, // TSC auxiliary register.
 
-        IA32PerfCapabilities = 0x0000'0345, // Performance monitoring features available.
-        IA32TscDeadline = 0x000006e0,       // TSC deadline 
+        IA32DebugCtl = 0x0000'01d9, // Debug control.
+
+        IA32PerfCap = 0x0000'0345, // Performance monitoring features available.
+        IA32TscDeadline = X86_MSR_IA32_TSC_DEADLINE, // TSC deadline 
 
         // Related to Last Branch Records.
         MSR_LbrSelect = 0x0000'01c8,            // Control register for the LBR feature

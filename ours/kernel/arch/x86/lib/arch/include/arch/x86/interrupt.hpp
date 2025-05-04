@@ -14,6 +14,7 @@
 #include <arch/types.hpp>
 #include <arch/macro/irqframe.hpp>
 #include <arch/processor/cpu-states.hpp>
+#include <ustl/util/enum_bits.hpp>
 
 namespace arch {
     /// Linux IRQ vector layout.

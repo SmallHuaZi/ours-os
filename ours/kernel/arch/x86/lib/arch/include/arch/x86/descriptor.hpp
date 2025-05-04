@@ -16,21 +16,33 @@
 #include <ustl/bitfields.hpp>
 #include <ustl/traits/is_same.hpp>
 #include <ustl/util/index_sequence.hpp>
+#include <ustl/util/enum_bits.hpp>
 
 namespace arch {
     // These raw fields are normally accessed via the accessors defined below.
     enum class SegType: u8 {
-        DataRO = 0b000,
-        DataRW = 0b001,
-        DataRODown = 0b010,
-        DataRWDown = 0b011,
-        CodeXO = 0b100,
-        CodeRX = 0b101,
-        CodeXOConforming = 0b110,
-        CodeRXConforming = 0b111,
-        System = 0b1000,
-        Tss = 0b1001,
+        // For non-system segments
+        AccessedBit = 0b00001,
+        ReadOrWriteBit = 0b00010,
+        DirectionOrConformingBit = 0b00100,
+        ExecutableBit = 0b01000,
+
+        // If set, the segment is a non-system segment.
+        SystemBit = 0b10000,
+
+        DataRO = SystemBit,
+        DataRW = SystemBit | ReadOrWriteBit,
+        DataRODown = DataRO | DirectionOrConformingBit,
+        DataRWDown = DataRW | DirectionOrConformingBit,
+        CodeXO = SystemBit | ExecutableBit,
+        CodeRX = CodeXO | ReadOrWriteBit,
+        CodeXOConforming = CodeXO | DirectionOrConformingBit,
+        CodeRXConforming = CodeRX | DirectionOrConformingBit,
+
+        Tss64Available = 0x9,
+        Tss64Busy = 0xB,
     };
+    USTL_ENABLE_ENUM_BITMASK(SegType);
 
     FORCE_INLINE
     static auto to_string(SegType type) -> char const * {
@@ -43,8 +55,8 @@ namespace arch {
             case SegType::CodeRX: return "CodeRX";
             case SegType::CodeXOConforming: return "CodeXOConforming";
             case SegType::CodeRXConforming: return "CodeRXConforming";
-            case SegType::System: return "System";
-            case SegType::Tss: return "Tss";
+            case SegType::Tss64Available: return "TssAvailable";
+            case SegType::Tss64Busy: return "TssBusy";
             default: return "Unknown";
         }
     }
@@ -66,6 +78,11 @@ namespace arch {
             default: return "Unknown";
         }
     }
+
+    enum class SegGran: u8 {
+        Byte = 0b0,
+        Page = 0b1,
+    };
 
 namespace details {
     using ustl::Field;
@@ -93,7 +110,6 @@ namespace details {
             LimitLow16Id,
             BaseLow16Id,
             BaseMid8Id,
-            AccessedId,
             TypeId,
             DplId,
             PresentId,
@@ -112,17 +128,16 @@ namespace details {
             Field<Id<BaseLow16Id>, Bits<16>>,
             Field<Id<BaseMid8Id>, Bits<8>>,
             // Access bytes
-            Field<Id<AccessedId>, Bits<1>>,
-            Field<Id<TypeId>, Bits<4>, Type<SegType>>, 
+            Field<Id<TypeId>, Bits<5>, Type<SegType>>,
             Field<Id<DplId>, Bits<2>, Type<Dpl>>,
             Field<Id<PresentId>, Bits<1>>,
             //
-            Field<Id<LimitHigh4Id>, Bits<4>>, 
+            Field<Id<LimitHigh4Id>, Bits<4>>,
             // Flags
             Field<Id<Reserved1BitId>, Bits<1>>,
             Field<Id<LongModeId>, Bits<1>>,
             Field<Id<Addr32Id>, Bits<1>>,
-            Field<Id<GranularityId>, Bits<1>>,
+            Field<Id<GranularityId>, Bits<1>, Type<SegGran>>,
             //
             Field<Id<BaseHigh8Id>, Bits<8>>,
             Field<Id<BaseHigh32Id>, Bits<32>, Enable<Is64BitsV>>,
@@ -189,6 +204,39 @@ namespace details {
         CXX11_CONSTEXPR
         auto set_dpl(Dpl dpl) -> Self & {
             values.template set<DplId>(dpl);
+            return *this;
+        }
+
+        CXX11_CONSTEXPR
+        auto granularity() const -> bool {
+            return values.template get<GranularityId>();
+        }
+
+        CXX11_CONSTEXPR
+        auto set_granularity(SegGran gran) -> Self & {
+            values.template set<GranularityId>(gran);
+            return *this;
+        }
+
+        CXX11_CONSTEXPR
+        auto is_accessed() const -> bool {
+            return !!(type() & SegType::AccessedBit);
+        }
+
+        CXX11_CONSTEXPR
+        auto set_accessed(bool accessed) -> Self & {
+            values.template set<TypeId>(type() | SegType::AccessedBit);
+            return *this;
+        }
+
+        CXX11_CONSTEXPR
+        auto is_longmode() const -> bool {
+            return values.template get<LongModeId>();
+        }
+
+        CXX11_CONSTEXPR
+        auto set_longmode(bool enable) -> Self & {
+            values.template set<LongModeId>(enable);
             return *this;
         }
 

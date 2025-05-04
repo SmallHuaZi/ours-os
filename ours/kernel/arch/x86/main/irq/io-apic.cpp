@@ -76,7 +76,19 @@ namespace ours {
     }
 
     static ustl::views::Span<IoApic> s_ioapics;
-    static ustl::views::Span<arch::IoApicIsaOverride> s_ioapic_isa_overrides;
+    static ustl::Array<arch::IoApicIsaOverride, arch::kNumIsaIrqs> s_ioapic_isa_overrides;
+    irq::IrqChip *g_ioapic_chip;
+
+    static auto resolve_irqnum_to_ioapic(HIrqNum irqnum) -> IoApic * {
+        for (auto i = 0; i < s_ioapics.size(); ++i) {
+            if (s_ioapics[i].arch_ioapic().gsi_base() <= irqnum && 
+                irqnum < s_ioapics[i].arch_ioapic().max_local_irqnum()) {
+                return &s_ioapics[i];
+            }
+        }
+
+        return 0;
+    }
 
     INIT_CODE
     auto init_io_apic(ustl::views::Span<arch::IoApic> const &ioapics,
@@ -87,10 +99,6 @@ namespace ours {
             auto raw_ioapics = new (mem::kGafKernel) IoApic[nr_ioapics]();
             ASSERT(raw_ioapics, "Failed to allocate IO-APIC");
             s_ioapics = ustl::views::make_span(raw_ioapics, nr_ioapics);
-
-            auto raw_overrides = new (mem::kGafKernel) arch::IoApicIsaOverride[nr_overrides]();
-            ASSERT(raw_overrides, "Failed to allocate IO-APIC");
-            s_ioapic_isa_overrides = ustl::views::make_span(raw_overrides, nr_overrides);
         }
 
         for (auto i = 0; i < nr_ioapics; ++i) {
@@ -127,26 +135,59 @@ namespace ours {
             s_ioapics[i].dump();
         }
 
+        log::info("ISA Irq | Remapped | Trigger mode | Polarity | Global IRQ");
         for (auto i = 0; i < nr_overrides; ++i) {
-            s_ioapic_isa_overrides[i] = overrides[i];
+            /// Make a linear mapping
+            s_ioapic_isa_overrides[overrides[i].isa_irq] = overrides[i];
+            log::trace("{: <6} | {} | {} | {} | {}", 
+                s_ioapic_isa_overrides[i].isa_irq, 
+                s_ioapic_isa_overrides[i].remapped, 
+                to_string(s_ioapic_isa_overrides[i].tri_mode),
+                to_string(s_ioapic_isa_overrides[i].polarity),
+                s_ioapic_isa_overrides[i].global_irq
+            );
         }
+
+        g_ioapic_chip = &s_ioapics[0];
+    }
+
+    auto apic_unmask_irq(HIrqNum global_irq) -> void {
+        s_ioapics[0].inner_.unmask_irq(global_irq);
     }
 
     auto apic_configure_irq(HIrqNum global_irq, arch::ApicTriggerMode trimode, 
                             arch::ApicInterruptPolarity polarity, arch::ApicDeliveryMode delmode, 
                             bool mask, arch::ApicDestinationMode dstmode, u8 dst, arch::IrqVec vector) -> void {
-        IoApic *ioapic;
-        ioapic->arch_ioapic().config_irq(global_irq, trimode, polarity, delmode, dstmode, dst, vector);
-        if (mask) {
-            ioapic->arch_ioapic().mask_irq(global_irq);
-        }
+        IoApic *ioapic = resolve_irqnum_to_ioapic(global_irq);
+        ASSERT(ioapic);
+
+        ioapic->arch_ioapic().config_irq(
+            global_irq, 
+            trimode, 
+            polarity, 
+            delmode, 
+            dstmode, 
+            dst, 
+            vector,
+            mask
+        );
+
+        log::trace("IO-APIC[{}]: configuration({}, {}, {}, {}, {}, {})", 
+            ioapic->inner_.id(),
+            to_string(trimode),
+            to_string(polarity),
+            to_string(delmode),
+            to_string(dstmode),
+            dst,
+            usize(vector)
+        );
     }
 
     auto apic_configure_isa_irq(u8 isa_irq, arch::ApicDeliveryMode del_mode, bool mask,
                                 arch::ApicDestinationMode dst_mode, u8 dst, arch::IrqVec vector) -> void {
         HIrqNum irq = isa_irq;
-        arch::ApicTriggerMode trigger_mode; 
-        arch::ApicInterruptPolarity polarity; 
+        auto trigger_mode = arch::ApicTriggerMode::Edge; 
+        auto polarity = arch::ApicInterruptPolarity::ActiveHigh; 
         if (s_ioapic_isa_overrides[isa_irq].remapped) {
             irq = s_ioapic_isa_overrides[isa_irq].global_irq;
             trigger_mode = s_ioapic_isa_overrides[isa_irq].tri_mode;

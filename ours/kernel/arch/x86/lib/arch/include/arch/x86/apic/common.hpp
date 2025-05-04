@@ -19,6 +19,15 @@ namespace arch {
         ActiveHigh,
     };
 
+    FORCE_INLINE
+    static auto to_string(ApicInterruptPolarity mode) -> char const * {
+        switch (mode) {
+            case ApicInterruptPolarity::ActiveHigh: return "High";
+            case ApicInterruptPolarity::ActiveLow: return "Low";
+        }
+        return "Unknown";
+    }
+
     enum class ApicDeliveryMode {
         /// The standard mode for delivering interrupts. The interrupt is delivered 
         /// directly to the target CPU as specified in the APIC configuration.
@@ -53,20 +62,61 @@ namespace arch {
         ExtInt = 7,
     };
 
+    FORCE_INLINE
+    static auto to_string(ApicDeliveryMode mode) -> char const * {
+        switch (mode) {
+            case ApicDeliveryMode::ExtInt: return "ExtInt";
+            case ApicDeliveryMode::Fixed: return "Fixed";
+            case ApicDeliveryMode::Init: return "Init";
+            case ApicDeliveryMode::LowestPri: return "LowestPri";
+            case ApicDeliveryMode::Nmi: return "Nmi";
+            case ApicDeliveryMode::Smi: return "Smi";
+            case ApicDeliveryMode::Startup: return "Startup";
+        }
+        return "Unknown";
+    }
+
     enum class ApicDeliveryStatus {
         Idle,
         Pending,
     };
+
+    FORCE_INLINE
+    static auto to_string(ApicDeliveryStatus mode) -> char const * {
+        switch (mode) {
+            case ApicDeliveryStatus::Idle: return "Idle";
+            case ApicDeliveryStatus::Pending: return "Pending";
+        }
+        return "Unknown";
+    }
 
     enum class ApicDestinationMode {
         Physical = 0,
         Logical = 1,
     };
 
+    FORCE_INLINE
+    static auto to_string(ApicDestinationMode mode) -> char const * {
+        switch (mode) {
+            case ApicDestinationMode::Physical: return "Edge";
+            case ApicDestinationMode::Logical: return "Level";
+        }
+        return "Unknown";
+    }
+
     enum class ApicTriggerMode {
         Edge = 0,
         Level = 1,
     };
+
+    FORCE_INLINE
+    static auto to_string(ApicTriggerMode mode) -> char const * {
+        switch (mode) {
+            case ApicTriggerMode::Edge: return "Edge";
+            case ApicTriggerMode::Level: return "Level";
+        }
+        return "Unknown";
+    }
 
     enum class ApicIpiTarget {
         TheOne,
@@ -152,6 +202,9 @@ namespace arch {
 
         u64 wrapper_;
     };
+
+    CXX11_CONSTEXPR
+    static auto const kNumIsaIrqs = 16;
 
 } // namespace arch
 

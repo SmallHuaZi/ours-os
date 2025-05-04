@@ -101,7 +101,8 @@ namespace ours {
     INIT_CODE
     static auto init_apic_timer() -> void {
         using namespace arch;
-        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::OneShot);
+        // Using periodic timer
+        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::Periodic);
         s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
 
         if (x86_has_feature(CpuFeatureType::TscDeadlineTimer)) {

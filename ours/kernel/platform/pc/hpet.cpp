@@ -1,5 +1,6 @@
 #include <ours/platform/hpet.hpp>
 #include <ours/platform/acpi.hpp>
+#include <ours/arch/apic.hpp>
 #include <ours/assert.hpp>
 
 // This is a very inconvenient way 
@@ -86,8 +87,30 @@ namespace ours {
         g_hpet = new (mem::kGafKernel) Hpet();
         DEBUG_ASSERT(g_hpet);
         g_hpet->mmio = hpet_regs;
+        g_hpet->num_channels = num_timers;
         g_hpet->ticks_per_ms = nominal_frequency / 1000;
     }
     GKTL_INIT_HOOK(HpetInit, init_hpet, gktl::InitLevel::Vmm + 2);
+
+    INIT_CODE
+    auto enable_hpet() -> void {
+        using namespace arch;
+        /// TODO(SmallHuaZi) Remove this temporary workaround to HPET timer.
+        g_hpet->disable();
+        g_hpet->mmio->main_counter_value = 0;
+        g_hpet->mmio->general_config.enable_legacy_route(true);
+
+        // Periodic timer.
+        g_hpet->mmio->timers[0].conf_caps.enable_periodic()
+                                         .mask(false);
+        // Set the comparator match
+        g_hpet->mmio->timers[0].comparator_value = g_hpet->ticks_per_ms * 10;
+        g_hpet->mmio->timers[0].comparator_value = g_hpet->ticks_per_ms * 10;
+
+        g_hpet->enable();
+
+        apic_configure_isa_irq(0, ApicDeliveryMode::Fixed, false, ApicDestinationMode::Physical, 
+            0, IrqVec(u8(IrqVec::PlatformIrqMin) + 2));
+    }
 
 } // namespace ours

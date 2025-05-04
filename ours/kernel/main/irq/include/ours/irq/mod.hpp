@@ -47,7 +47,6 @@ namespace ours::irq {
         NoAutoen = BIT(8),
         WakeThread = BIT(9),
         Permanent = BIT(10),
-
     };
 
     auto request_irq(VIrqNum, IrqHandler, IrqFlags, char const *) -> Status;

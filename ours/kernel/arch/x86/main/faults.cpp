@@ -1,43 +1,52 @@
 #include <ours/arch/x86/faults.hpp>
 #include <arch/x86/interrupt.hpp>
 #include <ours/platform/init.hpp>
+#include <ours/platform/interrupt.hpp>
 
 #include <logz4/log.hpp>
 
 namespace ours {
+    FORCE_INLINE
+    static auto irqvec_to_irqnum(arch::IrqVec vector) -> HIrqNum {
+        DEBUG_ASSERT(static_cast<HIrqNum>(vector) >= static_cast<HIrqNum>(arch::IrqVec::PlatformIrqMin));
+        return static_cast<HIrqNum>(vector) - static_cast<HIrqNum>(arch::IrqVec::PlatformIrqMin);
+    }
+
     static auto x86_dispatch_exception(arch::IrqVec vector, arch::IrqFrame *frame) -> void {
-        if (vector == arch::IrqVec::PageFault) {
+        using namespace arch;
+        if (vector == IrqVec::PageFault) {
             if (Status::Ok != x86_handle_page_fault(frame)) {
             }
         }
             
         switch (vector) {
-            case arch::IrqVec::DivideError:
-            case arch::IrqVec::Debug:
-            case arch::IrqVec::Nmi:
-            case arch::IrqVec::Breakpoint:
-            case arch::IrqVec::Overflow:
-            case arch::IrqVec::BoundRangeExceeded:
-            case arch::IrqVec::InvalidOpcode:
-            case arch::IrqVec::DeviceNotAvailable:
-            case arch::IrqVec::DoubleFault:
-            case arch::IrqVec::CoprocessorSegmentOverrun:
-            case arch::IrqVec::InvalidTss:
-            case arch::IrqVec::SegmentNotPresent:
-            case arch::IrqVec::StackFaultException:
-            case arch::IrqVec::GeneralProtection:
-            case arch::IrqVec::X87FloatingPoint:
-            case arch::IrqVec::AlignmentCheck:
-            case arch::IrqVec::MachineCheck:
-            case arch::IrqVec::SimdFloatingPoint:
-            case arch::IrqVec::Virtualizatoin:
-            case arch::IrqVec::ControlProtection:
+            case IrqVec::DivideError:
+            case IrqVec::Debug:
+            case IrqVec::Nmi:
+            case IrqVec::Breakpoint:
+            case IrqVec::Overflow:
+            case IrqVec::BoundRangeExceeded:
+            case IrqVec::InvalidOpcode:
+            case IrqVec::DeviceNotAvailable:
+            case IrqVec::DoubleFault:
+            case IrqVec::CoprocessorSegmentOverrun:
+            case IrqVec::InvalidTss:
+            case IrqVec::SegmentNotPresent:
+            case IrqVec::StackFaultException:
+            case IrqVec::GeneralProtection:
+            case IrqVec::X87FloatingPoint:
+            case IrqVec::AlignmentCheck:
+            case IrqVec::MachineCheck:
+            case IrqVec::SimdFloatingPoint:
+            case IrqVec::Virtualizatoin:
+            case IrqVec::ControlProtection:
                 break;
             
-            case arch::IrqVec::PlatformIrqMin ... arch::IrqVec::PlatformIrqMax:
+            case IrqVec::PlatformIrqMin ... IrqVec::PlatformIrqMax:
+                platform_handle_irq(irqvec_to_irqnum(vector), frame);
                 break;
 
-            case arch::IrqVec::ApicTimer:
+            case IrqVec::ApicTimer:
                 log::info("APIC-PM Tick");
                 break;
         }

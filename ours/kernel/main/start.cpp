@@ -66,6 +66,7 @@ namespace ours {
 
         // Let the main thread become the idle thread. 
         task::Thread::Current::idle();
+        while (1);
     }
 
     NO_MANGLE

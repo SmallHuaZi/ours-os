@@ -12,6 +12,7 @@
 #define OURS_ARCH_APIC_HPP 1
 
 #include <ours/init.hpp>
+#include <ours/irq/irq_chip.hpp>
 
 #include <arch/x86/interrupt.hpp>
 #include <ustl/views/span.hpp>
@@ -36,11 +37,18 @@ namespace ours {
 
     auto apic_timer_current_count() -> u32;
 
+    auto apic_unmask_irq(HIrqNum global_irq) -> void;
+
+    auto apic_configure_irq(HIrqNum global_irq, arch::ApicTriggerMode,
+                            arch::ApicInterruptPolarity, arch::ApicDeliveryMode,
+                            bool mask, arch::ApicDestinationMode, u8 dst, arch::IrqVec vector) -> void;
 
     auto apic_configure_isa_irq(u8 isa_irq, arch::ApicDeliveryMode del_mode, bool mask,
                                 arch::ApicDestinationMode dst_mode, u8 dst, arch::IrqVec vector) -> void;
 
     auto current_apic_id() -> u32;
+
+    extern irq::IrqChip *g_ioapic_chip;
 
 } // namespace ours
 

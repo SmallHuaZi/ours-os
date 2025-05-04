@@ -15,8 +15,6 @@ INTERFACE
     # Sources
     "start.S"
     "gdt.S"
-    "context.S"
-    "exception.S"
     "idt.S"
     "idt.cpp"
     "descriptor.cpp"
@@ -29,3 +27,4 @@ INTERFACE
 
 add_subdirectory("mem")
 add_subdirectory("irq")
+add_subdirectory("entry")

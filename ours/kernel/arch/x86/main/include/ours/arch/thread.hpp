@@ -22,8 +22,8 @@ namespace ours::task {
     
       private:
         friend class Thread;
-        usize fs_base_;
-        usize gs_base_;
+        VirtAddr fs_base_;
+        VirtAddr gs_base_;
     };
 
     typedef X86Thread   ArchThread;

@@ -18,10 +18,6 @@ namespace ours {
 
     auto x86_has_feature(CpuFeatureType type) -> bool;
 
-    auto x86_init_feature_early() -> void;
-
-    auto x86_init_feature_percpu() -> void;
-
 } // namespace ours
 
 #endif // #ifndef OURS_ARCH_X86_FEATURES_HPP

@@ -146,11 +146,11 @@ namespace arch {
 
         FORCE_INLINE
         auto read_redtbl(u32 global_irqnum) -> u64 {
-            DEBUG_ASSERT(global_irqnum > gsi_base_);
-            u32 const local_irqnum = global_irqnum - gsi_base_;
-            DEBUG_ASSERT(local_irqnum <= max_local_irqnum_);
+            DEBUG_ASSERT(global_irqnum >= gsi_base_);
+            u32 const idx = global_irqnum - gsi_base_;
+            DEBUG_ASSERT(idx <= max_local_irqnum_);
 
-            RegsAddr const redtbl_low = RegsAddr(RedTbl + (global_irqnum << 1));
+            RegsAddr const redtbl_low = RegsAddr(RedTbl + (idx << 1));
             RegsAddr const redtbl_high = RegsAddr(redtbl_low + 1);
             u64 value = read(redtbl_low);
             value |= u64(read(redtbl_low)) << 32;
@@ -159,11 +159,11 @@ namespace arch {
 
         FORCE_INLINE
         auto write_redtbl(u32 global_irqnum, u64 value) -> void {
-            DEBUG_ASSERT(global_irqnum > gsi_base_);
-            u32 const local_irqnum = global_irqnum - gsi_base_;
-            DEBUG_ASSERT(local_irqnum <= max_local_irqnum_);
+            DEBUG_ASSERT(global_irqnum >= gsi_base_);
+            u32 const idx = global_irqnum - gsi_base_;
+            DEBUG_ASSERT(idx <= max_local_irqnum_);
 
-            RegsAddr const redtbl_low = RegsAddr(RedTbl + (global_irqnum << 1));
+            RegsAddr const redtbl_low = RegsAddr(RedTbl + (idx << 1));
             RegsAddr const redtbl_high = RegsAddr(redtbl_low + 1);
             write(redtbl_low, value & 0xFFFFFFFF);
             write(redtbl_high, (value >> 32) & 0xFFFFFFFF);

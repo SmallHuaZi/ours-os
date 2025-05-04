@@ -72,7 +72,10 @@ namespace ours {
         auto const bspid = current_apic_id(); 
         // Manually configing the ISA IRQs
         for (auto i = 0; i < 8; ++i) {
-            if (i == 2) {
+            // Regardless of IRQ 2
+            CXX11_CONSTEXPR
+            static auto const kPicCascadeIrqNum = 2;
+            if (i != kPicCascadeIrqNum) {
                 apic_configure_isa_irq(i, ApicDeliveryMode::Fixed, true, 
                                ApicDestinationMode::Physical, bspid, IrqVec());
             }
@@ -82,7 +85,7 @@ namespace ours {
     }
     GKTL_INIT_HOOK(ApicInit, platform_init_apic, gktl::InitLevel::Vmm);
 
-    auto platform_handle_irq(HIrqNum irqnum) -> void {
+    auto platform_handle_irq(HIrqNum irqnum, arch::IrqFrame *frame) -> void {
         irq::handle_irq_generic(irqnum);
     }
 

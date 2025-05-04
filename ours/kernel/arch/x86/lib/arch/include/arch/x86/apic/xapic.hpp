@@ -83,9 +83,6 @@ namespace arch {
     CXX11_CONSTEXPR
     static auto const kIa32ApicBaseXapicEnable = BIT(11);
 
-    CXX11_CONSTEXPR
-    static auto const kNumIsaIrqs = 16;
-
     /// The Intel Software Developer's Manual, however states that,
     /// once you have disabled the local APIC through IA32_APIC_BASE
     /// you can't enable it anymore until a complete reset. The I/O APIC

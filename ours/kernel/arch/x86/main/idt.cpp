@@ -18,7 +18,7 @@ namespace ours {
             offset_low  = handler & 0xFFFF;
             selector    = X86_GDT_KERNEL_CODE64;
             ist         = 0;
-            type_attr   = 0x8F; // Present, DPL=0 and INT gate
+            type_attr   = 0x8E; // Present, DPL=0 and INT gate
             offset_mid  = (handler >> 16) & 0xFFFF;
             offset_high = (handler >> 32) & 0xFFFFFFFF;
             zero        = 0;
@@ -67,6 +67,7 @@ namespace ours {
         s_pidt->load();
     }
 
+    INIT_CODE
     static auto x86_set_vector_ist(arch::IrqVec vec, u8 ist) -> void {
         auto const index = usize(vec);
         DEBUG_ASSERT(index < std::size(g_idt.entries_), "Invalid vector: {}", index);
@@ -76,6 +77,7 @@ namespace ours {
         log::info("Vector[{}] was bind to IST[{}]", index, ist);
     }
 
+    INIT_CODE
     auto x86_init_idt_early() -> void {
         for (auto &entry: g_idt) {
             rectify_idt(entry);
@@ -88,6 +90,7 @@ namespace ours {
         x86_dump_idt();
     }
 
+    INIT_CODE
     auto x86_setup_idt() -> void {
         using namespace mem;
 

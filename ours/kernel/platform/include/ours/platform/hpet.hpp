@@ -13,6 +13,7 @@
 
 #include <ours/config.hpp>
 #include <ours/assert.hpp>
+#include <ours/init.hpp>
 
 #include <acpi/details/hpet.hpp>
 
@@ -26,12 +27,26 @@ namespace ours {
             mmio->general_config.disable_cnf();
         }
 
+        auto configure_irq(u8 n, HIrqNum irqnum, bool mask) -> void {
+            ASSERT(n < num_channels);
+            mmio->timers[n].conf_caps.mask()
+                                     .configure_irq(irqnum)
+                                     .mask(mask);
+        }
+
         auto wait_for(u32 ms) -> void {
             u64 initial_ticks = mmio->main_counter_value;
             u64 target = u64(ms) * ticks_per_ms;
             while (mmio->main_counter_value - initial_ticks <= target) {}
         }
 
+        auto enable_periodic(u8 n) -> void {
+            if (mmio->timers[n].conf_caps.has_periodic()) {
+                mmio->timers[n].conf_caps.enable_periodic();
+            } 
+        }
+
+        usize num_channels;
         usize ticks_per_ms;
         acpi::HpetRegs *mmio;
     };
@@ -46,6 +61,9 @@ namespace ours {
     static auto has_hpet() -> bool {
         return get_hpet();
     }
+
+    INIT_CODE
+    auto enable_hpet() -> void;
 
 } // namespace ours
 

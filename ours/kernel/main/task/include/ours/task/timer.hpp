@@ -24,6 +24,8 @@ namespace ours::task {
         auto tick(CpuNum cpu) -> void;
     };
 
+    auto timer_tick() -> void;
+
 } // namespace ours::task
 
 #endif // #ifndef OURS_TASK_TIMER_HPP

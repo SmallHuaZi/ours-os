@@ -11,6 +11,7 @@
 #ifndef ACPI_DETAILS_HPET_HPP
 #define ACPI_DETAILS_HPET_HPP 1
 
+#include <ours/assert.hpp>
 #include <acpi/details/header.hpp>
 #include <ustl/bitfields.hpp>
 
@@ -35,6 +36,7 @@ namespace acpi {
             ustl::bitfields::Name<Name>>;
 
         struct ConfigAndCapRegs {
+            typedef ConfigAndCapRegs    Self;
             enum FieldId {
                 kReserved0,
                 kIntrTypeConfig,
@@ -53,13 +55,43 @@ namespace acpi {
             };
 
             FORCE_INLINE
-            auto mask() volatile -> void {
-                inner.set<kIntrEnableConfig>(1);
+            auto mask(bool mask = true) volatile -> Self volatile & {
+                inner.set<kIntrEnableConfig>(!mask);
+                return *this;
             }
 
             FORCE_INLINE
-            auto unmask() volatile -> void {
-                inner.set<kIntrEnableConfig>(0);
+            auto irq() const volatile -> usize {
+                return inner.get<kIntrRouteConfig>();
+            }
+
+            FORCE_INLINE
+            auto configure_irq(usize irqnum) volatile -> Self volatile & {
+                inner.set<kIntrRouteConfig>(irqnum);
+                return *this;
+            }
+
+            FORCE_INLINE
+            auto has_periodic() const volatile -> bool {
+                return inner.get<kPeriodicCap>();
+            }
+
+            FORCE_INLINE
+            auto enable_periodic() volatile -> Self volatile & {
+                DEBUG_ASSERT(has_periodic());
+                inner.set<kTimerTypeConfig>(1);
+                inner.set<kValSetConfig>(1);
+                return *this;
+            }
+
+            enum TriggerMode {
+                Edge,
+                Level,
+            };
+
+            FORCE_INLINE
+            auto trigger_mode() volatile -> TriggerMode {
+                return (TriggerMode)inner.get<kIntrTypeConfig>();
             }
 
             volatile ustl::BitFields<
@@ -99,7 +131,6 @@ namespace acpi {
             > inner;           
         };
 
-
         volatile ConfigAndCapRegs conf_caps;
         volatile u64 comparator_value;
         volatile u64 fsb_int_route;
@@ -114,6 +145,7 @@ namespace acpi {
             ustl::bitfields::Name<Name>>;
         
         struct PACKED HpetGeneralCapAndIdRegs {
+            typedef HpetGeneralCapAndIdRegs Self;
             auto revid() const volatile -> u16 {
                 return inner.get<0>();
             }
@@ -134,6 +166,11 @@ namespace acpi {
                 return inner.get<6>();
             }
 
+            auto set_period(u32 ns) volatile -> Self volatile & {
+                inner.set<6>(ns);
+                return *this;
+            }
+
             volatile ustl::BitFields<
                 Field<0, 8, "RevId">,
                 Field<1, 5, "NumTimers-1">,
@@ -147,6 +184,7 @@ namespace acpi {
         static_assert(sizeof(HpetGeneralCapAndIdRegs) == 8);
 
         struct PACKED HpetGeneralConfigRegs {
+            typedef HpetGeneralConfigRegs   Self;
             auto disable_cnf() volatile -> void {
                 inner.set<0>(0);
             }
@@ -155,8 +193,13 @@ namespace acpi {
                 inner.set<0>(1);
             }
 
-            auto legacy_route() const volatile -> bool {
+            auto is_legacy_route() const volatile -> bool {
                 return inner.get<1>();
+            }
+
+            auto enable_legacy_route(bool mask) volatile -> Self volatile & {
+                inner.set<1>(mask);
+                return *this;
             }
 
             volatile ustl::BitFields<

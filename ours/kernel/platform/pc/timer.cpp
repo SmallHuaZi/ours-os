@@ -1,5 +1,7 @@
 #include <ours/platform/timer.hpp>
 #include <ours/platform/hpet.hpp>
+#include <ours/task/timer.hpp>
+#include <ours/irq/mod.hpp>
 
 #include <ours/arch/apic.hpp>
 #include <ours/arch/x86/feature.hpp>
@@ -21,6 +23,13 @@ namespace ours {
     static ClockSource s_caliberation_clock;
     static u32 s_apic_ticks_per_ms;
     static u32 s_apic_ticks_per_ns;
+ 
+    static auto platform_handle_timer_irq(HIrqNum irqnum, void *) -> irq::IrqReturn {
+        DEBUG_ASSERT(irqnum == 0);
+
+        task::timer_tick();
+        return irq::IrqReturn::Handled;
+    }
 
     static auto start_calibrate() -> void {
         switch (s_caliberation_clock) {
@@ -130,6 +139,10 @@ namespace ours {
         } else {
             calibrate_apic_clock();
         }
+
+        enable_hpet();
+        // auto status = irq::request_irq(0, platform_handle_timer_irq, irq::IrqFlags(), "Timer");
+        // ASSERT(Status::Ok == status);
     }
     // We need to slow a step, waiting for HPET initialized.
     GKTL_INIT_HOOK(PlatformInitTimer, platform_init_timer, gktl::InitLevel::Vmm + 3);
