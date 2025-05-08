@@ -1,6 +1,7 @@
 #include <ours/platform/init.hpp>
 #include <ours/platform/acpi.hpp>
 #include <ours/mem/init.hpp>
+#include <ours/irq/init.hpp>
 
 #include <arch/x86/pic.hpp>
 

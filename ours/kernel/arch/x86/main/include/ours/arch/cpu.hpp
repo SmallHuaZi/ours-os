@@ -13,13 +13,21 @@
 
 #include <ours/types.hpp>
 #include <ours/status.hpp>
+#include <ours/cpu-mask.hpp>
+#include <ours/ipi-event.hpp>
+
+#include <arch/interrupt.hpp>
 
 namespace ours {
     auto arch_current_cpu() -> CpuNum;
 
+    /// Activate and Deactivate are hot-plug interfaces.
+    /// Now we has not supported them.
     auto arch_activate_cpu(CpuNum) -> Status;
 
     auto arch_deactivate_cpu(CpuNum) -> Status;
+
+    auto arch_send_ipi(IpiTarget target, CpuMask cpus, IpiEvent event) -> Status;
 
     auto x86_init_percpu(CpuNum cpunum) -> void;
 

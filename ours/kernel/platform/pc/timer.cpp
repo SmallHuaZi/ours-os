@@ -23,11 +23,20 @@ namespace ours {
     static ClockSource s_caliberation_clock;
     static u32 s_apic_ticks_per_ms;
     static u32 s_apic_ticks_per_ns;
- 
+
+    static usize s_elapsed_time_ms;
+    static usize s_elapsed_ticks;
+
+    auto get_periodic_time() -> usize {
+        return 1000;
+    }
+
     static auto platform_handle_timer_irq(HIrqNum irqnum, void *) -> irq::IrqReturn {
         DEBUG_ASSERT(irqnum == 0);
 
-        task::timer_tick();
+        s_elapsed_time_ms += get_periodic_time();
+
+        task::timer_tick(get_periodic_time());
         return irq::IrqReturn::Handled;
     }
 
@@ -141,8 +150,8 @@ namespace ours {
         }
 
         enable_hpet();
-        // auto status = irq::request_irq(0, platform_handle_timer_irq, irq::IrqFlags(), "Timer");
-        // ASSERT(Status::Ok == status);
+        auto status = irq::request_irq(0, platform_handle_timer_irq, irq::IrqFlags(), "Timer");
+        ASSERT(Status::Ok == status);
     }
     // We need to slow a step, waiting for HPET initialized.
     GKTL_INIT_HOOK(PlatformInitTimer, platform_init_timer, gktl::InitLevel::Vmm + 3);

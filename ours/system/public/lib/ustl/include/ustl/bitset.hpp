@@ -21,6 +21,12 @@ namespace ustl {
         typedef ::std::bitset<NBits>        Base;
         using Base::Base;
 
+        auto clear() -> void {
+            for (auto i = 0; i < NBits; ++i) {
+                this->Base::set(i, 0);
+            }
+        }
+
         auto test_range(usize start, usize num_bits) -> bool {
             bool v = true;
             for (auto i = 0; i < num_bits; ++i) {

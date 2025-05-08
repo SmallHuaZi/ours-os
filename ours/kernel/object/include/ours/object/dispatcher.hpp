@@ -14,6 +14,7 @@
 #include <ours/types.hpp>
 #include <ours/rights.hpp>
 #include <ours/config.hpp>
+#include <ours/signals.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/option.hpp>
@@ -55,7 +56,7 @@ namespace ours::object {
         char name_[MAX_NAME_SIZE];
     };
 
-    template <typename Derived, Rights default_rights, Signals>
+    template <typename Derived, Rights default_rights, Signals mask>
     class SoloDispatcher: public Dispatcher {
 
     };

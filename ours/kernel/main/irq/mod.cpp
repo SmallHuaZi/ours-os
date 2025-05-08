@@ -5,35 +5,31 @@
 
 #include <ktl/new.hpp>
 
-namespace ours {
-    CPU_LOCAL
-    static irq::IrqDispatcher g_irq_dispatcher;
-    
-    template <>
+namespace ours::irq {
     FORCE_INLINE
-    auto CpuLocal::access<irq::IrqDispatcher>() -> irq::IrqDispatcher * {
-        return CpuLocal::access(&g_irq_dispatcher);
+    static auto get_irq_dispatcher() -> IrqDispatcher * {
+        static IrqDispatcher g_irq_dispatcher;
+        return &g_irq_dispatcher;
     }
 
-namespace irq {
-    auto request_irq(VIrqNum irqnum, IrqHandler handler, IrqFlags flags, char const *name) 
-        -> Status {
-        if (irqnum == kInvalidVIrqNum) {
-            return Status::InvalidArguments;
-        }
-        return CpuLocal::access<IrqDispatcher>()->request_irq(irqnum, handler, flags, name);
+    auto init_early(usize num_irqs) -> void {
+        auto status = get_irq_dispatcher()->init(num_irqs);
+        ASSERT(Status::Ok == status);
+    }
+
+    auto request_irq(VIrqNum virqnum, IrqHandler handler, IrqFlags flags, char const *name) -> Status {
+        ASSERT(virqnum != kInvalidVIrqNum);
+        return get_irq_dispatcher()->request_irq(virqnum, handler, flags, name);
     }
 
     auto release_irq(VIrqNum virqnum) -> Status {
-        if (virqnum == kInvalidVIrqNum) {
-            return Status::InvalidArguments;
-        }
-        return CpuLocal::access<IrqDispatcher>()->release_irq(virqnum);
+        ASSERT(virqnum != kInvalidVIrqNum);
+        return get_irq_dispatcher()->release_irq(virqnum);
     }
 
-    auto handle_irq_generic(HIrqNum irqnum) -> Status {
-        return Status::Unimplemented;
+    auto handle_irq_generic(VIrqNum virqnum) -> IrqReturn {
+        ASSERT(virqnum != kInvalidVIrqNum);
+        return get_irq_dispatcher()->handle_irq(virqnum);
     }
 
 } // namespace ours::irq
-} // namespace ours

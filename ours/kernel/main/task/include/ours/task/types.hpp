@@ -15,7 +15,7 @@
 // #include <ustl/function/fn.hpp>
 
 namespace ours::task {
-    using ThreadStartEntry = auto () -> void;// ustl::function::Fn<auto () -> void>;
+    using ThreadStartEntry = auto (*)() -> void;// ustl::function::Fn<auto () -> void>;
 
     class Thread;
     

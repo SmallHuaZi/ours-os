@@ -86,7 +86,8 @@ namespace ours::mem {
     auto VmAspace::sync_kernel_aspace() -> void {
     }
 
-    auto VmAspace::switch_aspace(Self *, Self *) -> void {
+    auto VmAspace::switch_aspace(Self *prev, Self *next) -> void {
+        ArchVmAspace::switch_context(&prev->arch_, &next->arch_);
     }
 
     auto VmAspace::clone(VmasFlags flags, ustl::Rc<VmAspace> *out) -> Status {

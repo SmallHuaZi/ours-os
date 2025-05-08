@@ -50,18 +50,18 @@ namespace ktl {
         // be nul terminated, so the given data may be truncated.
         auto set(Char const *name, usize len) -> Status {
             // ignore characters after the first NUL
-            len = CharTraits::length(name, len);
+            len = CharTraits::length(name);
 
             if (len >= N) {
-                len = N - 1;
+                len = N - 2;
             }
 
             CharTraits::copy(name_, name, len);
-            name[len] = '\0';
+            name_[len + 1] = '\0';
             return Status::Ok;
         }
 
-        auto operator=(Name<N> const &other) -> Self & {
+        auto operator=(Name const &other) -> Self & {
             if (this != &other) {
                 char buffer[N];
                 other.get(N, buffer);

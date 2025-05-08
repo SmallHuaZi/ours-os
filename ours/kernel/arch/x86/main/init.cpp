@@ -3,7 +3,7 @@
 #include <ours/arch/x86/feature.hpp>
 #include <ours/arch/x86/descriptor.hpp>
 
-#include <ours/cpu-mask.hpp>
+#include <ours/cpu-states.hpp>
 #include <ours/arch/cpu.hpp>
 #include <ours/init.hpp>
 #include <ours/start.hpp>

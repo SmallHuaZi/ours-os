@@ -90,6 +90,56 @@ namespace ours {
         return 0;
     }
 
+    auto apic_mask_irq(HIrqNum global_irq) -> void {
+        s_ioapics[0].inner_.mask_irq(global_irq);
+    }
+
+    auto apic_unmask_irq(HIrqNum global_irq) -> void {
+        s_ioapics[0].inner_.unmask_irq(global_irq);
+    }
+
+    auto apic_configure_irq(HIrqNum global_irq, arch::ApicTriggerMode trimode, 
+                            arch::ApicInterruptPolarity polarity, arch::ApicDeliveryMode delmode, 
+                            bool mask, arch::ApicDestinationMode dstmode, u8 dst, arch::IrqVec vector) -> void {
+        IoApic *ioapic = resolve_irqnum_to_ioapic(global_irq);
+        ASSERT(ioapic);
+
+        ioapic->arch_ioapic().config_irq(
+            global_irq, 
+            trimode, 
+            polarity, 
+            delmode, 
+            dstmode, 
+            dst, 
+            vector,
+            mask
+        );
+
+        log::trace("IO-APIC[{}]: configuration({}, {}, {}, {}, {}, {})", 
+            ioapic->inner_.id(),
+            to_string(trimode),
+            to_string(polarity),
+            to_string(delmode),
+            to_string(dstmode),
+            dst,
+            usize(vector)
+        );
+    }
+
+    auto apic_configure_isa_irq(u8 isa_irq, arch::ApicDeliveryMode del_mode, bool mask,
+                                arch::ApicDestinationMode dst_mode, u8 dst, arch::IrqVec vector) -> void {
+        HIrqNum irq = isa_irq;
+        auto trigger_mode = arch::ApicTriggerMode::Edge; 
+        auto polarity = arch::ApicInterruptPolarity::ActiveHigh; 
+        if (s_ioapic_isa_overrides[isa_irq].remapped) {
+            irq = s_ioapic_isa_overrides[isa_irq].global_irq;
+            trigger_mode = s_ioapic_isa_overrides[isa_irq].tri_mode;
+            polarity = s_ioapic_isa_overrides[isa_irq].polarity;
+        }
+
+        apic_configure_irq(irq, trigger_mode, polarity, del_mode, mask, dst_mode, dst, vector);
+    }
+
     INIT_CODE
     auto init_io_apic(ustl::views::Span<arch::IoApic> const &ioapics,
                       ustl::views::Span<arch::IoApicIsaOverride> const &overrides) -> void {
@@ -139,6 +189,7 @@ namespace ours {
         for (auto i = 0; i < nr_overrides; ++i) {
             /// Make a linear mapping
             s_ioapic_isa_overrides[overrides[i].isa_irq] = overrides[i];
+
             log::trace("{: <6} | {} | {} | {} | {}", 
                 s_ioapic_isa_overrides[i].isa_irq, 
                 s_ioapic_isa_overrides[i].remapped, 
@@ -149,52 +200,6 @@ namespace ours {
         }
 
         g_ioapic_chip = &s_ioapics[0];
-    }
-
-    auto apic_unmask_irq(HIrqNum global_irq) -> void {
-        s_ioapics[0].inner_.unmask_irq(global_irq);
-    }
-
-    auto apic_configure_irq(HIrqNum global_irq, arch::ApicTriggerMode trimode, 
-                            arch::ApicInterruptPolarity polarity, arch::ApicDeliveryMode delmode, 
-                            bool mask, arch::ApicDestinationMode dstmode, u8 dst, arch::IrqVec vector) -> void {
-        IoApic *ioapic = resolve_irqnum_to_ioapic(global_irq);
-        ASSERT(ioapic);
-
-        ioapic->arch_ioapic().config_irq(
-            global_irq, 
-            trimode, 
-            polarity, 
-            delmode, 
-            dstmode, 
-            dst, 
-            vector,
-            mask
-        );
-
-        log::trace("IO-APIC[{}]: configuration({}, {}, {}, {}, {}, {})", 
-            ioapic->inner_.id(),
-            to_string(trimode),
-            to_string(polarity),
-            to_string(delmode),
-            to_string(dstmode),
-            dst,
-            usize(vector)
-        );
-    }
-
-    auto apic_configure_isa_irq(u8 isa_irq, arch::ApicDeliveryMode del_mode, bool mask,
-                                arch::ApicDestinationMode dst_mode, u8 dst, arch::IrqVec vector) -> void {
-        HIrqNum irq = isa_irq;
-        auto trigger_mode = arch::ApicTriggerMode::Edge; 
-        auto polarity = arch::ApicInterruptPolarity::ActiveHigh; 
-        if (s_ioapic_isa_overrides[isa_irq].remapped) {
-            irq = s_ioapic_isa_overrides[isa_irq].global_irq;
-            trigger_mode = s_ioapic_isa_overrides[isa_irq].tri_mode;
-            polarity = s_ioapic_isa_overrides[isa_irq].polarity;
-        }
-
-        apic_configure_irq(irq, trigger_mode, polarity, del_mode, mask, dst_mode, dst, vector);
     }
 
 } // namespace ours

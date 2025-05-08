@@ -3,37 +3,34 @@
 // BUG(SmallHuaZi)
 #define OURS_THREAD_STACK_OF
 
-// arch_switch_context -> x86_prepare_context_switch_asm -> x86_switch_context
-//                     -> ...
-//                     -> 
-
-/// NO_MANGLE auto x86_switch_context(Thread *prev, Thread *next) -> void
-/// %eax: prev
-/// %ebx: next 
+/// NO_MANGLE auto x86_switch_context(VirtAddr *oldsp, VirtAddr newsp) -> void
+/// %rdi: oldsp 
+/// %rsi: newsp
 FUNCTION(x86_switch_context)
-    // First, storing `prev's` state
-    push   %rbp
-    push   %rbx
-    push   %rdi
-    push   %rsi
+    // Save callee-saved registers
+    push_reg %rbx
+    push_reg %rbp
+    push_reg %r12
+    push_reg %r13
+    push_reg %r14
+    push_reg %r15
     pushf
 
-    // Second, switching stack from `prev's` to `next's`
-    movl    %esp, OURS_THREAD_STACK_OF(%eax)
-    movl    OURS_THREAD_STACK_OF(%ebx), %ebx
+    // Second, switching kernel stack from `prev's` to `next's`
+    mov %rsp, (%rdi)
+    mov %rsi, %rsp
 
-#ifdef THREAD_STACK_SAFETY
-    //
-#endif
-
-    // Third, restoring `next's` state 
+    // Restore callee-saved registers
     popf
-    pop    %rsi
-    pop    %rdi
-    pop    %rbx
-    pop    %rbp
+    pop_reg %r15
+    pop_reg %r14
+    pop_reg %r13
+    pop_reg %r12
+    pop_reg %rbp
+    pop_reg %rbx
 
-    // Finally, call cpp-code
-    jmp x86_switch_context
+    // Finally, return to cpp-code
+    ret
+    int3
 FUNCTION_END(x86_switch_context)
 

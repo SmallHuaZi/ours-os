@@ -30,6 +30,7 @@ namespace ours {
         MisAligned,
         AlreadyExists,
         NoResource,
+        NoCapability,
         MaxCount,
     };
 

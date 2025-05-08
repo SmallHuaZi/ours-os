@@ -8,29 +8,22 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_IRQ_TYPES_HPP
-#define OURS_IRQ_TYPES_HPP 1
+#ifndef OURS_IRQ_IRQ_DOMAIN_HPP
+#define OURS_IRQ_IRQ_DOMAIN_HPP 1
 
 #include <ours/types.hpp>
 
 namespace ours::irq {
-    class IrqChip;
-    class IrqDomain;
-    class IrqObject;
-    class IrqDispatcher;
+    class IrqDomain {
+        typedef IrqDomain   Self;
+      public:
+        static auto create_simple(VIrqNum virq_base, usize num_irqs) -> void;
 
-    enum class IrqType {
-        Edge,
-        Level,
-    };
-
-    struct IrqData {
-        VIrqNum virqnum;
-        HIrqNum hirqnum;
-        IrqChip *chip;
-        IrqDomain *domain;
+        char const *name_;
+        VIrqNum irq_base_;
+        usize num_irqs_;
     };
 
 } // namespace ours::irq
 
-#endif // #ifndef OURS_IRQ_TYPES_HPP
+#endif // #ifndef OURS_IRQ_IRQ_DOMAIN_HPP

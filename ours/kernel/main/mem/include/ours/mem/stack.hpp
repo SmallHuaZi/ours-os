@@ -14,9 +14,21 @@
 #include <ours/mem/types.hpp>
 #include <ours/mem/vm_mapping.hpp>
 
+#include <ustl/util/noncopyable.hpp>
+
 namespace ours::mem {
     class Stack {
+        typedef Stack   Self;
+        USTL_NO_MOVEABLE_AND_COPYABLE(Stack);
       public:
+        static auto create(usize size, Self *) -> Status;
+
+        Stack() = default;
+
+        FORCE_INLINE
+        auto top() const -> VirtAddr {
+            return stack_->base() + stack_->size();
+        }
 
       private:
         ustl::Rc<VmMapping> stack_;

@@ -82,8 +82,9 @@ namespace arch {
     struct ArchCpuState: SysReg<ArchCpuState> {};
 
     template <>
+    template <typename T>
     USTL_FORCEINLINE USTL_CONSTEXPR
-    auto SysReg<ArchCpuState>::write(ArchCpuState cpustate) -> void {
+    auto SysReg<ArchCpuState>::write(T cpustate) -> void {
         asm ("push %0; popf" :: "r"(cpustate) : "memory");
     }
 

@@ -18,6 +18,7 @@
 
 #include <ustl/function/fn.hpp>
 #include <ustl/result.hpp>
+#include <ustl/util/enum_bits.hpp>
 
 namespace ours::irq {
     CXX11_CONSTEXPR
@@ -48,12 +49,15 @@ namespace ours::irq {
         WakeThread = BIT(9),
         Permanent = BIT(10),
     };
+    USTL_ENABLE_ENUM_BITMASK(IrqFlags);
+
+    auto init_early(usize num_irqs) -> void;
 
     auto request_irq(VIrqNum, IrqHandler, IrqFlags, char const *) -> Status;
 
     auto release_irq(VIrqNum) -> Status;
 
-    auto handle_irq_generic(VIrqNum irqnum) -> Status;
+    auto handle_irq_generic(VIrqNum irqnum) -> IrqReturn;
 
 } // namespace ours::irq
 

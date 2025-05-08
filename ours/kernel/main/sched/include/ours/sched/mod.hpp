@@ -8,21 +8,19 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_SCHED_MOD_HPP
 #define OURS_SCHED_MOD_HPP 1
 
-#include <ustl/traits/is_base_of.hpp>
+#include <ours/task/thread.hpp>
 
 namespace ours::sched {
     class SchedObject;
 
-    template <typename T>
-    concept Schedulable = ustl::traits::IsBaseOfV<SchedObject, T>;
+    auto activate(task::Thread &thread) -> void;
 
-    template <Schedulable T>
-    auto reschedule(T *object) -> void
-    {  return reschedule<SchedObject>(object);  }
+    auto deativate(task::Thread &thread) -> void;
+
+    auto reschedule() -> void;
 
 } // namespace ours::sched
 

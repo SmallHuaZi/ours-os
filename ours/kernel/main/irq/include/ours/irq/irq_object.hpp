@@ -23,15 +23,16 @@
 #include <gktl/canary.hpp>
 
 namespace ours::irq {
-    class IrqObject: public ustl::RefCounter<IrqObject> {
+    class IrqObject {
         typedef IrqObject Self;
       public:
-        static auto create(HIrqNum hirq, VIrqNum virq, IrqFlags flags, char const *name)
-            -> ustl::Rc<Self>;
+        static auto create(HIrqNum, VIrqNum, IrqFlags, char const *name) -> Self *;
 
-        auto attach(IrqObserver &observer) -> void;
+        auto init(IrqChip *chip) -> Status;
 
-        auto detach(IrqObserver &observer) -> void;
+        auto attach(IrqObserver &observer) -> Status;
+
+        auto detach(IrqObserver &observer) -> Status;
 
         auto notify() -> void;
       private:
@@ -42,7 +43,8 @@ namespace ours::irq {
         GKTL_CANARY(IrqObject, canary_);
         usize nr_intrs_;
         Mutex request_mutex_;
-        IrqData data_;
+        IrqFlags irqflags_;
+        IrqData irqdata_;
         IrqObserverList observers_;
         char const *name_;
     };

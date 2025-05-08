@@ -20,15 +20,17 @@
 namespace ours::irq {
     class IrqDispatcher {
       public:
-        auto entrol_hwirq(HIrqNum irqnum, IrqFlags flags, IrqChip *chip, char const *name) -> Status;
+        auto init(usize nr_irqs) -> Status;
 
         auto request_irq(VIrqNum, IrqHandler, IrqFlags, char const *name) -> Status;
 
         auto release_irq(VIrqNum) -> Status;
+
+        auto handle_irq(VIrqNum) -> IrqReturn;
       private:
         auto irqnum_to_object(VIrqNum virqnum) -> IrqObject *;
 
-        ustl::views::Span<IrqObject>  objects_;
+        ustl::views::Span<IrqObject *>  objects_;
     };
 
 } // namespace ours::irq

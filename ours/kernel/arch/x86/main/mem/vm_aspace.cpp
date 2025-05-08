@@ -6,6 +6,9 @@
 
 #include <logz4/log.hpp>
 
+#include <arch/system.hpp>
+#include <arch/tlb.hpp>
+
 namespace ours::mem {
     /// Take out 2MB-size large page mapping as the following showed:
     /// +-------+---------+----------------+-------------------------+----------+-------+
@@ -25,7 +28,7 @@ namespace ours::mem {
     ///      (32GB) [0]--g_pdp[0]--g_physmap_pd[0..511]
     ///              |
     ///              |
-    /// g_pgd--[..]-(NULL)
+    /// g_kernel_pgd--[..]-(NULL)
     ///              |                [0]---g_physmap_pd[0][0..511]
     ///              |                 |
     ///    (512GB) [511]-g_pdp---g_physmap_pd[..][0..511]
@@ -34,7 +37,7 @@ namespace ours::mem {
     ///
 
     /// In this file scope, it should be readonly.
-    NO_MANGLE PhysAddr const g_pgd;
+    NO_MANGLE PhysAddr const g_kernel_pgd;
 
     ArchVmAspace::ArchVmAspace(VirtAddr base, usize size, VmasFlags flags)
         : range_(base, size),
@@ -45,8 +48,8 @@ namespace ours::mem {
         canary_.verify();
         if (bool(VmasFlags::Kernel & flags_)) [[unlikely]] {
             // Kernel page table was provided by kernel.phys, so do not need to allocate memory.
-            auto const phys_pgd = g_pgd;
-            auto const virt_pgd = PhysMap::phys_to_virt(phys_pgd );
+            auto const phys_pgd = g_kernel_pgd;
+            auto const virt_pgd = PhysMap::phys_to_virt(phys_pgd);
             auto status = page_table_.init_mmu(phys_pgd, virt_pgd);
             if (status != Status::Ok) {
                 return status;
@@ -68,6 +71,28 @@ namespace ours::mem {
         }
 
         return Status::Ok;
+    }
+
+    auto ArchVmAspace::switch_context(Self *from, Self *to) -> void {
+        using arch::Cr3;
+        if (to) {
+            to->canary_.verify();
+            VirtAddr const to_pgd = to->page_table_.pgd_phys();
+
+            if (to->pcid_ != arch::kInvalidApicId) {
+                Cr3::read().set<Cr3::Pcid>(to->pcid_)
+                           .set<Cr3::PageTableAddress>(to_pgd)
+                           .write();
+            } else {
+                Cr3::write(to_pgd);
+            }
+        } else {
+            // Default to kernel aspace
+            log::trace("From uaspace 0x{:X} switch to kaspace", from->page_table_.pgd_phys());
+            Cr3::write(g_kernel_pgd);
+        }
+
+        // Finally, exchange the IO-Bitmap in TSS
     }
 
     auto ArchVmAspace::map(VirtAddr va, PhysAddr pa, usize n, MmuFlags flags, MapControl control, usize *mapped) 

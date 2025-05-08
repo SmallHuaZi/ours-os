@@ -28,7 +28,7 @@ namespace ours::object {
         // caller will not interact with it again.
         //
         // WARNING: This is called under Dispatcher's lock
-        virtual auto on_match(Signals signals) -> void = 0;
+        virtual auto on_match(SignalMask signals) -> void = 0;
 
         // Called when the registered handle (which refers to a handle to the
         // Dispatcher object) is being destroyed/"closed"/transferred. (The
@@ -38,7 +38,7 @@ namespace ours::object {
         // caller will not interact with it again.
         //
         // WARNING: This is called under Dispatcher's lock
-        virtual auto on_cancel(Signals signals) -> void = 0;
+        virtual auto on_cancel(SignalMask signals) -> void = 0;
 
         // Determine if this observer matches the given port and key.
         //
@@ -55,7 +55,7 @@ namespace ours::object {
     private:
         // Dispatcher state, guarded by KernelObject's lock.
         void const *handle_;
-        Signals triggering_signals_;
+        SignalMask triggering_signals_;
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
 
     public:

@@ -13,7 +13,7 @@
 namespace ours {
 namespace mem {
     NO_MANGLE {
-        PhysAddr g_pgd = 0;
+        PhysAddr g_kernel_pgd = 0;
         u8 g_arch_phys_addr_bits = 32;
         u8 g_arch_virt_addr_bits = 48;
     }
@@ -53,13 +53,13 @@ namespace mem {
     }
 
     auto x86_setup_mmu_early() -> void {
-        mem::g_pgd = Cr3::read().get<Cr3::PageTableAddress>();
+        mem::g_kernel_pgd = Cr3::read().get<Cr3::PageTableAddress>();
 
         // Tear down the transient 1:1 identity mappings established by `PhysBoot`
         // during early boot process, and permit low-memory regions to temporarily 
         // utilize the PhysMap virtual addressing scheme until full memory management
         // infrastructure is operational.
-        auto pgd = reinterpret_cast<arch::PteVal *>(mem::g_pgd);
+        auto pgd = reinterpret_cast<arch::PteVal *>(mem::g_kernel_pgd);
         pgd[0] = pgd[511];
         x86_tlb_global_invalidate();
 
@@ -76,7 +76,7 @@ namespace mem {
 
     auto x86_setup_mmu() -> void {
         // Unmap low address.
-        reinterpret_cast<arch::PteVal *>(mem::g_pgd)[0] = 0;
+        reinterpret_cast<arch::PteVal *>(mem::g_kernel_pgd)[0] = 0;
         x86_tlb_global_invalidate();
     }
 

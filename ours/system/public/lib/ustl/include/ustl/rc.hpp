@@ -315,6 +315,8 @@ namespace ustl {
         typedef Rc<T, A, S>            ThisRc;
         typedef RefCounter<T, A, S>    Counter;
 
+        Weak() = default;
+
         USTL_FORCEINLINE USTL_CONSTEXPR
         Weak(Self const &other) USTL_NOEXCEPT
             : pointer_(other.pointer_),

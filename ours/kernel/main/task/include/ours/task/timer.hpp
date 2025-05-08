@@ -24,7 +24,7 @@ namespace ours::task {
         auto tick(CpuNum cpu) -> void;
     };
 
-    auto timer_tick() -> void;
+    auto timer_tick(usize elapsed_time_ms) -> void;
 
 } // namespace ours::task
 

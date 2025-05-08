@@ -48,6 +48,8 @@ namespace ours {
 
     auto x86_dump_gdt() -> void;
 
+    auto x86_set_tss_sp(VirtAddr sp) -> void;
+
 } // namespace ours
 #endif // #ifndef __ASSEMBLY__
 

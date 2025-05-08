@@ -8,15 +8,13 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_OBJECT_THREAD_DISPATCHER_HPP
 #define OURS_OBJECT_THREAD_DISPATCHER_HPP 1
 
 #include <ours/object/dispatcher.hpp>
 
 namespace ours::object {
-    class ThreadDispatcher
-    {
+    class ThreadDispatcher {
 
     }; // class ThreadDispatcher
 

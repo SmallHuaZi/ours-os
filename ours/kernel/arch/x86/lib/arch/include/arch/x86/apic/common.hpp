@@ -150,7 +150,8 @@ namespace arch {
 
         FORCE_INLINE
         auto set_vector(u32 vector) -> Self & {
-            wrapper_ |= vector;
+            // Truncate it.
+            wrapper_ |= u8(vector);
             return *this;
         }
 
@@ -187,6 +188,12 @@ namespace arch {
         FORCE_INLINE
         auto set_target(ApicIpiTarget target) -> Self & {
             wrapper_ |= u64(target) << 18;
+            return *this;
+        }
+
+        FORCE_INLINE
+        auto set_dest(u64 apicid) -> Self & {
+            wrapper_ |= u64(apicid) << 56;
             return *this;
         }
 

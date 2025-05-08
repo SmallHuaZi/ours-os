@@ -18,7 +18,7 @@
 #include <ours/arch/cpu-local.hpp>
 
 #include <ours/cpu.hpp>
-#include <ours/cpu-mask.hpp>
+#include <ours/cpu-states.hpp>
 #include <ours/init.hpp>
 #include <ours/assert.hpp>
 #include <ours/mem/cfg.hpp>
@@ -104,7 +104,7 @@ namespace ours {
         template <typename Integral>
         FORCE_INLINE
         static auto read(Integral &integer) -> Integral {
-            static_assert(ustl::traits::IsIntegralV<Integral>);
+            static_assert(ustl::traits::IsIntegralV<Integral> || ustl::traits::IsPtrV<Integral>);
             static_assert(sizeof(usize) == sizeof(&integer), "`usize` must has the same size with a pointer");
             return ArchCpuLocal::read<Integral>(reinterpret_cast<usize>(&integer));
         }
@@ -112,7 +112,7 @@ namespace ours {
         template <typename Integral>
         FORCE_INLINE
         static auto write(Integral &integer, Integral value) -> void {
-            static_assert(ustl::traits::IsIntegralV<Integral>);
+            static_assert(ustl::traits::IsIntegralV<Integral> || ustl::traits::IsPtrV<Integral>);
             ArchCpuLocal::write(reinterpret_cast<usize>(&integer), value);
         }
 

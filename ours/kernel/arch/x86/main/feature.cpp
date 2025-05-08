@@ -14,10 +14,14 @@ namespace ours {
         return cpuinfo->feature().has_feature(type);
     }
 
+    bool g_feature_has_fsgsbase = false;
+
     INIT_CODE
     auto x86_init_feature_percpu() -> void {
         auto cpuinfo = CpuLocal::access(&g_x86_cpu_info);
         cpuinfo->init();
+
+        g_feature_has_fsgsbase = x86_has_feature(CpuFeatureType::FsGsBase);
     }
 
     INIT_CODE

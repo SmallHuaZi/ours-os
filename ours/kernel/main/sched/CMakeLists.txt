@@ -13,4 +13,5 @@ INTERFACE
 target_link_libraries(kernel_sched
 INTERFACE
     kernel::main::headers
+    kernel::lib::cnl
 )

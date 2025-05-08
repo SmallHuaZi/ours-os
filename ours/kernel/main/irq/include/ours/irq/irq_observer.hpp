@@ -21,6 +21,10 @@ namespace ours::irq {
     class IrqObserver {
         typedef IrqObserver Self;
       public:
+        IrqObserver(VIrqNum irqnum, IrqFlags flags, IrqHandler handler, char const *name)
+          : virqnum_(irqnum), flags_(flags), handler_(handler), name_(name)
+        {}
+
         FORCE_INLINE
         auto on_event(IrqData &data) -> IrqReturn {
             if (handler_) {
@@ -30,10 +34,13 @@ namespace ours::irq {
         }
 
       protected:
+        friend IrqObject;
+
         IrqFlags flags_;
         VIrqNum virqnum_;
         IrqHandler handler_;
         void *data_;
+        char const *name_;
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
       public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOptions);

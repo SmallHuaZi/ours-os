@@ -106,6 +106,11 @@ namespace paging {
         }
 
         FORCE_INLINE
+        auto pgd_phys() const -> PhysAddr {
+            return pimpl_->pgd_phys();
+        }
+
+        FORCE_INLINE
         auto install() const -> void {
             pimpl_->install();
         }

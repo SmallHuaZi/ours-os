@@ -18,6 +18,11 @@
 namespace ours {
     auto current_mono_ticks() -> MonoTicks;
 
+    auto current_mono_time() -> usize;
+
+    /// Unit: ms
+    auto get_periodic_time() -> usize;
+
 } // namespace ours
 
 #endif // #ifndef OURS_PLATFORM_TIMER_HPP

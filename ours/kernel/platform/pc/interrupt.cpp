@@ -12,6 +12,7 @@
 #include <ktl/vec.hpp>
 
 namespace ours {
+    INIT_CODE
     static auto parse_io_apic_isa_overrides(acpi::AcpiMadtInterruptOverrideEntry const &entry) 
         -> arch::IoApicIsaOverride {
         arch::IoApicIsaOverride object;
@@ -45,6 +46,7 @@ namespace ours {
         return object;
     }
 
+    INIT_CODE
     static auto platform_init_apic() -> void {
         // Before enable the APIC, we should shutdown the PIC.
         arch::Pic::disable();
@@ -82,6 +84,9 @@ namespace ours {
             apic_configure_isa_irq(i + 8, ApicDeliveryMode::Fixed, true, 
                                    ApicDestinationMode::Physical, bspid, IrqVec());
         }
+
+        // Initialize previous 16 ISA IRQ.
+        irq::init_early(16);
     }
     GKTL_INIT_HOOK(ApicInit, platform_init_apic, gktl::InitLevel::Vmm);
 

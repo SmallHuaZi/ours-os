@@ -6,7 +6,7 @@ Type: `class ArchVmAspace` <br>
 Provider: `<arch/vm_aspace.hpp>` <br>
 Requirement: Forced <br>
 Interfaces:
-1.  __static auto context_switch(ArchVmAspace *from, ArchVmAspace *to) -> void__ <br>
+1.  __static auto switch_context(ArchVmAspace *from, ArchVmAspace *to) -> void__ <br>
 Description:
 
 2. __auto init(VmasFlags flags) -> Result<>__ <br>
@@ -41,7 +41,7 @@ class ArchVmAspace
 public:
     ArchVmAspace(VirtAddr base, usize size, VmasFlags flags);
 
-    static auto context_switch(Self *from, Self *to) -> void;
+    static auto switch_context(Self *from, Self *to) -> void;
 
     auto init() -> Status;
 

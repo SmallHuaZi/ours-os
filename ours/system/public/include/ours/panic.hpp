@@ -31,6 +31,11 @@ namespace ours {
         do_panic(fmt, ustl::fmt::make_format_args(args...));
     }
 
+    NO_RETURN FORCE_INLINE 
+    static auto unreachable() -> void {
+        panic("Unreachable");
+    }
+
 } // namespace ours
 
 #endif // #ifndef OURS_PANIC_HPP

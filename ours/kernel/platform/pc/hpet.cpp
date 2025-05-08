@@ -1,5 +1,6 @@
 #include <ours/platform/hpet.hpp>
 #include <ours/platform/acpi.hpp>
+#include <ours/platform/timer.hpp>
 #include <ours/arch/apic.hpp>
 #include <ours/assert.hpp>
 
@@ -18,6 +19,7 @@ using namespace ustl::chrono;
 
 namespace ours {
     Hpet *g_hpet = 0;
+
 
     /// From https://wiki.osdev.org/HPET#Initialization, we should do the following:
     /// 1. Find HPET base address in 'HPET' ACPI table.
@@ -104,13 +106,13 @@ namespace ours {
         g_hpet->mmio->timers[0].conf_caps.enable_periodic()
                                          .mask(false);
         // Set the comparator match
-        g_hpet->mmio->timers[0].comparator_value = g_hpet->ticks_per_ms * 10;
-        g_hpet->mmio->timers[0].comparator_value = g_hpet->ticks_per_ms * 10;
+        g_hpet->mmio->timers[0].comparator_value = g_hpet->ticks_per_ms * get_periodic_time();
+        g_hpet->mmio->timers[0].comparator_value = g_hpet->ticks_per_ms * get_periodic_time();
 
         g_hpet->enable();
 
         apic_configure_isa_irq(0, ApicDeliveryMode::Fixed, false, ApicDestinationMode::Physical, 
-            0, IrqVec(u8(IrqVec::PlatformIrqMin) + 2));
+            0, IrqVec::PlatformIrqMin);
     }
 
 } // namespace ours

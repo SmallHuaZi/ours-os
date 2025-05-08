@@ -41,26 +41,6 @@ namespace ours {
         s_pgdt->load();
     }
 
-    INIT_CODE
-    auto x86_setup_gdt() -> void {
-        using namespace mem;
-
-        VirtAddr virt_addr = 0;
-        ustl::Rc<VmArea> vma;
-        auto result = VmAspace::kernel_aspace()->root_vma()->map_at(
-            PhysMap::virt_to_phys(&g_gdt), 
-            &virt_addr, // Request the virtual address
-            PAGE_SIZE,
-            MmuFlags::Readable, // Read only
-            VmMapOption::Commit | VmMapOption::Pinned, // Disable swapping out.
-            "k:GDT"
-        );
-        ASSERT(!result, "Failed to create readonly GDT");
-
-        s_pgdt = reinterpret_cast<decltype(s_pgdt)>(virt_addr);
-        x86_load_gdt();
-    }
-
     template <typename Descriptor>
     static auto dump_desc(Descriptor const &desc) -> void {
         log::info("{: <16} | 0x{:0<16X} | 0x{:<16X} | {}",
@@ -82,6 +62,31 @@ namespace ours {
         for (auto i = 0; i < tss.size(); ++i) {
             dump_desc(tss[i]);
         }
+    }
+
+    auto x86_set_tss_sp(VirtAddr sp) -> void {
+        auto tss = &CpuLocal::access(&g_x86_pcpu)->tss;
+        tss->sp0 = sp;
+    }
+
+    INIT_CODE
+    auto x86_setup_gdt() -> void {
+        using namespace mem;
+
+        VirtAddr virt_addr = 0;
+        ustl::Rc<VmArea> vma;
+        auto result = VmAspace::kernel_aspace()->root_vma()->map_at(
+            PhysMap::virt_to_phys(&g_gdt), 
+            &virt_addr, // Request the virtual address
+            PAGE_SIZE,
+            MmuFlags::Readable, // Read only
+            VmMapOption::Commit | VmMapOption::Pinned, // Disable swapping out.
+            "k:GDT"
+        );
+        ASSERT(!result, "Failed to create readonly GDT");
+
+        s_pgdt = reinterpret_cast<decltype(s_pgdt)>(virt_addr);
+        x86_load_gdt();
     }
 
     /// Code bottom is about TSS

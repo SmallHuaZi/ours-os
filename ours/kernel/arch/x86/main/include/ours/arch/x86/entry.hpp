@@ -23,7 +23,7 @@ namespace ours {
     auto x86_enter_uspace(arch::IrqFrame *) -> void;
 
     NO_MANGLE 
-    auto x86_switch_context() -> void;
+    auto x86_switch_context(VirtAddr *oldsp, VirtAddr newsp) -> void;
 
 } // namespace ours
 

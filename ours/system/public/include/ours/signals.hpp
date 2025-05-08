@@ -8,29 +8,23 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_IRQ_TYPES_HPP
-#define OURS_IRQ_TYPES_HPP 1
+#ifndef OURS_SIGNALS_HPP
+#define OURS_SIGNALS_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/config.hpp>
 
-namespace ours::irq {
-    class IrqChip;
-    class IrqDomain;
-    class IrqObject;
-    class IrqDispatcher;
+#include <ustl/bitset.hpp>
+#include <ustl/util/enum_bits.hpp>
 
-    enum class IrqType {
-        Edge,
-        Level,
+namespace ours {
+    enum class Signals {
+        Suspend,
+        Kill,
+        MaxNumSignals,
     };
+    USTL_ENABLE_ENUM_BITMASK(Signals);
 
-    struct IrqData {
-        VIrqNum virqnum;
-        HIrqNum hirqnum;
-        IrqChip *chip;
-        IrqDomain *domain;
-    };
+} // namespace ours
 
-} // namespace ours::irq
-
-#endif // #ifndef OURS_IRQ_TYPES_HPP
+#endif // #ifndef OURS_SIGNALS_HPP

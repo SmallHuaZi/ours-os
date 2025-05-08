@@ -15,31 +15,70 @@ namespace ours {
     static auto x86_dispatch_exception(arch::IrqVec vector, arch::IrqFrame *frame) -> void {
         using namespace arch;
         if (vector == IrqVec::PageFault) {
-            if (Status::Ok != x86_handle_page_fault(frame)) {
-            }
+            ASSERT(Status::Ok != x86_handle_page_fault(frame));
         }
             
         switch (vector) {
             case IrqVec::DivideError:
+                log::info("#DE");
+                break;
             case IrqVec::Debug:
+                log::info("#DB");
+                break;
             case IrqVec::Nmi:
+                log::info("#NMI");
+                break;
             case IrqVec::Breakpoint:
+                log::info("#BK");
+                break;
             case IrqVec::Overflow:
+                log::info("#OF");
+                break;
             case IrqVec::BoundRangeExceeded:
+                log::info("#BE");
+                break;
             case IrqVec::InvalidOpcode:
+                log::info("#IO");
+                break;
             case IrqVec::DeviceNotAvailable:
+                log::info("#DNA");
+                break;
             case IrqVec::DoubleFault:
+                log::info("#DF");
+                break;
             case IrqVec::CoprocessorSegmentOverrun:
+                log::info("#CSO");
+                break;
             case IrqVec::InvalidTss:
+                log::info("#IT");
+                break;
             case IrqVec::SegmentNotPresent:
+                log::info("#SNP");
+                break;
             case IrqVec::StackFaultException:
+                log::info("#SF");
+                break;
             case IrqVec::GeneralProtection:
+                log::info("#GP");
+                break;
             case IrqVec::X87FloatingPoint:
+                log::info("#X86FP");
+                break;
             case IrqVec::AlignmentCheck:
+                log::info("#AC");
+                break;
             case IrqVec::MachineCheck:
+                log::info("#MC");
+                break;
             case IrqVec::SimdFloatingPoint:
+                log::info("#SIMDFP");
+                break;
             case IrqVec::Virtualizatoin:
+                log::info("#V");
+                break;
             case IrqVec::ControlProtection:
+                log::info("#CP");
+                break;
                 break;
             
             case IrqVec::PlatformIrqMin ... IrqVec::PlatformIrqMax:

@@ -19,6 +19,10 @@
 #include <arch/x86/apic/ioapic.hpp>
 
 namespace ours {
+    using arch::ApicDeliveryMode;
+    using arch::ApicDestinationMode;
+    using arch::ApicTriggerMode;
+
     INIT_CODE
     auto init_io_apic(ustl::views::Span<arch::IoApic> const &ioapics,
                       ustl::views::Span<arch::IoApicIsaOverride> const &overrides) -> void;
@@ -37,6 +41,14 @@ namespace ours {
 
     auto apic_timer_current_count() -> u32;
 
+    auto apic_send_ipi(CpuNum target, arch::IrqVec vector, ApicDeliveryMode mode) -> void;
+
+    auto apic_send_mask_ipi(CpuMask targets, arch::IrqVec vector, ApicDeliveryMode mode) -> void;
+
+    auto apic_broadcast_ipi(arch::IrqVec vector, ApicDeliveryMode mode) -> void;
+
+    auto apic_mask_irq(HIrqNum global_irq) -> void;
+
     auto apic_unmask_irq(HIrqNum global_irq) -> void;
 
     auto apic_configure_irq(HIrqNum global_irq, arch::ApicTriggerMode,
@@ -46,6 +58,7 @@ namespace ours {
     auto apic_configure_isa_irq(u8 isa_irq, arch::ApicDeliveryMode del_mode, bool mask,
                                 arch::ApicDestinationMode dst_mode, u8 dst, arch::IrqVec vector) -> void;
 
+    auto cpunum_to_apicid(CpuNum cpunum) -> u32;
     auto current_apic_id() -> u32;
 
     extern irq::IrqChip *g_ioapic_chip;

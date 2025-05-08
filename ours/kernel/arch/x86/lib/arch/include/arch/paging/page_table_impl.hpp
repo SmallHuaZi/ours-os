@@ -70,6 +70,10 @@ namespace arch::paging {
             return pages_.load();
         }
 
+        FORCE_INLINE
+        auto pgd_phys() const -> PhysAddr {
+            return phys_;
+        }
       protected:
         usize flags_;
         PhysAddr phys_;

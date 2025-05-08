@@ -49,6 +49,9 @@ namespace arch {
 
     typedef u16     Pcid;
 
+    CXX11_CONSTEXPR
+    static Pcid const kInvalidApicId = -1;
+
     struct InvPcidDesc {
         u64 pcid;
         u64 addr;

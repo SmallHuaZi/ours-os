@@ -8,12 +8,12 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_CPU_HPP
-#define OURS_CPU_HPP
+#ifndef INCLUDE_OURS_CPU_HPP
+#define INCLUDE_OURS_CPU_HPP
 
 #if !__has_include(<ours/arch/cpu.hpp>)
 #   error "The header <ours/arch/cpu.hpp> is required by the protocol [kernel.cpu]"
-#endif
+#endif // INCLUDE_OURS_CPU_HPP
 
 #include <ours/arch/cpu.hpp>
 

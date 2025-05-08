@@ -14,9 +14,9 @@ namespace ours::task {
 
     }
 
-    auto timer_tick() -> void {
+    auto timer_tick(usize elapsed_time_ms) -> void {
         // We always update scheduling information first.
-        sched::MainScheduler::tick();
+        CpuLocal::access<sched::MainScheduler>()->tick();
 
         CpuLocal::access(&s_timer_queue)->tick(arch_current_cpu());
     }

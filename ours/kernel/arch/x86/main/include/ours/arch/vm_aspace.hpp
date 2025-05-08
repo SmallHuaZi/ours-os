@@ -23,7 +23,7 @@ namespace ours::mem {
     public:
         ArchVmAspace(VirtAddr base, usize size, VmasFlags flags);
 
-        static auto context_switch(Self *from, Self *to) -> void;
+        static auto switch_context(Self *from, Self *to) -> void;
 
         auto init() -> Status;
 
@@ -50,7 +50,7 @@ namespace ours::mem {
 
         GKTL_CANARY(ArchVmAspace, canary_);
 
-        usize pcid_;
+        u16 pcid_;
         VmasFlags flags_;
         /// CPUs that are currently executing in this virtual address space.
         CpuMask active_cpus_;

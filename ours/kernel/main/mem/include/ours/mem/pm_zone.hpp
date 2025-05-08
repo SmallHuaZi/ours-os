@@ -80,6 +80,13 @@ namespace ours::mem {
         CXX11_CONSTEXPR
         static usize const kMaxPcpuCacheOrder = 0;
 
+        enum class WaterMark {
+            Critical,   // 0 - %10
+            Moderate,   // %10 - %30
+            Sufficient, // %30 - %100
+            MaxNumMarks,
+        };
+
         PmZone();
 
         auto init(NodeId nid, ZoneType ztype, Pfn start_pfn, Pfn end_pfn, usize present_frames = 0) -> void;
@@ -165,6 +172,8 @@ namespace ours::mem {
         ustl::sync::AtomicUsize spanned_frames_;
 
         ustl::sync::AtomicUsize reserved_frames_;
+
+        ustl::Array<usize, usize(WaterMark::MaxNumMarks)> watermark_;
 
         typedef FramePcpuCache<kMaxPcpuCacheOrder>  PcpuCache;
         PerCpu<PcpuCache> frame_cache_;

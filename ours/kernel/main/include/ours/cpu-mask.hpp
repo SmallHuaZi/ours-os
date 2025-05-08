@@ -15,7 +15,6 @@
 #include <ours/config.hpp>
 #include <ours/cpu-cfg.hpp>
 #include <ours/assert.hpp>
-#include <ours/arch/cpu.hpp>
 
 #include <ustl/bit.hpp>
 #include <ustl/bitset.hpp>
@@ -33,56 +32,6 @@ namespace ours {
         using Base::Base;
     };
 
-    struct CpuStates {
-        typedef CpuStates   Self;
-
-        FORCE_INLINE
-        auto set_possible(CpuNum cpunum, bool possible) -> void {
-            DEBUG_ASSERT(cpunum < MAX_CPU, "");
-            possible_cpus.set(cpunum, possible);
-        }
-
-        FORCE_INLINE
-        auto set_online(CpuNum cpunum, bool online) -> void {
-            DEBUG_ASSERT(cpunum < MAX_CPU, "");
-            online_cpus.set(cpunum, online);
-        }
-
-        FORCE_INLINE
-        auto set_active(CpuNum cpunum, bool active) -> void {
-            DEBUG_ASSERT(cpunum < MAX_CPU, "");
-            possible_cpus.set(cpunum, active);
-        }
-
-        CpuMask  possible_cpus;
-        CpuMask  online_cpus;
-        CpuMask  active_cpus;
-        ustl::sync::AtomicU32 nr_onlines;
-
-        static CpuStates s_global_cpu_states;
-    };
-    inline CpuStates CpuStates::s_global_cpu_states;
-
-    FORCE_INLINE
-    static auto global_cpu_states() -> CpuStates & {
-        return CpuStates::s_global_cpu_states;
-    }
-
-    FORCE_INLINE
-    static auto cpu_possible_mask() -> CpuMask & {
-        return global_cpu_states().possible_cpus;
-    }
-
-    FORCE_INLINE
-    static auto cpu_online_mask() -> CpuMask & {
-        return global_cpu_states().online_cpus;
-    }
-
-    FORCE_INLINE CXX11_CONSTEXPR
-    static auto num_possible_cpus() -> usize {
-        return cpu_possible_mask().count();
-    }
-
     template <typename F>
         requires ustl::traits::Invocable<F, CpuNum>
     auto for_each_cpu(CpuMask const &cpu_mask, F &&functor) -> void {
@@ -91,32 +40,6 @@ namespace ours {
                 ustl::function::invoke(functor, CpuNum(i));
             }
         }
-    }
-
-    template <typename F>
-        requires ustl::traits::Invocable<F, CpuNum>
-    FORCE_INLINE
-    auto for_each_possible_cpu(F &&functor) -> void {  
-        return for_each_cpu(global_cpu_states().possible_cpus, functor);  
-    }
-
-    template <typename F>
-        requires ustl::traits::Invocable<F, CpuNum>
-    FORCE_INLINE 
-    auto for_each_online_cpu(F &&functor) -> void {  
-        return for_each_cpu(global_cpu_states().online_cpus, functor);  
-    }
-
-    template <typename F>
-        requires ustl::traits::Invocable<F, CpuNum>
-    FORCE_INLINE 
-    auto for_each_active_cpu(F &&functor) -> void {  
-        return for_each_cpu(global_cpu_states().active_cpus, functor);  
-    }
-
-    FORCE_INLINE
-    static auto set_current_cpu_online(bool online) -> void {
-        global_cpu_states().set_online(arch_current_cpu(), online);
     }
 
 } // namespace ours

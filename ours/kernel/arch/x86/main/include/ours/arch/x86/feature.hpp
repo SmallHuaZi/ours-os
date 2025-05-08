@@ -18,6 +18,8 @@ namespace ours {
 
     auto x86_has_feature(CpuFeatureType type) -> bool;
 
+    extern bool g_feature_has_fsgsbase;
+
 } // namespace ours
 
 #endif // #ifndef OURS_ARCH_X86_FEATURES_HPP

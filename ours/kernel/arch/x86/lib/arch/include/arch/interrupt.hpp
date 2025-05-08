@@ -13,6 +13,7 @@
 
 #include <arch/types.hpp>
 #include <arch/processor/cpu-states.hpp>
+#include <arch/x86/interrupt.hpp>
 
 #include <ustl/sync/atomic.hpp>
 

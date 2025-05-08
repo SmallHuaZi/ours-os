@@ -30,8 +30,9 @@ namespace arch {
         USTL_CONSTEXPR
         static auto read() -> Self;
 
+        template <typename T>
         USTL_CONSTEXPR
-        static auto write(Derived) -> void;
+        static auto write(T ) -> void;
 
         FORCE_INLINE USTL_CONSTEXPR
         static auto from_value(usize val) -> Self {

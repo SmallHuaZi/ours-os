@@ -16,8 +16,9 @@
 
 #define X86_IMPL_SYSREG(DERIVED, NAME)\
     template <>\
+    template <typename T> \
     USTL_FORCEINLINE USTL_CONSTEXPR \
-    auto SysReg<DERIVED>::write(DERIVED value) -> void { \
+    auto SysReg<DERIVED>::write(T value) -> void { \
         static_assert(sizeof(DERIVED) <= sizeof(usize), \
                       "A system register is impossibly greater than the size a platform supports");\
         asm volatile("mov %0, %%" NAME : : "r"(value)); \
@@ -95,9 +96,16 @@ namespace arch {
     template <>
     struct SysRegTraits<Cr3> {
         typedef usize   ValueType;
-        enum RegisterBits { PageTableAddress, };
-        typedef TypeList<Field<Id<PageTableAddress>, Bits<ustl::NumericLimits<PhysAddr>::DIGITS>>>
-            FieldList;
+        enum RegisterBits { 
+            Pcid,
+            PageTableAddress, 
+            NoFlush,
+        };
+        typedef TypeList<
+            Field<Id<Pcid>, Bits<12>>,
+            Field<Id<PageTableAddress>, Bits<ustl::NumericLimits<PhysAddr>::DIGITS - 12 - 1>>,
+            Field<Id<NoFlush>, Bits<1>, StartBit<63>>
+        > FieldList;
     };
     struct Cr3: public SysReg<Cr3> { typedef SysReg<Cr3> Base; using Base::Base; };
     X86_IMPL_SYSREG(Cr3, "cr3");

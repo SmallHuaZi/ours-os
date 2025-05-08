@@ -13,17 +13,33 @@
 
 #include <ours/types.hpp>
 #include <ours/config.hpp>
+#include <ours/cpu-local.hpp>
+
+#include <ours/task/types.hpp>
 
 namespace ours::task {
     class X86Thread {
         typedef X86Thread  Self;
       public:
-        static auto switch_context(Self &prev, Self &next) -> void;
-    
+        static auto switch_context(Self *prev, Self *next) -> void;
+
+        FORCE_INLINE
+        static auto current_thread() -> Self * {
+            return CpuLocal::read(s_current_arch_thread);
+        }
+
       private:
+        FORCE_INLINE
+        static auto set_current_thread(Self *curr) -> void {
+            return CpuLocal::write(s_current_arch_thread, curr);
+        }
+
         friend class Thread;
         VirtAddr fs_base_;
         VirtAddr gs_base_;
+        VirtAddr sp_;
+
+        static Self *s_current_arch_thread;
     };
 
     typedef X86Thread   ArchThread;

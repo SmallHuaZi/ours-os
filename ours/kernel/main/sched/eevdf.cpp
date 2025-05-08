@@ -21,6 +21,7 @@ namespace ours::sched {
     using RunQueue = MultiSet<SchedObject, RunQueueOption, Compare<EevdffObjectCompare>>;
 
     class EevdfScheduler: public IScheduler {
+        typedef IScheduler      Base;
         typedef EevdfScheduler  Self;
       public:
         OURS_SCHEDULER_API;
@@ -28,7 +29,7 @@ namespace ours::sched {
       private:
         auto is_eligible(SchedObject const &) const -> bool;
 
-        auto update(SchedObject &) -> void;
+        auto update_current(SchedObject &current) -> void;
 
         usize num_runnable_;
         RunQueue runqueue_;
@@ -65,7 +66,7 @@ namespace ours::sched {
     /// heap based on the vruntime by keeping:
     /// 
     /// Which allows tree pruning through eligibility.
-    auto EevdfScheduler::pick_next() -> SchedObject * {
+    auto EevdfScheduler::evaluate_next() -> SchedObject * {
         auto iter = runqueue_.begin();
         for (auto const last = runqueue_.end(); iter != last; ++iter) {
             if (!is_eligible(*iter)) {
@@ -77,9 +78,34 @@ namespace ours::sched {
     }
 
     auto EevdfScheduler::dequeue(SchedObject &object) -> void {
-        runqueue_.insert(object);
+        update_current(object);
+        runqueue_.erase(runqueue_.iterator_to(object));
     }
 
     auto EevdfScheduler::enqueue(SchedObject &object) -> void {
+        update_current(object);
+        runqueue_.insert(object);
+    }
+
+    auto EevdfScheduler::update_current(SchedObject &current) -> void {
+        ASSERT(current.get_scheduler() == this);
+        auto const now = current_time();
+        auto delta = now - common_data_->current_started_time;
+
+        if (delta.count() < 0) [[unlikely]] {
+            return;
+        }
+
+        // Update real time.
+        common_data_->current_started_time = now;
+        current.runtime_ += delta;
+
+        // Update virtual time.
+        auto const scheduling_period = common_data_->scheduling_period();
+        auto const rate = current.weight() / kMinWeight;
+        current.vruntime_ += scheduling_period * rate;
+        if (current.deadline() <= current.vruntime()) {
+            current.preemption_state().set_pending();
+        }
     }
 }

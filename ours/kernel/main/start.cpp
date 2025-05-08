@@ -60,7 +60,7 @@ namespace ours {
         irq::init_irq();
         set_init_level(gktl::InitLevel::Irq);
 
-        auto const laborer = task::Thread::spawn("ours", labour_routine);
+        auto const laborer = task::Thread::spawn(labour_routine, 0, "ours", 0);
         laborer->detach();
         laborer->resume();
 

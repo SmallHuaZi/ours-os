@@ -24,6 +24,12 @@ namespace ours {
         return CpuLocal::read(s_apic_id);
     }
 
+    static ustl::Array<isize, MAX_CPU>  s_cpu_to_apicid;
+
+    auto cpunum_to_apicid(CpuNum cpunum) -> u32 {
+        return s_cpu_to_apicid[cpunum];
+    }
+
     struct XApic: public IrqChip {
         XApic();
 
@@ -69,6 +75,56 @@ namespace ours {
     }
 
     static XApic s_xapic_chip;
+
+    auto apic_send_ipi(CpuNum target, arch::IrqVec vector, ApicDeliveryMode mode) -> void {
+        arch::IpiRequest request{};
+        request.set_vector(u32(vector))
+               .set_target(arch::ApicIpiTarget::TheOne)
+               .set_dest(cpunum_to_apicid(target))
+               .set_dest_mode(arch::ApicDestinationMode::Physical)
+               .set_level(arch::ApicIpiLevel::Assert)
+               .set_delivery_mode(mode);
+        s_xapic_chip.inner_.send_ipi(target, request);
+    }
+
+    auto apic_send_mask_ipi(CpuMask targets, arch::IrqVec vector, ApicDeliveryMode mode) -> void {
+        for_each_cpu(targets, [vector, mode] (CpuNum cpunum) {
+            apic_send_ipi(cpunum, vector, mode);
+        });
+    }
+
+    auto apic_broadcast_ipi(arch::IrqVec vector, ApicDeliveryMode mode) -> void {
+        arch::IpiRequest request{};
+        request.set_vector(u32(vector))
+               .set_target(arch::ApicIpiTarget::All)
+               .set_dest_mode(arch::ApicDestinationMode::Physical)
+               .set_level(arch::ApicIpiLevel::Assert)
+               .set_delivery_mode(mode);
+        s_xapic_chip.inner_.broadcast_ipi(request);
+    }
+
+    auto apic_timer_set_oneshot(u32 n, u8 divisor, bool mask) -> Status {
+        using namespace arch;
+        CXX11_CONSTEXPR
+        static u32 const kDivisor[] = {0xb, 0, 1, 2, 3, 8, 9, 10};
+
+        if (divisor == 0 || divisor > std::size(kDivisor)) {
+            return Status::InvalidArguments;
+        }
+
+        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::OneShot);
+        if (mask) {
+            s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
+        }
+
+        s_xapic_chip.inner_.write_reg(XApicRegType::TimerInitCount, n);
+        s_xapic_chip.inner_.write_reg(XApicRegType::TimerDivConf, kDivisor[divisor - 1]);
+        return Status::Ok;
+    }
+
+    auto apic_timer_current_count() -> u32 {
+        return s_xapic_chip.inner_.read_reg(arch::XApicRegType::TimerCurrentCount);
+    }
 
     INIT_CODE
     auto init_local_apic() -> void {
@@ -153,29 +209,6 @@ namespace ours {
         using namespace arch;
         s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::Deadline);
         s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
-    }
-
-    auto apic_timer_set_oneshot(u32 n, u8 divisor, bool mask) -> Status {
-        using namespace arch;
-        CXX11_CONSTEXPR
-        static u32 const kDivisor[] = {0xb, 0, 1, 2, 3, 8, 9, 10};
-
-        if (divisor == 0 || divisor > std::size(kDivisor)) {
-            return Status::InvalidArguments;
-        }
-
-        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::OneShot);
-        if (mask) {
-            s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
-        }
-
-        s_xapic_chip.inner_.write_reg(XApicRegType::TimerInitCount, n);
-        s_xapic_chip.inner_.write_reg(XApicRegType::TimerDivConf, kDivisor[divisor - 1]);
-        return Status::Ok;
-    }
-
-    auto apic_timer_current_count() -> u32 {
-        return s_xapic_chip.inner_.read_reg(arch::XApicRegType::TimerCurrentCount);
     }
 
 } // namespace ours::irq

@@ -12,9 +12,15 @@
 #define OURS_SCHED_TYPES_HPP 1
 
 #include <ours/types.hpp>
+
 #include <ustl/chrono/duration.hpp>
+#include <cnl/fraction.hpp>
 
 namespace ours::sched {
+    using ustl::chrono::Nanoseconds;
+    using ustl::chrono::Microseconds;
+    using ustl::chrono::Milliseconds;
+
     typedef ustl::chrono::Nanoseconds   SchedTime;
 
     /// High weight accompanied by low virtual time flow rate.
@@ -23,16 +29,17 @@ namespace ours::sched {
     ///     V(t) = t / TotalWeight;
     ///     t = V(t) * TotalWeight;
     ///
-    /// For a task we
+    /// For a task, 
     /// define S(i) as the service time obtained by the task i
     /// define Ve(i) = the start time point of S(i) and the eligible time in EEVDF
     /// define Vd(i) = the end time point of S(i)
     ///     S(i) = (Vd(i) - Ve(i)) * W(i);
     ///     Vd(i) = Ve(i) + Si(i) / W(i)
-    typedef usize   SchedWeight;
+    typedef cnl::Fraction<usize, cnl::Power<16>>    SchedWeight;
 
-    class Scheduler;
     class SchedObject;
+    class IScheduler;
+    class MainScheduler;
 
 } // namespace ours::sched
 

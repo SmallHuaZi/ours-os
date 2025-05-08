@@ -32,7 +32,7 @@
 
     mov %rsp, g_kernel_stack_bottom(%rip)
     mov %cr3, %rax
-    mov %rax, g_pgd(%rip)
+    mov %rax, g_kernel_pgd(%rip)
 
     lgdt g_temp_gdtr(%rip)
 
