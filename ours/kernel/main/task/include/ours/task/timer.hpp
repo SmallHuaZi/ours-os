@@ -21,7 +21,15 @@ namespace ours::task {
     class TimerQueue {
         typedef TimerQueue  Self;
       public:
-        auto tick(CpuNum cpu) -> void;
+        auto tick() -> void;
+
+        FORCE_INLINE
+        static auto current() -> Self * {
+            return CpuLocal::access(&s_timer_queue);
+        }
+
+      private:
+        static Self s_timer_queue;
     };
 
     auto timer_tick(usize elapsed_time_ms) -> void;

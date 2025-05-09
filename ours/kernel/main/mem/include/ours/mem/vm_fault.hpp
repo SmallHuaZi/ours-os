@@ -20,7 +20,7 @@ namespace ours::mem {
     enum class VmfCause {
         None,
         Write = BIT(0),
-        NotPresent = BIT(0),
+        Absent = BIT(0),
         User = BIT(0),
     };
     USTL_ENABLE_ENUM_BITMASK(VmfCause);

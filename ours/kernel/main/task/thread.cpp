@@ -3,6 +3,7 @@
 #include <ours/mem/mod.hpp>
 #include <ours/mem/object-cache.hpp>
 #include <ours/sched/mod.hpp>
+#include <ours/sched/scheduler.hpp>
 
 #include <ustl/traits/char_traits.hpp>
 
@@ -25,18 +26,18 @@ namespace ours::task {
           arch_thread_()
     {}
 
-    auto Thread::switch_context(Self *prev, Self *next) -> void {
-        set_current_thread(next);
-
-        ArchThread::switch_context(&prev->arch_thread_, &next->arch_thread_);
-    }
-
     auto Thread::spawn(ThreadStartEntry entry, void *args, char const *name, usize priority) -> Self * {
         auto self = new (*s_thread_cache, mem::kGafKernel) Self(priority, entry, args, name);
         ASSERT(self);
 
         s_global_thread_list.push_back(*self);
         return self;
+    }
+
+    auto Thread::switch_context(Self *prev, Self *next) -> void {
+        set_current_thread(next);
+
+        ArchThread::switch_context(&prev->arch_thread_, &next->arch_thread_);
     }
 
     auto Thread::resume() -> Status {
@@ -49,7 +50,7 @@ namespace ours::task {
         signals_ |= ~Signals::Suspend;
 
         if (states_ == ThreadStates::Waiting || states_ == ThreadStates::Alive) {
-            sched::activate(*this);
+            sched::activate_thread(this);
             states_ = ThreadStates::Running;
         }
 

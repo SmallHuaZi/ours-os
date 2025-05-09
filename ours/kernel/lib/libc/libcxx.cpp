@@ -32,9 +32,9 @@ namespace std {
 #endif
     {}
 
-    runtime_error::runtime_error(string const &)
+    runtime_error::runtime_error(string const &msg)
 #ifdef _LIBCPP_VERSION
-        : __imp_("")
+        : __imp_(msg.data())
 #endif
     {}
 
@@ -42,7 +42,18 @@ namespace std {
     {}
 
     auto runtime_error::what() const noexcept -> char const *
-    {  return "ours not exception";  }
+    {  return "exception: c++ runtime exception";  }
+
+    domain_error::~domain_error()  {}
+
+    auto logic_error::what() const noexcept -> char const *
+    {  return "exception: c++ logical error";  }
+
+    logic_error::logic_error(char const *msg)
+        : __imp_(msg)
+    {}
+
+    logic_error::~logic_error()  {}
 
     auto __throw_out_of_range_fmt(char const *fmt, ...) -> void
     { ours::panic(fmt);  }

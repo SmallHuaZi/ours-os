@@ -8,22 +8,11 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_PLATFORM_TIMER_HPP
-#define OURS_PLATFORM_TIMER_HPP 1
-
-#include <ours/types.hpp>
-#include <ours/status.hpp>
+#ifndef OURS_PLATFORM_TSC_HPP
+#define OURS_PLATFORM_TSC_HPP 1
 
 namespace ours {
-    auto current_mono_ticks() -> Ticks;
-
-    auto current_mono_time() -> usize;
-
-    auto platform_set_oneshot_timer(Ticks deadline) -> Status;
-
-    /// Unit: ms
-    auto get_periodic_time() -> usize;
 
 } // namespace ours
 
-#endif // #ifndef OURS_PLATFORM_TIMER_HPP
+#endif // #ifndef OURS_PLATFORM_TSC_HPP

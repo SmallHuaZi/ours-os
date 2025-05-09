@@ -36,7 +36,7 @@ namespace ours::task {
 
     auto X86Thread::switch_context(Self *prev, Self *next) -> void {
         // Set stack pointer which was used at privilege 0.
-        x86_set_tss_sp(Thread::from_arch_thread(next)->kernel_stack().top());
+        x86_set_tss_sp(Thread::of(next)->kernel_stack().top());
 
         swap_gsbase_and_fsbase(next->gs_base_, next->fs_base_, &prev->gs_base_, &prev->fs_base_);
 

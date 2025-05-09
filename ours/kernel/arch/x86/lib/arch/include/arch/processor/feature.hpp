@@ -43,7 +43,9 @@ namespace arch {
             // CPUID 0x00000007:0. The extended features
             CpuIdObserveItem<CpuIdLeaf::ExtendedFeature, CpuIdSubLeaf(0), CpuIdRegTags::Edx>,
             // CPUID 0x00000007:1. The extended features
-            CpuIdObserveItem<CpuIdLeaf::ExtendedFeature, CpuIdSubLeaf(1), CpuIdRegTags::Eax>
+            CpuIdObserveItem<CpuIdLeaf::ExtendedFeature, CpuIdSubLeaf(1), CpuIdRegTags::Eax>,
+            // CPUID 0x00000007:1. The extended features
+            CpuIdObserveItem<CpuIdLeaf::Amd80000007EBX, CpuIdSubLeaf(0), CpuIdRegTags::Ebx>
         > ItemList;
 
         template <typename ObservedItem>

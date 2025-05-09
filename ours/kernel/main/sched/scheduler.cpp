@@ -4,17 +4,20 @@
 #include <ours/task/thread.hpp>
 
 namespace ours::sched {
+    CPU_LOCAL
+    MainScheduler MainScheduler::s_main_scheduler;
+
     auto MainScheduler::evaluate_next_thread(task::Thread *curr, SchedTime now) -> task::Thread * {
         if (auto eevdf = schedulers_[kEevdf];
             curr->sched_object().get_scheduler() == eevdf && num_runnable_ == eevdf->num_runnable_) {
             if (auto task = eevdf->evaluate_next()) {
-                return task::Thread::from_sched_object(task);
+                return task::Thread::of(task);
             }
         }
 
         for (auto scheduler : schedulers_) {
             if (auto task = scheduler->evaluate_next()) {
-                return task::Thread::from_sched_object(task);
+                return task::Thread::of(task);
             }
         }
 
@@ -68,6 +71,8 @@ namespace ours::sched {
             default:
                 panic("No other disciplines");
         }
+
+        so.time_slice_ = common_data_.minimal_granularity;
     }
 
     auto MainScheduler::enqueue_thread(task::Thread &thread, SchedTime now) -> void {

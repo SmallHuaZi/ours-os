@@ -8,4 +8,12 @@ namespace ours::sched {
         MainScheduler::current() ->reschedule();
     }
 
+    auto activate_thread(task::Thread *thread) -> void {
+        MainScheduler::current()->activate(*thread);
+    }
+
+    auto deactivate_thread(task::Thread *thread) -> void {
+        MainScheduler::current()->deactivate(*thread);
+    }
+
 } // namespace ours::sched

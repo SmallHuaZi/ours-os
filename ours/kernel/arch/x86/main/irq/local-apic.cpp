@@ -87,7 +87,7 @@ namespace ours {
         s_xapic_chip.inner_.send_ipi(target, request);
     }
 
-    auto apic_send_mask_ipi(CpuMask targets, arch::IrqVec vector, ApicDeliveryMode mode) -> void {
+    auto apic_send_ipi_mask(CpuMask targets, arch::IrqVec vector, ApicDeliveryMode mode) -> void {
         for_each_cpu(targets, [vector, mode] (CpuNum cpunum) {
             apic_send_ipi(cpunum, vector, mode);
         });
@@ -122,7 +122,14 @@ namespace ours {
         return Status::Ok;
     }
 
-    auto apic_timer_current_count() -> u32 {
+    auto apic_timer_set_tsc_deadline(Ticks deadline) -> void {
+        DEBUG_ASSERT(x86_has_feature(CpuFeatureType::TscDeadlineTimer));
+        DEBUG_ASSERT(arch::interrupt_disabled());
+
+        s_xapic_chip.inner_.set_tsc_deadline(deadline);
+    }
+
+    auto apic_timer_current_count() -> Ticks {
         return s_xapic_chip.inner_.read_reg(arch::XApicRegType::TimerCurrentCount);
     }
 
@@ -155,6 +162,13 @@ namespace ours {
     }
 
     INIT_CODE
+    auto init_apic_deadline_tsc() -> void {
+        using namespace arch;
+        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::Deadline);
+        s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
+    }
+
+    INIT_CODE
     static auto init_apic_timer() -> void {
         using namespace arch;
         // Using periodic timer
@@ -163,6 +177,7 @@ namespace ours {
 
         if (x86_has_feature(CpuFeatureType::TscDeadlineTimer)) {
             // Stub
+            s_xapic_chip.inner_.set_tsc_deadline(0);
         }
     }
 
@@ -202,13 +217,6 @@ namespace ours {
         init_apic_timer();
         init_apic_error();
         init_apic_pmi();
-    }
-
-    INIT_CODE
-    auto init_apic_deadline_tsc() -> void {
-        using namespace arch;
-        s_xapic_chip.inner_.enable_tsc(IrqVec::ApicTimer, arch::XApic::TscMode::Deadline);
-        s_xapic_chip.inner_.mask(XApicRegType::LvtTimer);
     }
 
 } // namespace ours::irq

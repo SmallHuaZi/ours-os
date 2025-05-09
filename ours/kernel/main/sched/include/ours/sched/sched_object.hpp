@@ -13,6 +13,7 @@
 
 #include <ours/cpu-mask.hpp>
 #include <ours/sched/types.hpp>
+#include <ours/cpu.hpp>
 
 #include <ustl/sync/atomic.hpp>
 #include <ustl/collections/intrusive/any_hook.hpp>
@@ -54,12 +55,19 @@ namespace ours::sched {
 
     class PreemptionState {
       public:
-        auto is_pending() const -> bool;
+        auto is_preemptible() const -> bool {
+            return !preemption_disabled_count_ &&
+                   !eager_preemption_disabled_count_;
+        }
 
-        auto set_pending() -> void;
+        auto set_pending(CpuMask mask = CpuMask::from_cpu_num(arch_current_cpu())) -> void {
+        }
 
-        auto clear_pending() -> void;
+        auto clear_pending() -> void {
+        }
       private:
+        ustl::sync::AtomicU16 preemption_disabled_count_;
+        ustl::sync::AtomicU16 eager_preemption_disabled_count_;
         ustl::sync::Atomic<CpuMask> pending_;
     };
 
@@ -80,6 +88,11 @@ namespace ours::sched {
         FORCE_INLINE
         auto vruntime() const -> SchedTime {
             return vruntime_;
+        }
+
+        FORCE_INLINE
+        auto vlag() const -> SchedTime {
+            return deadline_ - vruntime_;
         }
 
         FORCE_INLINE
@@ -120,12 +133,14 @@ namespace ours::sched {
         BaseProfile profile_;
         PreemptionState preemption_state_;
 
+        bool on_queue_;
+
         /// The start time point of execution.
         SchedTime runtime_;  // Physical time
+        SchedTime time_slice_;
 
         SchedTime deadline_; // Virtual time
         SchedTime vruntime_; // Virtual time
-        SchedTime time_slice_;
         IScheduler *scheduler_;
         ustl::collections::intrusive::AnyMemberHook<> managed_hook_;
     public:

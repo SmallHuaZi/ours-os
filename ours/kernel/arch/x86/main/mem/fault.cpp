@@ -19,8 +19,8 @@ namespace ours {
 
         VirtAddr const addr = Cr2::read().get<Cr2::Address>();
 
-        VmfCause cause;
-        cause |= (error_code & PFEX_PRESENT) ? VmfCause::NotPresent : VmfCause::None;
+        VmfCause cause{};
+        cause |= (error_code & PFEX_PRESENT) ? VmfCause::Absent : VmfCause::None;
         cause |= (error_code & PFEX_WRITE) ? VmfCause::Write : VmfCause::None;
         cause |= (error_code & PFEX_USER) ? VmfCause::User : VmfCause::None;
 

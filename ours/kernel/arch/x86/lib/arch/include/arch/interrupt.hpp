@@ -30,6 +30,11 @@ namespace arch {
         asm ("sti;" ::: "memory");
     }
 
+    FORCE_INLINE
+    static auto interrupt_disabled() -> bool {
+        return !ArchCpuState::read().get<ArchCpuState::IF>();
+    }
+
     CXX11_CONSTEXPR
     static auto const kNullIntrSavedState = IntrSavedState();
 

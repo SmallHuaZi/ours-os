@@ -30,6 +30,12 @@ namespace ours {
         typedef ustl::BitSet<MAX_CPU>   Base;
 
         using Base::Base;
+
+        static auto from_cpu_num(CpuNum cpunum) -> Self {
+            Self self;
+            self.set(cpunum);
+            return self;
+        }
     };
 
     template <typename F>

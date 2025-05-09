@@ -34,6 +34,7 @@ namespace arch {
         IntelExtended = 0x80000000,
         IntelFeatures,
         IntelBrand,
+        Amd80000007EBX = 0x80000007,
         IntelAddrWidth = 0x80000008,
         AmdTopology = 0x8000001e,
     };

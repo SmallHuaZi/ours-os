@@ -8,17 +8,17 @@
 
 namespace ours::task {
     CPU_LOCAL
-    TimerQueue s_timer_queue;
+    TimerQueue TimerQueue::s_timer_queue;
 
-    auto TimerQueue::tick(CpuNum cpu) -> void {
+    auto TimerQueue::tick() -> void {
 
     }
 
     auto timer_tick(usize elapsed_time_ms) -> void {
         // We always update scheduling information first.
-        CpuLocal::access<sched::MainScheduler>()->tick();
+        sched::MainScheduler::current()->tick();
 
-        CpuLocal::access(&s_timer_queue)->tick(arch_current_cpu());
+        TimerQueue::current()->tick();
     }
 
 } // namespace ours::task

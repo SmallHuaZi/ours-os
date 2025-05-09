@@ -22,7 +22,7 @@
 #include <ours/mem/stack.hpp>
 #include <ours/sched/sched_object.hpp>
 
-/// ours::object::ThreadDispatcher (PS: It is namely user-thread)
+/// ours::object::ThreadDispatcher (PS: It is so-called user-thread)
 #include <ours/object/thread_dispatcher.hpp>
 
 #include <ustl/rc.hpp>
@@ -43,24 +43,28 @@ namespace ours::task {
         Terminated,
     };
 
+    enum class ThreadFlags {
+        Preemptible = BIT(0),
+        SignalPending = BIT(1),
+
+        // All request from a thread which tagged it to allocate memory
+        // will not be accepted.
+        MemoryAllocationDisabled = BIT(2),
+    };
+
     struct ThreadState {
-        enum class MemoryAllocationState {
-            // All request from a thread which tagged it to allocate memory
-            // will not be accepted.
-            MemoryAllocationDisabled,
-        };
     };
 
     class Thread  {
         typedef Thread Self;
       public:
         FORCE_INLINE
-        static auto from_sched_object(sched::SchedObject *so) -> Self * {
+        static auto of(sched::SchedObject *so) -> Self * {
             return ustl::mem::container_of(so, &Self::so_);
         }
 
         FORCE_INLINE
-        static auto from_arch_thread(ArchThread *arch) -> Self * {
+        static auto of(ArchThread *arch) -> Self * {
             return ustl::mem::container_of(arch, &Self::arch_thread_);
         }
 

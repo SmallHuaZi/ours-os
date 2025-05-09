@@ -164,3 +164,5 @@ FEATURE(Wrmsrns,        ( 5 * 32 + 19)) //< Non-serializing WRMSR
 FEATURE(AmxFp16,        ( 5 * 32 + 21)) //< AMX fp16 Support 
 FEATURE(AvxIfma,        ( 5 * 32 + 23)) //< Support for VPMADD52[H,L]UQ 
 FEATURE(Lam,            ( 5 * 32 + 26)) //< "lam" Linear Address Masking
+
+FEATURE(InvarTsc,   ( 6 * 32 + 8))  //< Invariant TSS

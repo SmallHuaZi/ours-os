@@ -22,6 +22,17 @@
 
 namespace ours::sched {
     struct SchedCommonData {
+        CXX11_CONSTEXPR
+        static auto const kDefaultMinSchedGranularity = Milliseconds(1);
+
+        /// Each process then runs for a “timeslice” proportional to its weight divided by the total weight of 
+        /// all runnable threads. To calculate the actual timeslice, CFS sets a target for its approximation of 
+        /// the “infinitely small” scheduling duration in perfect multitasking. This target is called the targeted 
+        /// latency. Smaller targets yield better interactivity and a closer approximation to perfect multitasking, 
+        /// at the expense of higher switching costs and thus worse overall throughput.
+        CXX11_CONSTEXPR
+        static auto const kDefaultMinTargetedLatency = Milliseconds(8);
+
         /// Calculate the scheduling period
         auto scheduling_period() const -> SchedTime {
             return scheduling_period_grans * minimal_granularity;
@@ -45,14 +56,14 @@ namespace ours::sched {
 
         /// Scheduling period in which every runnable task executes once in units of
         /// minimal granularity.
-        usize scheduling_period_grans; // Unit: min_granularity
+        usize scheduling_period_grans = kDefaultMinTargetedLatency / kDefaultMinSchedGranularity;
 
         /// Scheduling period in which every runnable task executes once in units of
         /// minimal granularity.
-        usize minimal_period_grans;
+        usize minimal_period_grans = kDefaultMinTargetedLatency / kDefaultMinSchedGranularity;
 
         /// The smallest timeslice a thread is allocated in a single round.
-        SchedTime minimal_granularity;
+        SchedTime minimal_granularity = kDefaultMinSchedGranularity;
 
         SchedWeight total_weight;
     };
@@ -89,17 +100,6 @@ namespace ours::sched {
     class MainScheduler {
         typedef MainScheduler   Self;
       public:
-        CXX11_CONSTEXPR
-        static auto const kDefaultMinSchedGranularity = Milliseconds(1);
-
-        /// Each process then runs for a “timeslice” proportional to its weight divided by the total weight of 
-        /// all runnable threads. To calculate the actual timeslice, CFS sets a target for its approximation of 
-        /// the “infinitely small” scheduling duration in perfect multitasking. This target is called the targeted 
-        /// latency. Smaller targets yield better interactivity and a closer approximation to perfect multitasking, 
-        /// at the expense of higher switching costs and thus worse overall throughput.
-        CXX11_CONSTEXPR
-        static auto const kDefaultMinTargetedLatency = Milliseconds(8);
-
         auto init() -> void;
 
         auto preempt() -> void;
@@ -150,7 +150,7 @@ namespace ours::sched {
         SchedCommonData common_data_;
         ustl::views::Span<IScheduler *> schedulers_;
 
-        static Self s_main_scheduler;
+        ai_percpu static Self s_main_scheduler;
     };
 
 } // namespace ours::sched

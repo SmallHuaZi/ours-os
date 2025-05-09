@@ -39,11 +39,13 @@ namespace ours {
 
     auto apic_timer_set_oneshot(u32 n, u8 divisor, bool mask) -> Status;
 
-    auto apic_timer_current_count() -> u32;
+    auto apic_timer_set_tsc_deadline(Ticks deadline) -> void;
+
+    auto apic_timer_current_count() -> Ticks;
 
     auto apic_send_ipi(CpuNum target, arch::IrqVec vector, ApicDeliveryMode mode) -> void;
 
-    auto apic_send_mask_ipi(CpuMask targets, arch::IrqVec vector, ApicDeliveryMode mode) -> void;
+    auto apic_send_ipi_mask(CpuMask targets, arch::IrqVec vector, ApicDeliveryMode mode) -> void;
 
     auto apic_broadcast_ipi(arch::IrqVec vector, ApicDeliveryMode mode) -> void;
 
