@@ -11,6 +11,7 @@
 #ifndef OURS_TYPES_HPP
 #define OURS_TYPES_HPP 1
 
+#include <ours/config.hpp>
 #include <ustl/config/types.hpp>
 
 namespace ours {
@@ -34,7 +35,15 @@ namespace ours {
     typedef u32   HIrqNum;
     typedef u32   VIrqNum;
     typedef u32   NodeId;
-    typedef usize Ticks;
+
+    typedef isize Ticks;
+    typedef isize MonoTicks;
+    typedef isize Instant;
+    typedef isize MonoInstant;
+    typedef isize TimePoint;
+
+    CXX11_CONSTEXPR
+    static auto const kInvalidCpuNum = CpuNum(-1);
 
     /// For type check.
     struct CpuSet   { u32 _0; };

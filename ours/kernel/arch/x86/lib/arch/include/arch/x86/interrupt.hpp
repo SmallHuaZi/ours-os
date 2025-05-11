@@ -16,6 +16,8 @@
 #include <arch/processor/cpu-states.hpp>
 #include <ustl/util/enum_bits.hpp>
 
+#include <ours/arch/x86/descriptor.hpp>
+
 namespace arch {
     /// Linux IRQ vector layout.
     ///
@@ -63,9 +65,9 @@ namespace arch {
         ApicError,
         ApicPmi,
         IpiGeneric,
-        IpiReschedule,
+        IpiResched,
         IpiInterrupt,
-        IpiHalt,
+        IpiSuspend,
         LastUserDefined = 255,
     };
 
@@ -120,12 +122,26 @@ namespace arch {
     static_assert(offsetof(IrqFrame, usp) == X86_IRQFRAME_OFFSET_USP);
     static_assert(offsetof(IrqFrame, uss) == X86_IRQFRAME_OFFSET_USS);
 
-    struct InterruptFrame {
-        u64 rip;
-        u64 cs;
-        u64 rflags;
-        u64 rsp;
-        u64 ss;
+    struct SysCallRegs {
+      usize ax;
+      usize bx;
+      usize cx;
+      usize dx;
+      usize si;
+      usize di;
+      usize bp;
+      usize r8;
+      usize r9;
+      usize r10;
+      usize r11;
+      usize r12;
+      usize r13;
+      usize r14;
+      usize r15;
+      usize ip;
+      usize flags;
+      // rsp is the last field so we can simply "pop %rsp" when returning from a syscall.
+      usize sp;
     };
 
 } // namespace arch

@@ -531,7 +531,9 @@ namespace arch::paging {
             PteVal volatile *entry = pte + virt_to_index(level, va);
             if (!Derived::is_present(*entry)) {
                 return Status::NotFound;
-            } else if (Derived::is_large_page_mapping(*entry)) {
+            } 
+
+            if (Derived::is_large_page_mapping(*entry) || level == PagingTraits::kFinalLevel) {
                 if (out_level) {
                     *out_level = level;
                 }
@@ -542,10 +544,8 @@ namespace arch::paging {
                 return Status::Ok;
             }
 
-            if (level == PagingTraits::kFinalLevel) {
-                return Status::NotFound;
-            }
             level = PagingTraits::next_level(level);
+            pte = get_next_table_unchecked(*entry);
         }
     }
 

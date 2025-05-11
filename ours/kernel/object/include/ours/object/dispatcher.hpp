@@ -15,24 +15,32 @@
 #include <ours/rights.hpp>
 #include <ours/config.hpp>
 #include <ours/signals.hpp>
+#include <ours/object/types.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/option.hpp>
 #include <ustl/sync/atomic.hpp>
 
+#include <ktl/name.hpp>
+
 namespace ours::object {
-    class Dispatcher: private ustl::RefCounter<Dispatcher> {
+    class Dispatcher: public ustl::RefCounter<Dispatcher> {
         typedef Dispatcher   Self;
         typedef ustl::RefCounter<Dispatcher>    Base;
       public:
+        CXX11_CONSTEXPR
+        static auto const MAX_NAME_SIZE = 32;
+
+        typedef ktl::Name<MAX_NAME_SIZE> Name;
+
         FORCE_INLINE
         auto id() const -> KoId {  
             return koid_;  
         }
 
         FORCE_INLINE
-        auto name() const -> char const * {  
-            return this->name_;  
+        auto name() const -> Name const & {  
+            return name_;
         }
 
         FORCE_INLINE
@@ -48,12 +56,9 @@ namespace ours::object {
         Dispatcher(char const *name);
 
         KoId koid_;
+        Name name_;
         ustl::sync::AtomicU32  handle_count_;
         ustl::sync::AtomicU32  signal_count_;
-
-        CXX11_CONSTEXPR
-        static auto const MAX_NAME_SIZE = 32;
-        char name_[MAX_NAME_SIZE];
     };
 
     template <typename Derived, Rights default_rights, Signals mask>

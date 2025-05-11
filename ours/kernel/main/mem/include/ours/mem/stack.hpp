@@ -21,9 +21,12 @@ namespace ours::mem {
         typedef Stack   Self;
         USTL_NO_MOVEABLE_AND_COPYABLE(Stack);
       public:
-        static auto create(usize size, Self *) -> Status;
+        CXX11_CONSTEXPR
+        static auto const kDefaultStackSize = KB(8); // Two pages.
 
         Stack() = default;
+
+        auto init(usize size = kDefaultStackSize) -> Status;
 
         FORCE_INLINE
         auto top() const -> VirtAddr {

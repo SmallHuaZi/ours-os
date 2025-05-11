@@ -12,8 +12,8 @@
 #define OURS_SCHED_SCHED_OBJECT_HPP
 
 #include <ours/cpu-mask.hpp>
+#include <ours/cpu-local.hpp>
 #include <ours/sched/types.hpp>
-#include <ours/cpu.hpp>
 
 #include <ustl/sync/atomic.hpp>
 #include <ustl/collections/intrusive/any_hook.hpp>
@@ -55,15 +55,20 @@ namespace ours::sched {
 
     class PreemptionState {
       public:
+        FORCE_INLINE
         auto is_preemptible() const -> bool {
             return !preemption_disabled_count_ &&
                    !eager_preemption_disabled_count_;
         }
 
-        auto set_pending(CpuMask mask = CpuMask::from_cpu_num(arch_current_cpu())) -> void {
+        FORCE_INLINE
+        auto set_pending(CpuMask mask = CpuMask::from_cpu_num(CpuLocal::cpunum())) -> void {
+            pending_.store(pending_.load() | mask);
         }
 
+        FORCE_INLINE
         auto clear_pending() -> void {
+            pending_.store(CpuMask());
         }
       private:
         ustl::sync::AtomicU16 preemption_disabled_count_;
@@ -77,7 +82,8 @@ namespace ours::sched {
         SchedObject() = default;
 
         SchedObject(BaseProfile profile)
-            : profile_(profile)
+            : profile_(profile),
+              managed_hook_()
         {}
 
         FORCE_INLINE
@@ -103,6 +109,21 @@ namespace ours::sched {
         FORCE_INLINE
         auto preemption_state() -> PreemptionState & {
             return preemption_state_;
+        }
+
+        FORCE_INLINE
+        auto get_available_mask(CpuMask mask) const -> CpuMask {
+            return affinity_mask_ & mask;
+        }
+
+        FORCE_INLINE
+        auto recent_cpu() const -> CpuNum {
+            return recent_cpu_;
+        }
+
+        FORCE_INLINE
+        auto current_cpu() const -> CpuNum {
+            return current_cpu_;
         }
 
         /// Update the object's deadline.
@@ -134,10 +155,14 @@ namespace ours::sched {
         PreemptionState preemption_state_;
 
         bool on_queue_;
+        CpuNum recent_cpu_;
+        CpuNum current_cpu_;
+        CpuMask affinity_mask_;
 
         /// The start time point of execution.
         SchedTime runtime_;  // Physical time
         SchedTime time_slice_;
+        SchedTime start_time_;
 
         SchedTime deadline_; // Virtual time
         SchedTime vruntime_; // Virtual time

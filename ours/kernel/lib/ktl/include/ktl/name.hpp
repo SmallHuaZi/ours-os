@@ -49,9 +49,6 @@ namespace ktl {
         // Reset the Name to the given data. This will be guaranteed to
         // be nul terminated, so the given data may be truncated.
         auto set(Char const *name, usize len) -> Status {
-            // ignore characters after the first NUL
-            len = CharTraits::length(name);
-
             if (len >= N) {
                 len = N - 2;
             }
@@ -59,6 +56,10 @@ namespace ktl {
             CharTraits::copy(name_, name, len);
             name_[len + 1] = '\0';
             return Status::Ok;
+        }
+
+        auto set(Char const *name) -> Status {
+            return set(name, CharTraits::length(name));
         }
 
         auto operator=(Name const &other) -> Self & {

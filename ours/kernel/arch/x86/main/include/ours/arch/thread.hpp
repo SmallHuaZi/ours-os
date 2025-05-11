@@ -14,8 +14,9 @@
 #include <ours/types.hpp>
 #include <ours/config.hpp>
 #include <ours/cpu-local.hpp>
-
 #include <ours/task/types.hpp>
+
+#include <gktl/canary.hpp>
 
 namespace ours::task {
     class X86Thread {
@@ -28,6 +29,7 @@ namespace ours::task {
             return CpuLocal::read(s_current_arch_thread);
         }
 
+        auto init(VirtAddr entry_point) -> void;
       private:
         FORCE_INLINE
         static auto set_current_thread(Self *curr) -> void {
@@ -35,6 +37,8 @@ namespace ours::task {
         }
 
         friend class Thread;
+        GKTL_CANARY(X86Thread, canary_);
+
         VirtAddr fs_base_;
         VirtAddr gs_base_;
         VirtAddr sp_;

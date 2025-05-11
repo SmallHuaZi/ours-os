@@ -1,6 +1,7 @@
 #include <ours/mem/early-mem.hpp>
 #include <ours/mem/pmm.hpp>
 #include <ours/mem/memory_model.hpp>
+#include <ours/mem/vmm.hpp>
 #include <ours/phys/handoff.hpp>
 
 #include <logz4/log.hpp>
@@ -83,6 +84,18 @@ namespace ours::mem {
     INIT_CODE
     auto EarlyMem::do_handoff() -> void {
         free_unused_memory();
+    }
+
+    INIT_CODE
+    auto EarlyMem::reclaim_init_area() -> void {
+        auto start = PhysMap::virt_to_phys(kKernelInitStart);
+        auto end = PhysMap::virt_to_phys(kKernelInitEnd);
+
+        if (end < start || end - start < PAGE_SIZE) {
+            return;
+        }
+
+        free_frames_phys_range(start, end);
     }
 
 } // namespace ours::mem

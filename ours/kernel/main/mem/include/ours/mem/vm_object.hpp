@@ -21,6 +21,7 @@
 
 #include <gktl/range.hpp>
 #include <gktl/canary.hpp>
+#include <ktl/name.hpp>
 
 namespace ours::mem {
     enum class VmoFLags {
@@ -96,6 +97,11 @@ namespace ours::mem {
         }
 
         FORCE_INLINE
+        auto set_name(char const *name) -> void {
+            name_.set(name);
+        }
+
+        FORCE_INLINE
         auto type() const -> Type {
             return type_;
         }
@@ -120,6 +126,10 @@ namespace ours::mem {
         Type const type_;
         VmoFLags vmof_;
         VmMappingList mappings_;
+
+        CXX11_CONSTEXPR 
+        static auto const kMaxNameSize = 32;
+        ktl::Name<kMaxNameSize> name_;
     
         ustl::collections::intrusive::ListMemberHook<> children_hook_;
         USTL_DECLARE_HOOK_OPTION(Self, children_hook_, ChildrenOptions);

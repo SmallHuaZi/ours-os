@@ -41,14 +41,23 @@ namespace ours::sched {
 
         auto update_min_vruntime() -> void;
 
-        RunQueue runqueue_;
+        auto dequeue_object(SchedObject &object) -> void;
 
+        auto enqueue_object(SchedObject &object) -> void;
+
+        RunQueue runqueue_;
         SchedObject *current_;
 
         SchedTime min_vruntime_;
         SchedTime weighted_vruntime_sum_;
         SchedWeight weight_sum_;
     };
+
+    CPU_LOCAL
+    static EevdfScheduler s_eevdf_scheduler;
+
+    INIT_DATA
+    IScheduler *g_eevdf_scheduler = &s_eevdf_scheduler;
 
     /// From physical time duration to virtual.
     FORCE_INLINE
@@ -100,27 +109,48 @@ namespace ours::sched {
     auto EevdfScheduler::evaluate_next() -> SchedObject * {
         auto iter = runqueue_.begin();
         for (auto const last = runqueue_.end(); iter != last; ++iter) {
-            if (!is_eligible(*iter)) {
+            if (is_eligible(*iter)) {
                 break;
             }
         }
 
-        return ustl::mem::address_of(*iter);
+        if (iter == runqueue_.end()) {
+            return 0;
+        }
+
+        auto &so = *iter;
+        put_prev(common_data_->curr_thread_->sched_object());
+        set_next(so);
+
+        return &so;
+    }
+
+    auto EevdfScheduler::dequeue_object(SchedObject &object) -> void {
+        runqueue_.erase(runqueue_.iterator_to(object));
+
+        weighted_vruntime_sum_ -= object.vruntime() * object.weight();
+        weight_sum_ -= object.weight();
     }
 
     auto EevdfScheduler::dequeue(SchedObject &object) -> void {
+        update_current();
+
         if (!object.on_queue_) {
             return;
         }
 
-        weighted_vruntime_sum_ -= object.vruntime() * object.weight();
-        weight_sum_ -= object.weight();
-
-        update_current();
-        runqueue_.erase(runqueue_.iterator_to(object));
-
-        num_runnable_ -= 1;
+        if (&object != current_) {
+            dequeue_object(object);
+        }
         object.on_queue_ = false;
+        num_runnable_ -= 1;
+    }
+
+    auto EevdfScheduler::enqueue_object(SchedObject &object) -> void {
+        runqueue_.insert(object);
+
+        weighted_vruntime_sum_ += object.vruntime() * object.weight();
+        weight_sum_ += object.weight();
     }
 
     auto EevdfScheduler::enqueue(SchedObject &object) -> void {
@@ -133,11 +163,8 @@ namespace ours::sched {
             }
         }
 
-        weighted_vruntime_sum_ += object.vruntime() * object.weight();
-        weight_sum_ += object.weight();
-
         update_current();
-        runqueue_.insert(object);
+        enqueue_object(object);
 
         num_runnable_ += 1;
         object.on_queue_ = true;
@@ -146,6 +173,10 @@ namespace ours::sched {
     auto EevdfScheduler::update_current() -> void {
         auto const now = current_time();
         auto const delta = now - common_data_->current_started_time;
+
+        if (!current_) [[unlikely]] {
+            return;
+        }
 
         if (delta < SchedTime::zero()) [[unlikely]] {
             return;
@@ -191,4 +222,25 @@ namespace ours::sched {
             weighted_vruntime_sum_ -= delta * weight_sum_;
         }
     }
+
+    auto EevdfScheduler::put_prev(SchedObject &prev) -> void {
+        if (prev.on_queue_) {
+            // `current` may not ownes full requested time.
+            update_current();
+            enqueue_object(prev);
+        }
+
+        current_ = 0;
+    }
+
+    auto EevdfScheduler::set_next(SchedObject &next) -> void {
+        if (next.on_queue_) {
+            dequeue_object(next);
+        }
+        current_ = &next;
+        current_->start_time_ = current_time();
+    }
+
+    auto EevdfScheduler::yield() -> void {}
+    auto EevdfScheduler::yield(SchedObject &) -> void {}
 }

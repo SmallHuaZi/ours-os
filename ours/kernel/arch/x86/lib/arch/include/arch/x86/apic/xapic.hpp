@@ -99,6 +99,7 @@ namespace arch {
 
         FORCE_INLINE
         auto id() const -> u32 {
+            return read_reg(XApicRegType::Id);
             return id_;
         }
 
@@ -199,7 +200,7 @@ namespace arch {
         }
 
         FORCE_INLINE
-        auto read_reg(XApicRegType type) -> u32 {
+        auto read_reg(XApicRegType type) const -> u32 {
             return *get_reg_addr(type);
         }
 

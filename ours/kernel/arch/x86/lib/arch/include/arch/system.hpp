@@ -42,6 +42,7 @@ namespace arch {
     using ustl::bitfields::Enable;
     using ustl::bitfields::StartBit;
     using ustl::bitfields::SkipBit;
+    using ustl::bitfields::Natural;
 
     struct Cr0;
     struct Cr2;
@@ -103,7 +104,7 @@ namespace arch {
         };
         typedef TypeList<
             Field<Id<Pcid>, Bits<12>>,
-            Field<Id<PageTableAddress>, Bits<ustl::NumericLimits<PhysAddr>::DIGITS - 12 - 1>>,
+            Field<Id<PageTableAddress>, Bits<ustl::NumericLimits<PhysAddr>::DIGITS - 12 - 1>, Natural<1>>,
             Field<Id<NoFlush>, Bits<1>, StartBit<63>>
         > FieldList;
     };

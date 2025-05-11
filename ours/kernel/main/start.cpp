@@ -7,6 +7,7 @@
 /// Init calls
 #include <ours/mem/init.hpp>
 #include <ours/irq/init.hpp>
+#include <ours/sched/init.hpp>
 #include <ours/platform/init.hpp>
 
 #include <ours/phys/handoff.hpp>
@@ -20,16 +21,19 @@
 
 namespace ours {
     INIT_CODE
-    static auto labour_routine() -> void {
+    static auto labour_routine() -> i32 {
         // Reclaim memories occupied by the early infomation.
         init_arch();
         set_init_level(gktl::InitLevel::Arch);
 
         init_platform();
         set_init_level(gktl::InitLevel::Platform);
-        // reclaim_init_area(mem::RemTag::All);
+
+        // Ok, now there is no any routine to access the `init` area.
+        mem::reclaim_init_area();
 
         // Load userboot 
+        return 0;
     }
 
     /// Called from arch-code.
@@ -57,10 +61,19 @@ namespace ours {
         CpuLocal::init();
         set_init_level(gktl::InitLevel::CpuLocal);
 
+        // TODO(SmallHuaZi): It seems like doing nothing. Consider to remove
+        // it or give it more thing to do.
         irq::init_irq();
         set_init_level(gktl::InitLevel::Irq);
 
-        auto const laborer = task::Thread::spawn(labour_routine, 0, "ours", 0);
+        sched::init_sched();
+
+        // We need this dummy thread as `current` thread to make a feint 
+        // that there has been a thread which is running.
+        INIT_DATA static task::Thread dummy{0, "dummy"};
+        task::Thread::Current::set(&dummy);
+
+        auto const laborer = task::Thread::spawn("laborer", 0, labour_routine);
         laborer->detach();
         laborer->resume();
 
@@ -71,7 +84,6 @@ namespace ours {
 
     NO_MANGLE
     auto start_nonboot_cpu() -> Status {
-        CpuLocal::init_percpu();
         return Status::Ok;
     }
 }

@@ -16,6 +16,7 @@ target_sources(kernel_object
 INTERFACE
     "kernel_object.cpp"
     "thread_dispatcher.cpp"
+    "process_dispatcher.cpp"
 )
 
 target_link_libraries(kernel_object

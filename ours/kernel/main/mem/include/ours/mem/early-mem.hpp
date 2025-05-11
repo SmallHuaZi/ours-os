@@ -90,6 +90,8 @@ namespace ours::mem {
 
         static auto do_handoff() -> void;
 
+        static auto reclaim_init_area() -> void;
+
         FORCE_INLINE
         static auto min_address() -> PhysAddr {  
             return s_bootmem->min_address;

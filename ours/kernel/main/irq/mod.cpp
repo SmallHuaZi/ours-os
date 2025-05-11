@@ -32,4 +32,10 @@ namespace ours::irq {
         return get_irq_dispatcher()->handle_irq(virqnum);
     }
 
+    auto start_handling_irq() -> void {
+    }
+
+    auto finish_handling_irq() -> bool {
+    }
+
 } // namespace ours::irq

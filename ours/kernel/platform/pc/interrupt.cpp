@@ -70,6 +70,13 @@ namespace ours {
         init_local_apic();
         init_io_apic(ustl::views::Span(io_apics), ustl::views::Span(io_apic_isa_overrides));
 
+        // Build the map between CpuNum and APIC
+        u32 num_local_apics = 0;
+        acpi::enumerate_local_apics(*acpi_parser, [&] (acpi::AcpiMadtLocalApicEntry const &entry) {
+            auto const cpunum = assign_cpunum_for_apic(entry.apic_id);
+            DEBUG_ASSERT(num_local_apics <= MAX_CPU && kInvalidCpuNum != cpunum);
+        });
+
         using namespace arch;
         auto const bspid = current_apic_id(); 
         // Manually configing the ISA IRQs
@@ -92,6 +99,14 @@ namespace ours {
 
     auto platform_handle_irq(HIrqNum irqnum, arch::IrqFrame *frame) -> void {
         irq::handle_irq_generic(irqnum);
+    }
+
+    auto platform_start_handling_irq(HIrqNum irqnum, arch::IrqFrame *) -> void {
+        irq::start_handling_irq();
+    }
+
+    auto platform_finish_handling_irq(HIrqNum irqnum, arch::IrqFrame *) -> bool {
+        return irq::finish_handling_irq();
     }
 
 } // namespace ours

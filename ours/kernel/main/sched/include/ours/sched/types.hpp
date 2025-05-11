@@ -22,6 +22,7 @@ namespace ours::sched {
     using ustl::chrono::Milliseconds;
 
     typedef ustl::chrono::Nanoseconds   SchedTime;
+    typedef ustl::chrono::Nanoseconds   SchedDuration;
 
     /// High weight accompanied by low virtual time flow rate.
     ///
@@ -35,7 +36,8 @@ namespace ours::sched {
     /// define Vd(i) = the end time point of S(i)
     ///     S(i) = (Vd(i) - Ve(i)) * W(i);
     ///     Vd(i) = Ve(i) + Si(i) / W(i)
-    typedef cnl::Fraction<usize, cnl::Power<16>>    SchedWeight;
+    // typedef cnl::Fraction<usize, cnl::Power<16>>    SchedWeight;
+    typedef usize SchedWeight;
 
     class SchedObject;
     class IScheduler;

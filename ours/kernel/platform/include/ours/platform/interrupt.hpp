@@ -18,6 +18,10 @@
 namespace ours {
     auto platform_handle_irq(HIrqNum irqnum, arch::IrqFrame *) -> void;
 
+    auto platform_start_handling_irq(HIrqNum irqnum, arch::IrqFrame *) -> void;
+
+    auto platform_finish_handling_irq(HIrqNum irqnum, arch::IrqFrame *) -> bool;
+
 } // namespace ours
 
 #endif // #ifndef OURS_PLATFORM_INTERRUPT_HPP

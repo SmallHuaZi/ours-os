@@ -17,7 +17,6 @@
 #include <ours/mem/page_queues.hpp>
 
 #include <ours/assert.hpp>
-#include <ours/cpu.hpp>
 #include <ours/init.hpp>
 #include <ours/macro_abi.hpp>
 

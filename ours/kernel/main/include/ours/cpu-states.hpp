@@ -13,7 +13,6 @@
 #define OURS_CPU_STATES_HPP 1
 
 #include <ours/cpu-mask.hpp>
-#include <ours/arch/cpu.hpp>
 
 namespace ours {
     struct CpuStates {
@@ -70,28 +69,26 @@ namespace ours {
     template <typename F>
         requires ustl::traits::Invocable<F, CpuNum>
     FORCE_INLINE
-    auto for_each_possible_cpu(F &&functor) -> void {  
+    auto for_each_possible_cpu(F &&functor) {  
         return for_each_cpu(global_cpu_states().possible_cpus, functor);  
     }
 
     template <typename F>
         requires ustl::traits::Invocable<F, CpuNum>
     FORCE_INLINE 
-    auto for_each_online_cpu(F &&functor) -> void {  
+    auto for_each_online_cpu(F &&functor) {  
         return for_each_cpu(global_cpu_states().online_cpus, functor);  
     }
 
     template <typename F>
         requires ustl::traits::Invocable<F, CpuNum>
     FORCE_INLINE 
-    auto for_each_active_cpu(F &&functor) -> void {  
+    auto for_each_active_cpu(F &&functor) {  
         return for_each_cpu(global_cpu_states().active_cpus, functor);  
     }
 
-    FORCE_INLINE
-    static auto set_current_cpu_online(bool online) -> void {
-        global_cpu_states().set_online(arch_current_cpu(), online);
-    }
+    auto set_current_cpu_online(bool online) -> void;
+
 } // namespace ours
 
 #endif // #ifndef OURS_CPU_STATES_HPP

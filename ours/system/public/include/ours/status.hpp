@@ -27,6 +27,7 @@ namespace ours {
         TimeOut,
         NotFound,
         ShouldWait,
+        ShouldRetry,
         MisAligned,
         AlreadyExists,
         NoResource,

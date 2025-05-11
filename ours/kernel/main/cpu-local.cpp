@@ -554,7 +554,18 @@ namespace ours {
 
         // The raw cpu local data must be reserved for CpuLocal::init() later.
         ustl::algorithms::copy(kStaticCpuLocalStart, kStaticCpuLocalEnd, replica);
-        install(calc_offset(replica));
+
+        // First installation is forced to use ArchCpuLocal::install. That is out of the CpuLocal::install
+        // being going to read CpuLocal::cpunum()
+        ArchCpuLocal::install(usize(calc_offset(replica)));
+
+        ArchCpuLocal::write(reinterpret_cast<usize>(&s_current_cpu_offset), usize(calc_offset(replica)));
+
+        // The Bootstrap CPU always has the zero number.
+        ArchCpuLocal::write(reinterpret_cast<usize>(&s_current_cpu), 0);
+
+        // Mark installed.
+        s_installed.set(0, true);
     }
 
     auto CpuLocal::init(usize dyn_size, usize unit_align) -> Status {
@@ -594,7 +605,8 @@ namespace ours {
             }
         }
 
-        init_percpu();
+        // Bootstrap CPU always has the zero number.
+        init_percpu(0);
         return Status::Ok;
     }
 

@@ -71,6 +71,8 @@ namespace arch {
                      "swapgs;"
                      :"=r"(out) :"r"(val) :"memory"
         );
+
+        return out;
     } 
 
 } // namespace arch

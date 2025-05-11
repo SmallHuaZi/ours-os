@@ -17,7 +17,6 @@
 
 #include <ours/arch/cpu-local.hpp>
 
-#include <ours/cpu.hpp>
 #include <ours/cpu-states.hpp>
 #include <ours/init.hpp>
 #include <ours/assert.hpp>
@@ -90,8 +89,15 @@ namespace ours {
         }
 
         INIT_CODE FORCE_INLINE
-        static auto init_percpu() -> void {
-            auto const thiscpu = arch_current_cpu();
+        static auto init_percpu(CpuNum cpunum) -> void {
+            CpuLocal::write(s_current_cpu, cpunum);
+
+            auto const thiscpu = CpuLocal::cpunum();
+            if (!s_installed.test(thiscpu)) {
+                return;
+            }
+
+            s_installed.set(thiscpu);
             install(s_cpu_offset[thiscpu]);
             write(s_current_cpu_offset, s_cpu_offset[thiscpu]);
         }
@@ -105,7 +111,7 @@ namespace ours {
         FORCE_INLINE
         static auto read(Integral &integer) -> Integral {
             static_assert(ustl::traits::IsIntegralV<Integral> || ustl::traits::IsPtrV<Integral>);
-            static_assert(sizeof(usize) == sizeof(&integer), "`usize` must has the same size with a pointer");
+            assert_cpu_local_avabilable();
             return ArchCpuLocal::read<Integral>(reinterpret_cast<usize>(&integer));
         }
 
@@ -113,6 +119,7 @@ namespace ours {
         FORCE_INLINE
         static auto write(Integral &integer, Integral value) -> void {
             static_assert(ustl::traits::IsIntegralV<Integral> || ustl::traits::IsPtrV<Integral>);
+            assert_cpu_local_avabilable();
             ArchCpuLocal::write(reinterpret_cast<usize>(&integer), value);
         }
 
@@ -127,6 +134,8 @@ namespace ours {
         template <typename T>
         FORCE_INLINE
         static auto access(T *object) -> T * {
+            assert_cpu_local_avabilable();
+
             auto const ptr = reinterpret_cast<T *>(
                 reinterpret_cast<u8 *>(object) + read(s_current_cpu_offset)
             );
@@ -136,7 +145,7 @@ namespace ours {
         }
 
         template <typename T>
-        FORCE_INLINE
+        // FORCE_INLINE
         static auto access(T *object, CpuNum cpunum) -> T * {
             DEBUG_ASSERT(cpunum < MAX_CPU, "");
             auto const ptr = reinterpret_cast<T *>(
@@ -150,12 +159,14 @@ namespace ours {
         template <typename T>
         FORCE_INLINE
         static auto allocate(AlignVal align= alignof(T), mem::Gaf gaf = mem::kGafKernel) -> PerCpu<T> {
+            assert_cpu_local_avabilable();
             return PerCpu(reinterpret_cast<T *>(Self::allocate(sizeof(T), align, gaf))); 
         }
 
         template <typename T>
         FORCE_INLINE
         static auto free(PerCpu<T> object) -> void {
+            assert_cpu_local_avabilable();
             if (object.object) {
                 do_free(object.object);
                 object.object = nullptr;
@@ -179,20 +190,44 @@ namespace ours {
                 ustl::function::invoke(f, *local_object, cpunum);
             });
         }
+
+        FORCE_INLINE
+        static auto cpunum() -> CpuNum {
+            assert_cpu_local_avabilable();
+            return Self::read(s_current_cpu);
+        }
     private:
         static auto init(usize dyn_size, usize unit_align) -> Status;
         static auto allocate(usize size, AlignVal val, mem::Gaf gaf) -> void *;
         static auto do_free(void *) -> void;
 
         FORCE_INLINE
+        static auto assert_cpu_local_avabilable() -> void {
+            if CXX17_CONSTEXPR(OURS_DEBUG) {
+                // Using ArchCpuLocal::read is necessary. Because using Self::read may 
+                // lead a recusion.
+                auto cpunum = ArchCpuLocal::read<CpuNum>(reinterpret_cast<usize>(&s_current_cpu));
+                DEBUG_ASSERT(cpunum != kInvalidCpuNum);
+                DEBUG_ASSERT(s_installed.test(cpunum));
+            }
+        }
+
+        FORCE_INLINE
         static auto install(usize offset) -> void {
             ArchCpuLocal::install(offset);
+            s_installed.set(CpuLocal::cpunum());
         }
 
         /// This can save a time of indirect addressing.
         CPU_LOCAL
         static inline isize s_current_cpu_offset = 0;
-        static inline ustl::Array<isize, MAX_CPU>   s_cpu_offset;
+
+        /// The number of bootstrap CPU always be zero.
+        CPU_LOCAL
+        static inline CpuNum s_current_cpu = kInvalidCpuNum;
+
+        static inline CpuMask s_installed;
+        static inline ustl::Array<isize, MAX_CPU> s_cpu_offset;
     };
 
     /// A wrapper to prevent directly using the pointer and atomatically manage the

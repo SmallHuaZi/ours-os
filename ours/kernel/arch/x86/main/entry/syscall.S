@@ -1,4 +1,6 @@
 #include <ours/arch/asm.hpp>
+#include <ours/arch/x86/percpu.hpp>
+#include <ours/arch/x86/percpu.hpp>
 
 /// Intel® 64 and IA-32 Architectures Software Developer's Manual, Volume 2B:
 ///
@@ -43,29 +45,6 @@
 /// On syscall,
 ///     CS = IA32_STAR_MSR[47:32]
 ///     SS = IA32_STAR_MSR[47:32] + 8
-.function x86_handle_syscall, global, align=64, cfi=custom
-    // Save user stack
-    // Load kernel stack
-
-    push_val %r11  // RFLAGS
-    push_val %rcx  // RIP
-    push_val %r15
-    push_val %r14
-    push_val %r13
-    push_val %r12
-    push_val $0    // R11 was trashed by the syscall instruction.
-    push_val %r10
-    push_val %r9
-    push_val %r8
-    push_val %rbp
-    push_val %rdi
-    push_val %rsi
-    push_val %rdx
-    push_val $0    // RCX was trashed by the syscall instruction.
-    push_val %rbx
-    push_val %rax
-
-.end_function
 
 /// SYSCALL saves the RIP of the instruction following the SYSCALL into RCX and loads
 /// the new RIP from the LSTAR (64-bit mode only). Upon return, SYSRET copies the
@@ -116,3 +95,89 @@
 /// On sysexit,
 ///     CS = IA32_STAR_MSR[63:48] + 16
 ///     SS = IA32_STAR_MSR[63:48] + 8
+
+
+// kernel side of the SYSCALL instruction
+// state on entry:
+// RCX holds user RIP
+// R11 holds user RFLAGS
+// RSP still holds user stack
+// CS loaded with kernel CS from IA32_STAR
+// SS loaded with kernel CS + 8 from IA32_STAR
+
+// Arguments passed:
+//  rax - syscall # and return
+//  rbx - saved
+//  rcx - modified as part of syscall instruction
+//  rdx - arg 3
+//  rsi - arg 2
+//  rdi - arg 1
+//  rbp - saved
+//  rsp - saved
+//  r8  - arg 5
+//  r9  - arg 6
+//  r10 - arg 4
+//  r11 - modified as part of syscall instruction
+//  r12 - arg 7
+//  r13 - arg 8
+//  r14 - saved
+//  r15 - saved
+//
+.function x86_handle_syscall, global, align=64, cfi=custom
+    // Swap to the kernel GS register
+    swapgs
+
+    // Swap stack
+    mov %rsp, CPU_LOCAL_ACCESS(g_x86_pcpu + X86_PERCPU_SAVED_USER_SP_OFFSET)
+    mov CPU_LOCAL_ACCESS(g_x86_pcpu + X86_PERCPU_SAVED_KERNEL_SP_OFFSET), %rsp
+
+    push_val %r11  // RFLAGS
+    push_val %rcx  // RIP
+    push_val %r15
+    push_val %r14
+    push_val %r13
+    push_val %r12
+    push_val $0    // R11 was trashed by the syscall instruction.
+    push_val %r10
+    push_val %r9
+    push_val %r8
+    push_val %rbp
+    push_val %rdi
+    push_val %rsi
+    push_val %rdx
+    push_val $0    // RCX was trashed by the syscall instruction.
+    push_val %rbx
+    push_val %rax
+
+    mov %rax, %rdi  // Pass syscall number.
+    mov %rbp, %rsi  // Pass pointer pointed to SysCallFrame.
+    call x86_do_syscall
+
+    pop_reg %rax
+    pop_reg %rbx
+    pop_reg %rcx  // Will be overwritten with RIP later on.
+    pop_reg %rdx
+    pop_reg %rsi
+    pop_reg %rdi
+    pop_reg %rbp
+    pop_reg %r8
+    pop_reg %r9
+    pop_reg %r10
+    pop_reg %r11  // Will be overwritten with RFLAGS later on.
+    pop_reg %r12
+    pop_reg %r13
+    pop_reg %r14
+    pop_reg %r15
+    pop_reg %rcx  // RIP
+    pop_reg %r11  // RFLAGS
+
+    // Restore user stack.
+    mov CPU_LOCAL_ACCESS(g_x86_pcpu + X86_PERCPU_SAVED_USER_SP_OFFSET), %rsp
+
+    // Swap GS
+    swapgs
+
+    // Let's go back to user space.
+    sysret
+
+.end_function

@@ -2,6 +2,7 @@ set(source_set
     "eevdf.cpp"
     "scheduler.cpp"
     "mod.cpp"
+    "init.cpp"
 )
 
 add_library(kernel_sched INTERFACE)

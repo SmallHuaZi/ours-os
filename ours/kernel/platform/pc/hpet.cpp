@@ -20,7 +20,6 @@ using namespace ustl::chrono;
 namespace ours {
     Hpet *g_hpet = 0;
 
-
     /// From https://wiki.osdev.org/HPET#Initialization, we should do the following:
     /// 1. Find HPET base address in 'HPET' ACPI table.
     /// 2. Calculate HPET frequency (f = 10^15 / period).
@@ -77,19 +76,26 @@ namespace ours {
         }
 
         CXX11_CONSTEXPR
-        auto const kFemtosecondsPerSection = duration_cast<Femtoseconds>(Seconds(1)).count();
+        auto const kFemtosecondsPerSecond = duration_cast<Femtoseconds>(Seconds(1)).count();
         auto const period = hpet_regs->general_caps.period(); 
         if (period == 0) {
             log::info("HPET: Invalid period.");
             return;
         }
 
-        auto const nominal_frequency = (kFemtosecondsPerSection + period) / period;
+        // HZ: How many ticks in one second.
+        auto const nominal_frequency = (kFemtosecondsPerSecond + period - 1) / period;
+
+        auto numerator = duration_cast<Nanoseconds>(Seconds(1)).count();
+        auto denominator = decltype(numerator)(nominal_frequency);
+        ustl::reduce(numerator, denominator);
 
         g_hpet = new (mem::kGafKernel) Hpet();
         DEBUG_ASSERT(g_hpet);
         g_hpet->mmio = hpet_regs;
         g_hpet->num_channels = num_timers;
+        g_hpet->ticks_to_clock.assign(numerator, denominator);
+        // HZ: How many ticks in one microsecond.
         g_hpet->ticks_per_ms = nominal_frequency / 1000;
     }
     GKTL_INIT_HOOK(HpetInit, init_hpet, gktl::InitLevel::Vmm + 2);

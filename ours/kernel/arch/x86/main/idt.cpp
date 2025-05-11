@@ -6,6 +6,7 @@
 #include <ours/mem/vm_aspace.hpp>
 #include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_mapping.hpp>
+#include <ours/mem/vmm.hpp>
 #include <ours/init.hpp>
 
 #include <logz4/log.hpp>
@@ -99,7 +100,7 @@ namespace ours {
         auto rvma = VmAspace::kernel_aspace()->root_vma(); 
         DEBUG_ASSERT(rvma);
         auto result = rvma->map_at(
-            PhysMap::virt_to_phys(s_pidt), 
+            mem::virt_to_phys(VirtAddr(s_pidt)),
             &virt_addr, 
             PAGE_SIZE, 
             MmuFlags::Readable, 

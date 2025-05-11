@@ -26,7 +26,8 @@ namespace ours {
 
     /// The ratio between the chosen reference timer's ticks and the APIC's ticks.
     /// This is set after clock selection is complete in platform_init_timer.
-    static ustl::Ratio<usize> s_tick_cast_ratio;
+    static ustl::Ratio<usize> s_clock_tick_to_apic_tick;
+    static ustl::Ratio<usize> s_ticks_to_clock;
 
     static u32 s_apic_ticks_per_ms;
     static u32 s_apic_ticks_per_ns;
@@ -39,14 +40,48 @@ namespace ours {
     static bool s_has_tsc;
     static bool s_has_invariant_tsc;
 
+    auto current_mono_ticks() -> Ticks {
+        switch (s_wall_clock) {
+            case ClockSource::Tsc:
+                unreachable();
+            case ClockSource::Hpet:
+                return get_hpet()->current_ticks();
+            case ClockSource::Pit:
+                unreachable();
+                break;
+        }
+
+        unreachable();
+    }
+
+    auto current_mono_time() -> Instant {
+        return current_mono_ticks() * s_ticks_to_clock.numerator() /
+               s_ticks_to_clock.denominator();
+    }
+
+    auto platform_convert_mono_time_to_ticks(MonoInstant timepoint) -> Ticks {
+        return timepoint * s_ticks_to_clock.denominator() / s_ticks_to_clock.numerator();
+    }
+
+    FORCE_INLINE
+    static auto clock_tick_to_apic_tick(Ticks ticks) -> Ticks {
+        return ticks * s_clock_tick_to_apic_tick.numerator() / 
+               s_clock_tick_to_apic_tick.denominator();
+    }
+
     auto platform_set_oneshot_timer(Ticks deadline) -> Status {
         if (s_has_deadline_tsc) {
             apic_timer_set_tsc_deadline(deadline);
             return Status::Ok;
         }
 
-        auto apic_ticks = deadline;
-        auto const highest_set_bit = ustl::bit_floor(apic_ticks);
+        auto const duration = deadline - current_mono_ticks();
+        if (duration < 0) {
+            return apic_timer_set_oneshot(1, 1, false);
+        }
+
+        auto apic_ticks = clock_tick_to_apic_tick(duration);
+        auto const highest_set_bit = ustl::bit_floor<usize>(apic_ticks);
 
         u8 extra_bits = 0;
         if (highest_set_bit > 31) {
@@ -185,11 +220,14 @@ namespace ours {
         bool hpet = has_hpet();
         if (s_has_invariant_tsc) {
             s_caliberation_clock = ClockSource::Tsc;
+            s_wall_clock = ClockSource::Tsc;
         } else if (hpet) {
             // We always prefer the HPET.
             s_caliberation_clock = ClockSource::Hpet;
+            s_wall_clock = ClockSource::Hpet;
         } else {
             s_caliberation_clock = ClockSource::Pit;
+            s_wall_clock = ClockSource::Pit;
         }
 
         if (s_has_deadline_tsc) {
@@ -199,22 +237,19 @@ namespace ours {
             calibrate_apic_clock();
         }
 
-        enable_hpet();
-        auto status = irq::request_irq(0, platform_handle_timer_irq, irq::IrqFlags(), "Timer");
-
         switch (s_caliberation_clock) {
-            // case ClockSource::Tsc:
-            //     s_tick_cast_ratio.assign(s_apic_ticks_per_ms, get_hpet()->ticks_per_ms);
-            //     break;
             case ClockSource::Hpet:
-                s_tick_cast_ratio.assign(s_apic_ticks_per_ms, get_hpet()->ticks_per_ms);
-                break;
-            case ClockSource::Pit:
+                s_ticks_to_clock = get_hpet()->ticks_to_clock;
+                s_clock_tick_to_apic_tick.assign(s_apic_ticks_per_ms, get_hpet()->ticks_per_ms);
                 break;
             default:
                 unreachable();
         }
-        ASSERT(Status::Ok == status);
+
+        get_hpet()->enable();
+        // enable_hpet();
+        // auto status = irq::request_irq(0, platform_handle_timer_irq, irq::IrqFlags(), "Timer");
+        // ASSERT(Status::Ok == status);
     }
     // We need to slow a step, waiting for HPET initialized.
     GKTL_INIT_HOOK(PlatformInitTimer, platform_init_timer, gktl::InitLevel::Vmm + 3);

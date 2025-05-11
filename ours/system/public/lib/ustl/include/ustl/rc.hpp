@@ -414,6 +414,13 @@ namespace ustl {
             }
         }
 
+        friend auto operator==(Self const &x, Self const &y) -> bool {
+            return x.pointer_ == y.pointer_;
+        }
+
+        friend auto operator!=(Self const &x, Self const &y) -> bool {
+            return x.pointer_ != y.pointer_;
+        }
     private:
         PtrMut   pointer_;
         Counter *counter_;

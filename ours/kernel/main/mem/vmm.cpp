@@ -22,8 +22,14 @@ namespace ours::mem {
 
     auto virt_to_phys(VirtAddr virt_addr) -> PhysAddr {
         auto phys_addr = PhysMap::virt_to_phys(virt_addr);
+
+        // TODO(SmallHuaZi): Determine if it is kernel address.
+
         if (!phys_addr) {
-            VmAspace::kernel_aspace()->arch_aspace().query(virt_addr, &phys_addr, 0);
+            auto status = VmAspace::kernel_aspace()->arch_aspace().query(virt_addr, &phys_addr, 0);
+            if (Status::Ok != status) {
+                return 0;
+            }
         }
 
         return phys_addr;

@@ -14,6 +14,9 @@ namespace ustl::chrono {
     using Minutes = ::std::chrono::minutes;
     using Years = ::std::chrono::years;
 
+    template <typename Clock, typename Duration> 
+    using TimePoint = ::std::chrono::time_point<Clock, Duration>;
+
     using ::std::chrono::duration_cast;
 }
 

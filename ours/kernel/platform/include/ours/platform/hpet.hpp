@@ -16,6 +16,7 @@
 #include <ours/init.hpp>
 
 #include <acpi/details/hpet.hpp>
+#include <ustl/ratio.hpp>
 
 namespace ours {
     struct Hpet {
@@ -27,6 +28,11 @@ namespace ours {
             mmio->general_config.disable_cnf();
         }
 
+        FORCE_INLINE
+        auto current_ticks() const -> Ticks {
+            return mmio->main_counter_value;
+        }
+
         auto configure_irq(u8 n, HIrqNum irqnum, bool mask) -> void {
             ASSERT(n < num_channels);
             mmio->timers[n].conf_caps.mask()
@@ -36,7 +42,7 @@ namespace ours {
 
         auto wait_for(u32 ms) -> void {
             u64 initial_ticks = mmio->main_counter_value;
-            u64 target = u64(ms) * ticks_per_ms;
+            u64 target = (u64(ms) * ticks_per_ms);
             while (mmio->main_counter_value - initial_ticks <= target) {}
         }
 
@@ -47,7 +53,9 @@ namespace ours {
         }
 
         usize num_channels;
+        usize ticks_per_second;
         usize ticks_per_ms;
+        ustl::Ratio<usize> ticks_to_clock;
         acpi::HpetRegs *mmio;
     };
 

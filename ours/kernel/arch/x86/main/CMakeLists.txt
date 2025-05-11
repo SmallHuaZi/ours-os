@@ -13,16 +13,16 @@ INTERFACE
 target_sources(kernel_main_arch
 INTERFACE
     # Sources
-    "start.S"
-    "gdt.S"
-    "idt.S"
-    "idt.cpp"
     "descriptor.cpp"
     "faults.cpp"
     "feature.cpp"
-    "mp.cpp"
+    "gdt.S"
+    "idt.cpp"
+    "idt.S"
     "init.cpp"
+    "mp.cpp"
     "thread.cpp"
+    "syscall.cpp"
 )
 
 add_subdirectory("mem")

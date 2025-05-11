@@ -14,11 +14,6 @@
 #include <ours/task/thread.hpp>
 
 namespace ours::sched {
-    auto activate_thread(task::Thread *) -> void;
-
-    auto deactivate_thread(task::Thread *) -> void;
-
-    auto reschedule() -> void;
 
 } // namespace ours::sched
 

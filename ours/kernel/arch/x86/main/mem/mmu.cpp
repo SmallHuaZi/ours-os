@@ -32,7 +32,7 @@ namespace mem {
         arch::tlb_invalidate_all();
     }
 
-    auto x86_setup_mmu_percpu() -> void {
+    auto x86_init_mmu_percpu() -> void {
         Cr0::read().set<Cr0::Wp>(1)  // Enable Write protect.
                    .set<Cr0::Nw>(0)  // Disable no-write-through.
                    .set<Cr0::Cd>(0)  // Disable cache-disable.
@@ -52,7 +52,7 @@ namespace mem {
         MsrIo::write(MsrRegAddr::IA32Efer, shadow);
     }
 
-    auto x86_setup_mmu_early() -> void {
+    auto x86_init_mmu_early() -> void {
         mem::g_kernel_pgd = Cr3::read().get<Cr3::PageTableAddress>();
 
         // Tear down the transient 1:1 identity mappings established by `PhysBoot`
@@ -63,7 +63,7 @@ namespace mem {
         pgd[0] = pgd[511];
         x86_tlb_global_invalidate();
 
-        x86_setup_mmu_percpu();
+        x86_init_mmu_percpu();
 
         dispatch_cpuid(arch::AddrSizeCpuIdObserver(
             mem::g_arch_phys_addr_bits, 

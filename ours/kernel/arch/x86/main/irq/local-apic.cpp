@@ -24,10 +24,34 @@ namespace ours {
         return CpuLocal::read(s_apic_id);
     }
 
-    static ustl::Array<isize, MAX_CPU>  s_cpu_to_apicid;
+    static ustl::Array<isize, MAX_CPU> s_cpu_to_apicid;
 
-    auto cpunum_to_apicid(CpuNum cpunum) -> u32 {
+    /// FIXME(SmallHuaZi): 
+    static ustl::Array<CpuNum, MAX_CPU> s_apicid_to_cpu;
+
+    INIT_CODE
+    auto assign_cpunum_for_apic(u32 apicid) -> CpuNum {
+        INIT_DATA
+        static CpuMask assigned;
+
+        auto const cpunum = assigned.count();
+        if (cpunum >= MAX_CPU) {
+            return kInvalidCpuNum;
+        }
+
+        s_apicid_to_cpu[apicid] = cpunum;
+        s_cpu_to_apicid[cpunum] = apicid;
+        return cpunum;
+    }
+
+    auto cpunum_to_apic_id(CpuNum cpunum) -> u32 {
+        DEBUG_ASSERT(s_cpu_to_apicid[cpunum] != kInvalidCpuNum);
         return s_cpu_to_apicid[cpunum];
+    }
+
+    auto apic_id_to_cpunum(u32 apicid) -> CpuNum {
+        DEBUG_ASSERT(s_apicid_to_cpu[apicid] != arch::kInvalidApicId);
+        return s_apicid_to_cpu[apicid];
     }
 
     struct XApic: public IrqChip {
@@ -80,11 +104,20 @@ namespace ours {
         arch::IpiRequest request{};
         request.set_vector(u32(vector))
                .set_target(arch::ApicIpiTarget::TheOne)
-               .set_dest(cpunum_to_apicid(target))
+               .set_dest(cpunum_to_apic_id(target))
                .set_dest_mode(arch::ApicDestinationMode::Physical)
                .set_level(arch::ApicIpiLevel::Assert)
                .set_delivery_mode(mode);
         s_xapic_chip.inner_.send_ipi(target, request);
+    }
+
+    auto apic_send_ipi_self(arch::IrqVec vector, ApicDeliveryMode mode) -> void {
+        arch::IpiRequest request{};
+        request.set_vector(u32(vector))
+               .set_dest_mode(arch::ApicDestinationMode::Physical)
+               .set_level(arch::ApicIpiLevel::Assert)
+               .set_delivery_mode(mode);
+        s_xapic_chip.inner_.send_ipi_self(request);
     }
 
     auto apic_send_ipi_mask(CpuMask targets, arch::IrqVec vector, ApicDeliveryMode mode) -> void {
@@ -96,7 +129,6 @@ namespace ours {
     auto apic_broadcast_ipi(arch::IrqVec vector, ApicDeliveryMode mode) -> void {
         arch::IpiRequest request{};
         request.set_vector(u32(vector))
-               .set_target(arch::ApicIpiTarget::All)
                .set_dest_mode(arch::ApicDestinationMode::Physical)
                .set_level(arch::ApicIpiLevel::Assert)
                .set_delivery_mode(mode);
@@ -133,6 +165,15 @@ namespace ours {
         return s_xapic_chip.inner_.read_reg(arch::XApicRegType::TimerCurrentCount);
     }
 
+    auto apic_issue_eoi() -> void {
+        s_xapic_chip.inner_.send_eoi();
+    }
+
+    INIT_CODE
+    auto current_apic_id_early() -> u32 {
+        return s_xapic_chip.inner_.id();
+    }
+
     INIT_CODE
     auto init_local_apic() -> void {
         // Section 10.4.1 has the following:
@@ -155,8 +196,6 @@ namespace ours {
         auto mmio_base(reinterpret_cast<u32 *>((*result)->base()));
 
         s_xapic_chip.inner_.init(mmio_base);
-
-        CpuLocal::write(s_apic_id, s_xapic_chip.inner_.id());
 
         init_local_apic_percpu();
     }
@@ -213,6 +252,9 @@ namespace ours {
 
         // Enable X[2]-APIC
         MsrIo::write<usize>(MsrRegAddr::IA32ApicBase, apic_base);
+
+        // Save ID of this local APIC
+        CpuLocal::write(s_apic_id, s_xapic_chip.inner_.id());
 
         init_apic_timer();
         init_apic_error();

@@ -19,7 +19,7 @@ namespace ours {
     NO_MANGLE 
     auto x86_handle_syscall(arch::IrqFrame *) -> void;
 
-    NO_MANGLE 
+    NO_MANGLE NO_RETURN
     auto x86_enter_uspace(arch::IrqFrame *) -> void;
 
     NO_MANGLE 

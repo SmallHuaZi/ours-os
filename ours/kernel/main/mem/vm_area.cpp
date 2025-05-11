@@ -219,7 +219,7 @@ namespace ours::mem {
     auto VmArea::map_with_vmo(VirtAddr *base, usize size, MmuFlags mmuf, ustl::Rc<VmObject> vmo, 
                               VmMapOption option, char const *name) -> ktl::Result<ustl::Rc<VmMapping>> {
         VirtAddr vma_ofs = 0; 
-        if (base) {
+        if (base && *base >= base_) {
             vma_ofs = *base - base_;
         }
 

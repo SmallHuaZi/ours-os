@@ -1,5 +1,4 @@
 #include <ours/arch/x86/page_table.hpp>
-#include <ours/arch/cpu.hpp>
 
 #include <arch/tlb.hpp>
 

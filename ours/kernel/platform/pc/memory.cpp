@@ -1,7 +1,7 @@
 #include <ours/platform/init.hpp>
 #include <ours/mem/init.hpp>
 #include <ours/arch/mem-cfg.hpp>
-#include <ours/object/resource-dispatcher.hpp>
+#include <ours/object/resource_dispatcher.hpp>
 #include <ours/mem/pmm.hpp>
 
 #include <ustl/array.hpp>

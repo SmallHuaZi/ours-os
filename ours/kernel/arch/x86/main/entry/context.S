@@ -14,14 +14,12 @@ FUNCTION(x86_switch_context)
     push_reg %r13
     push_reg %r14
     push_reg %r15
-    pushf
 
     // Second, switching kernel stack from `prev's` to `next's`
     mov %rsp, (%rdi)
     mov %rsi, %rsp
 
     // Restore callee-saved registers
-    popf
     pop_reg %r15
     pop_reg %r14
     pop_reg %r13

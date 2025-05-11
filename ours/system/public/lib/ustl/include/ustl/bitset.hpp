@@ -20,6 +20,16 @@ namespace ustl {
     struct BitSet: public ::std::bitset<NBits> {
         typedef ::std::bitset<NBits>        Base;
         using Base::Base;
+        using Base::operator=;
+        using Base::operator|=;
+        using Base::operator&=;
+        using Base::operator^=;
+        using Base::operator<<=;
+        using Base::operator>>=;
+
+        BitSet(Base const &base)
+            : Base(base)
+        {}
 
         auto clear() -> void {
             for (auto i = 0; i < NBits; ++i) {

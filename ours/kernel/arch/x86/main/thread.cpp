@@ -45,4 +45,33 @@ namespace ours::task {
         x86_switch_context(&prev->sp_, next->sp_);
     }
 
+    auto X86Thread::init(VirtAddr entry_point) -> void {
+        struct x64ContextSwitchFrameLayout {
+            u64 r15;
+            u64 r14;
+            u64 r13;
+            u64 r12;
+            u64 rbp;
+            u64 rbx;
+            u64 rip;
+        };
+
+        auto thread = task::Thread::of(this);
+        auto stack_top = thread->kernel_stack().top();
+
+        DEBUG_ASSERT(ustl::mem::is_aligned(stack_top, 16));
+
+        // Before to construct a frame on stack, we must preserve 8 byte size of space
+        // for caller's the return address.
+        auto frame = reinterpret_cast<x64ContextSwitchFrameLayout *>(stack_top - 8);
+        frame--;
+        memset(frame, 0, sizeof(*frame));
+
+        frame->rip = entry_point;
+        sp_ = reinterpret_cast<VirtAddr>(frame);
+
+        fs_base_ = 0;
+        gs_base_ = 0;
+    }
+
 } // namespace ours::task

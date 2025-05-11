@@ -53,6 +53,8 @@ PRIVATE
     "start.cpp"
     "handoff.cpp"
     "cpu-local.cpp"
+    "cpu-states.cpp"
+    "ipi-event.cpp"
 
     "${KernelMainTestFileSet}"
 

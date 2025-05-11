@@ -1,8 +1,12 @@
 #include <ours/arch/x86/faults.hpp>
-#include <arch/x86/interrupt.hpp>
+#include <ours/arch/apic.hpp>
 #include <ours/platform/init.hpp>
 #include <ours/platform/interrupt.hpp>
 
+#include <ours/task/thread.hpp>
+
+#include <arch/x86/interrupt.hpp>
+#include <arch/halt.hpp>
 #include <logz4/log.hpp>
 
 namespace ours {
@@ -10,6 +14,15 @@ namespace ours {
     static auto irqvec_to_irqnum(arch::IrqVec vector) -> HIrqNum {
         DEBUG_ASSERT(static_cast<HIrqNum>(vector) >= static_cast<HIrqNum>(arch::IrqVec::PlatformIrqMin));
         return static_cast<HIrqNum>(vector) - static_cast<HIrqNum>(arch::IrqVec::PlatformIrqMin);
+    }
+
+    NO_RETURN FORCE_INLINE 
+    static auto panic_exception(arch::IrqFrame *frame, char const *msg) -> void {
+        log::trace("Vector[{}] paniced", u32(frame->vector));
+
+        while (1) {
+            arch::suspend();
+        }
     }
 
     static auto x86_dispatch_exception(arch::IrqVec vector, arch::IrqFrame *frame) -> void {
@@ -44,7 +57,7 @@ namespace ours {
                 log::info("#DNA");
                 break;
             case IrqVec::DoubleFault:
-                log::info("#DF");
+                panic_exception(frame, "Double fault");
                 break;
             case IrqVec::CoprocessorSegmentOverrun:
                 log::info("#CSO");
@@ -88,12 +101,50 @@ namespace ours {
             case IrqVec::ApicTimer:
                 log::info("APIC-PM Tick");
                 break;
+            
+            case IrqVec::IpiGeneric:
+                x86_handle_ipi_generic();
+                apic_issue_eoi();
+                break;
+            
+            case IrqVec::IpiInterrupt:
+                x86_handle_ipi_interrupt();
+                apic_issue_eoi();
+                break;
+            
+            case IrqVec::IpiResched:
+                x86_handle_ipi_resched();
+                apic_issue_eoi();
+                break;
+            
+            case IrqVec::IpiSuspend:
+                x86_handle_ipi_suspend();
+                // Never return.
+                break;
         }
+    }
+
+    FORCE_INLINE
+    static auto is_from_uspace(arch::IrqFrame *frame) -> bool {
+        return SELECTOR_PL(frame->cs) != 0;
     }
 
     NO_MANGLE
     auto arch_handle_exception(arch::IrqFrame *frame) -> void {
+        // platform_start_handling_irq(irqvec_to_irqnum(frame->vector), frame);
+
         x86_dispatch_exception(frame->vector, frame);
+
+        if (is_from_uspace(frame)) {
+            log::trace("Exception[{}] from user space", u32(frame->vector));
+            // TODO(SmallHuaZi): Request from user address space, should we attempt to handle
+            // those pending signals.
+        }
+
+        auto const need_preemption = platform_finish_handling_irq(irqvec_to_irqnum(frame->vector), frame);
+        if (need_preemption) {
+            task::Thread::Current::preempt();
+        }
     }
 
 } // namespace ours

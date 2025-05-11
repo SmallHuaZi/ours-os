@@ -17,7 +17,9 @@
 namespace ours {
     auto current_mono_ticks() -> Ticks;
 
-    auto current_mono_time() -> usize;
+    auto current_mono_time() -> Instant;
+
+    auto platform_convert_mono_time_to_ticks(MonoInstant timepoint) -> Ticks;
 
     auto platform_set_oneshot_timer(Ticks deadline) -> Status;
 

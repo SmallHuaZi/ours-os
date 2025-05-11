@@ -23,6 +23,9 @@ namespace ours {
         Write,
     };
 
+    CXX11_CONSTEXPR
+    static auto kDefaultRights = Rights::Duplicate;
+
 } // namespace ours
 
 #endif // #ifndef OURS_RIGHTS_HPP

@@ -206,4 +206,10 @@ namespace ours::mem {
         return Status::Ok; 
     }
 
+    INIT_CODE
+    auto reclaim_init_area(RemTag) -> Status {
+        EarlyMem::reclaim_init_area();
+        return Status::Ok;
+    }
+
 } // namespace ours::mem

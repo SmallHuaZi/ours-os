@@ -16,7 +16,15 @@
 #include <arch/x86/interrupt.hpp>
 
 namespace ours {
-    extern auto x86_handle_page_fault(arch::IrqFrame *frame) -> Status;
+    auto x86_handle_page_fault(arch::IrqFrame *frame) -> Status;
+
+    auto x86_handle_ipi_generic() -> void;
+
+    auto x86_handle_ipi_interrupt() -> void;
+
+    auto x86_handle_ipi_resched() -> void;
+
+    auto x86_handle_ipi_suspend() -> void;
 
 } // namespace ours
 

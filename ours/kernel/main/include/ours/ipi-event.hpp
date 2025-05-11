@@ -16,9 +16,9 @@
 namespace ours {
     enum class IpiEvent {
         Generic, 
-        Schedule, 
+        Resched, 
         Interrupt, 
-        Halt,
+        Suspend,
     };
 
     enum class IpiTarget {
@@ -27,14 +27,14 @@ namespace ours {
         Self,
     };
 
-    void mp_init();
+    auto mp_init() -> void;
 
     /// Trigger schedules on other CPUs. Used mostly by inner threading and scheduler logic.
-    void mp_reschedule(CpuMask mask, u32 flags);
+    auto mp_reschedule(CpuMask mask, u32 flags) -> void;
 
     /// Trigger an interrupt on another cpu without a corresponding reschedule. Used by the 
     /// hypervisor to trigger a vmexit.
-    void mp_interrupt(IpiTarget target, CpuMask mask);
+    auto mp_interrupt(IpiTarget target, CpuMask mask) -> void;
 
 } // namespace ours
 

@@ -5,6 +5,7 @@
 #include <ours/mem/vm_area.hpp>
 #include <ours/mem/vm_aspace.hpp>
 #include <ours/mem/vm_mapping.hpp>
+#include <ours/mem/vmm.hpp>
 
 #include <arch/x86/descriptor.hpp>
 #include <ustl/mem/container_of.hpp>
@@ -76,7 +77,7 @@ namespace ours {
         VirtAddr virt_addr = 0;
         ustl::Rc<VmArea> vma;
         auto result = VmAspace::kernel_aspace()->root_vma()->map_at(
-            PhysMap::virt_to_phys(&g_gdt), 
+            mem::virt_to_phys(VirtAddr(s_pgdt)), 
             &virt_addr, // Request the virtual address
             PAGE_SIZE,
             MmuFlags::Readable, // Read only
@@ -92,7 +93,7 @@ namespace ours {
     /// Code bottom is about TSS
     INIT_CODE
     auto x86_setup_tss_percpu() -> void {
-        auto const cpunum = arch_current_cpu();
+        auto const cpunum = CpuLocal::cpunum();
         DEBUG_ASSERT(cpunum < MAX_CPU, "Invalid CPU number: {}", cpunum);
 
         auto tss = &CpuLocal::access(&g_x86_pcpu)->tss;

@@ -59,6 +59,10 @@ namespace ours::irq {
 
     auto handle_irq_generic(VIrqNum irqnum) -> IrqReturn;
 
+    auto start_handling_irq() -> void;
+
+    auto finish_handling_irq() -> bool;
+
 } // namespace ours::irq
 
 #endif // #ifndef OURS_IRQ_MOD_HPP
