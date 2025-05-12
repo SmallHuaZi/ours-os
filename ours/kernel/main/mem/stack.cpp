@@ -45,7 +45,7 @@ namespace ours::mem {
         }
 
         stack_ = ustl::move(mapping);
-        log::trace("Allcoated Kernel stack:[{:X}, {:X})", stack_->base(), stack_->base() + mapping->size());
+        log::trace("Allcoated Kernel stack:[{:X}, {:X})", stack_->base(), top());
         return Status::Ok;
     }
 

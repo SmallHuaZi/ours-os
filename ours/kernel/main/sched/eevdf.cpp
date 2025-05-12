@@ -1,9 +1,13 @@
 #include <ours/sched/scheduler.hpp>
 #include <ours/sched/sched_object.hpp>
 
+#include <ours/task/thread.hpp>
+
 #include <ustl/ratio.hpp>
 #include <ustl/mem/address_of.hpp>
 #include <ustl/collections/intrusive/set.hpp>
+
+#include <logz4/log.hpp>
 
 using namespace ustl::collections::intrusive;
 
@@ -26,8 +30,9 @@ namespace ours::sched {
 
         FORCE_INLINE
         auto total_weight() -> SchedWeight {
-            if (current_ && current_->on_queue_) {
-                return weight_sum_ + current_->weight();
+            auto current = &common_data_->curr_thread_->sched_object();
+            if (current->on_queue_) {
+                return weight_sum_ + current->weight();
             }
 
             return weight_sum_;
@@ -46,8 +51,6 @@ namespace ours::sched {
         auto enqueue_object(SchedObject &object) -> void;
 
         RunQueue runqueue_;
-        SchedObject *current_;
-
         SchedTime min_vruntime_;
         SchedTime weighted_vruntime_sum_;
         SchedWeight weight_sum_;
@@ -58,6 +61,15 @@ namespace ours::sched {
 
     INIT_DATA
     IScheduler *g_eevdf_scheduler = &s_eevdf_scheduler;
+
+    FORCE_INLINE
+    static auto trace_thread(SchedObject &object, char const *msg) -> void {
+        // Debug code
+        {
+            auto thread = task::Thread::of(&object);
+            log::trace("{} thread name: {}", msg, thread->name());
+        }
+    }
 
     /// From physical time duration to virtual.
     FORCE_INLINE
@@ -88,9 +100,10 @@ namespace ours::sched {
     auto EevdfScheduler::is_eligible(SchedObject const &object) const -> bool {
         auto weighted_vruntime_sum = weighted_vruntime_sum_;
         auto weight_sum = weight_sum_;
-        if (current_ && current_->on_queue_) {
-            weighted_vruntime_sum += (current_->vruntime() - min_vruntime_) * current_->weight();
-            weight_sum += current_->weight();
+        auto current = &common_data_->curr_thread_->sched_object();
+        if (current->on_queue_) {
+            weighted_vruntime_sum += (current->vruntime() - min_vruntime_) * current->weight();
+            weight_sum += current->weight();
         }
 
         return weighted_vruntime_sum >= ((object.vruntime() - min_vruntime_) * weight_sum);
@@ -130,6 +143,8 @@ namespace ours::sched {
 
         weighted_vruntime_sum_ -= object.vruntime() * object.weight();
         weight_sum_ -= object.weight();
+        num_runnable_ -= 1;
+        object.on_queue_ = false;
     }
 
     auto EevdfScheduler::dequeue(SchedObject &object) -> void {
@@ -139,22 +154,29 @@ namespace ours::sched {
             return;
         }
 
-        if (&object != current_) {
+        if (&object != &common_data_->curr_thread_->sched_object()) {
             dequeue_object(object);
         }
-        object.on_queue_ = false;
-        num_runnable_ -= 1;
     }
 
     auto EevdfScheduler::enqueue_object(SchedObject &object) -> void {
+        // Debug code
+        {
+            auto thread = task::Thread::of(&object);
+            log::trace("Thread name: {}", thread->name());
+        }
+
         runqueue_.insert(object);
 
         weighted_vruntime_sum_ += object.vruntime() * object.weight();
         weight_sum_ += object.weight();
+        num_runnable_ += 1;
+        object.on_queue_ = true;
     }
 
     auto EevdfScheduler::enqueue(SchedObject &object) -> void {
-        if (&object == current_) {
+        auto current = &common_data_->curr_thread_->sched_object();
+        if (&object == current) {
             if (object.vlag().count() != 0) {
                 // Rectifies current scheduling object.
                 object.vruntime_ -= object.vlag() * (object.weight() + total_weight());
@@ -165,36 +187,30 @@ namespace ours::sched {
 
         update_current();
         enqueue_object(object);
-
-        num_runnable_ += 1;
-        object.on_queue_ = true;
     }
 
     auto EevdfScheduler::update_current() -> void {
         auto const now = current_time();
         auto const delta = now - common_data_->current_started_time;
 
-        if (!current_) [[unlikely]] {
-            return;
-        }
-
+        auto current = &common_data_->curr_thread_->sched_object();
         if (delta < SchedTime::zero()) [[unlikely]] {
             return;
         }
 
         // Update real time.
         common_data_->current_started_time = now;
-        current_->runtime_ += delta;
+        current->runtime_ += delta;
 
         // Update virtual time.
         auto const scheduling_period = common_data_->scheduling_period();
-        auto const rate = current_->weight() / kMinWeight;
-        current_->vruntime_ += durantion_cast(scheduling_period, current_->weight());
-        if (current_->deadline() <= current_->vruntime()) {
-            current_->preemption_state().set_pending();
+        auto const rate = current->weight() / kMinWeight;
+        current->vruntime_ += durantion_cast(scheduling_period, current->weight());
+        if (current->deadline() <= current->vruntime()) {
+            current->preemption_state().set_pending();
 
             // Recalculate current's deadline for next scheduling.
-            current_->deadline_ = current_->vruntime_ + current_->time_slice_ * rate;
+            current->deadline_ = current->vruntime_ + current->time_slice_ * rate;
         }
 
         update_min_vruntime();
@@ -210,8 +226,9 @@ namespace ours::sched {
     ///     RelativeWeightedOwnedVirtualTimeSum -= Delta * TotalWeight
     auto EevdfScheduler::update_min_vruntime() -> void {
         auto min_vruntime = min_vruntime_;
-        if (current_ && current_->vruntime_ > min_vruntime) {
-            min_vruntime = current_->vruntime_;
+        auto current = &common_data_->curr_thread_->sched_object();
+        if (current->vruntime_ > min_vruntime) {
+            min_vruntime = current->vruntime_;
         }
 
         // TODO(SmallHuaZi) Remove the constraint that need to search in runqueue
@@ -224,21 +241,22 @@ namespace ours::sched {
     }
 
     auto EevdfScheduler::put_prev(SchedObject &prev) -> void {
-        if (prev.on_queue_) {
+        if (!prev.on_queue_) {
+            trace_thread(prev, __func__);
             // `current` may not ownes full requested time.
             update_current();
             enqueue_object(prev);
         }
-
-        current_ = 0;
     }
 
     auto EevdfScheduler::set_next(SchedObject &next) -> void {
         if (next.on_queue_) {
+            trace_thread(next, __func__);
             dequeue_object(next);
         }
-        current_ = &next;
-        current_->start_time_ = current_time();
+
+        auto current = &common_data_->curr_thread_->sched_object();
+        current->start_time_ = current_time();
     }
 
     auto EevdfScheduler::yield() -> void {}

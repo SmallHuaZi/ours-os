@@ -34,9 +34,14 @@ namespace ours {
         ustl::Array<arch::GdtDesc32, X86_GDT_MAX_SELECTORS> descs;
         ustl::Array<arch::GdtDesc64, MAX_CPU> tss;
     };
+    static_assert(X86_GDT_MAX_SELECTORS * X86_SEGMENT_SELECTOR_SIZE == offsetof(Gdt, tss));
 
     NO_MANGLE Gdt g_gdt;
     static Gdt *s_pgdt = &g_gdt;
+
+    auto x86_get_gdt() -> void * {
+        return s_pgdt;
+    }
 
     auto x86_load_gdt() -> void {
         s_pgdt->load();
@@ -84,7 +89,7 @@ namespace ours {
             VmMapOption::Commit | VmMapOption::Pinned, // Disable swapping out.
             "k:GDT"
         );
-        ASSERT(!result, "Failed to create readonly GDT");
+        ASSERT(result, "Failed to create readonly GDT");
 
         s_pgdt = reinterpret_cast<decltype(s_pgdt)>(virt_addr);
         x86_load_gdt();

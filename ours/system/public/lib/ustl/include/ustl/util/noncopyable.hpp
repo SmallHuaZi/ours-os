@@ -12,8 +12,13 @@
 #ifndef USTL_UTIL_NONCOPYABLE_HPP
 #define USTL_UTIL_NONCOPYABLE_HPP 1
 
-#define USTL_NOMOVEABLE(TYPE) TYPE(TYPE &&) = delete;
-#define USTL_NOCOPYABLE(TYPE) TYPE(TYPE const &) = delete;
+#define USTL_NOMOVEABLE(TYPE) \
+    TYPE(TYPE &&) = delete;\
+    auto operator=(TYPE &&) -> TYPE & = delete;
+
+#define USTL_NOCOPYABLE(TYPE) \
+    TYPE(TYPE const &) = delete;\
+    auto operator=(TYPE const &) -> TYPE & = delete;
 
 #define USTL_NO_MOVEABLE_AND_COPYABLE(TYPE) \
     USTL_NOMOVEABLE(TYPE) \

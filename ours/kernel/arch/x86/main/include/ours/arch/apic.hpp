@@ -43,6 +43,8 @@ namespace ours {
 
     auto apic_timer_current_count() -> Ticks;
 
+    auto apic_handle_timer_irq() -> void;
+
     auto apic_send_ipi(CpuNum target, arch::IrqVec vector, ApicDeliveryMode mode) -> void;
 
     auto apic_send_ipi_self(arch::IrqVec vector, ApicDeliveryMode mode) -> void;

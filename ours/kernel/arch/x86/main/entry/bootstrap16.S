@@ -8,29 +8,33 @@
 /// Why do we need to use this?
 ///
 /// Because under real mode, we are limited to just access the memory lower than
-/// 1 MB, but our main module which include the following code was loaded at address 
-/// which is over N GB. So that The following code must be copied to low address,
-/// usually first k pages, therefore there is a new problem related with relocation. 
+/// 1 MB, but our main module which include the following trampoline code was loaded 
+/// at address which is over N GB. So that The following code must be copied to low 
+/// address, usually first k pages, therefore there is a new problem related with relocation. 
 /// To bypass it and avoid so many relocating work, we can use this tricky from Linux 
 /// to have a relative addressing way.
 ///
-#define rva(symbol) (symbol - x86_start_bootstrap16)
+#define rva(symbol) (symbol - __rva_start)
 
 .label __x86_bootstrap16_start, global
 
-/// As <ours/arch/x86/bootstrap.hpp> said, the BootstrapData 
-/// was put at address 0.
 .code16
 .label x86_start_bootstrap16, global
-    // Store the real address of `x86_start_bootstrap16`
-    mov X86_BOOTSTRAP_OFFSET_BOOTSTRAP_ENTRY, %ebx
+    // It is a near call, so don't worry anything about relocation.
+    call __rva_start
+__rva_start:
+    // Take the address of symbol __rva_start for relative addressing.
+    pop %ebx
+
+    // Let %esi point to BootstrapData
+    lea rva(bootstrap_data)(%ebx), %esi
 
     mov %cr0, %eax
     or $X86_CR0_CD, %eax
     and $~X86_CR0_NW, %eax
     mov %eax, %cr0
 
-    lgdt X86_BOOTSTRAP_OFFSET_GDTR
+    lgdt X86_BOOTSTRAP_OFFSET_GDTR(%ebx)
 
     // Enter protected mode without paging
     mov %cr0, %eax
@@ -43,7 +47,7 @@
     mov %eax, %cr4
 
     // Load CR3 with the PGD (It's address is in 32bits)
-    mov X86_BOOTSTRAP_OFFSET_PGD, %eax
+    mov X86_BOOTSTRAP_OFFSET_PGD(%ebx), %eax
     mov %eax, %cr3
 
     // Enable long mode
@@ -59,14 +63,12 @@
     mov %eax, %cr4
 
     // Reload CS and jump to 64-bit code.
-    mov X86_GDT_KERNEL_CODE64, %eax
-    mov %eax, %cs
-    lea rva(x86_secondary_cpu_long_mode_entry)(%ebx), %esp
+    pushl $X86_GDT_KERNEL_CODE64
+    lea rva(x86_nonboot_cpu_enter_long_mode)(%ebx), %esp
     lret
 
 .code64
-.function x86_secondary_cpu_long_mode_entry, local 
-
+.function x86_nonboot_cpu_enter_long_mode, local 
     // Zero our data segments
     xor %eax, %eax
     mov %eax, %ds
@@ -83,3 +85,6 @@
 .end_function
 
 .label __x86_bootstrap16_end, global 
+
+.align 8
+.label bootstrap_data, global 

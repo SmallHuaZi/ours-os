@@ -3,7 +3,10 @@
 #include <ours/arch/mem-cfg.hpp>
 #include <ours/object/resource_dispatcher.hpp>
 #include <ours/mem/pmm.hpp>
+#include <ours/mem/early-mem.hpp>
+#include <ours/arch/x86/bootstrap.hpp>
 
+#include <ktl/new.hpp>
 #include <ustl/array.hpp>
 #include <ustl/algorithms/minmax.hpp>
 
@@ -43,6 +46,6 @@ namespace ours {
     INIT_CODE
     static auto platform_init_resource() -> void {
     }
-    GKTL_INIT_HOOK(ResourceInit, platform_init_resource, gktl::InitLevel::Heap);
+    GKTL_INIT_HOOK(ResourceInit, platform_init_resource, gktl::InitLevel::Vmm);
 
 } // namespace ours

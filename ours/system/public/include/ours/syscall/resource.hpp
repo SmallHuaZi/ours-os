@@ -8,24 +8,18 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_SIGNALS_HPP
-#define OURS_SIGNALS_HPP 1
-
-#include <ours/types.hpp>
-#include <ours/config.hpp>
-
-#include <ustl/bitset.hpp>
-#include <ustl/util/enum_bits.hpp>
+#ifndef OURS_SYSCALL_RESOURCE_HPP
+#define OURS_SYSCALL_RESOURCE_HPP 1
 
 namespace ours {
-    enum class Signals {
-        None,
-        Suspend,
-        Kill,
-        MaxNumSignals,
+    enum class RsrcKind {
+
     };
-    USTL_ENABLE_ENUM_BITMASK(Signals);
+
+    enum class RsrcFlags {
+
+    };
 
 } // namespace ours
 
-#endif // #ifndef OURS_SIGNALS_HPP
+#endif // #ifndef OURS_SYSCALL_RESOURCE_HPP

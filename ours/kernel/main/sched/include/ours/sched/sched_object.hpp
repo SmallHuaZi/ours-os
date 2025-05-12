@@ -61,6 +61,18 @@ namespace ours::sched {
                    !eager_preemption_disabled_count_;
         }
 
+        auto reenable_eager_preemption() -> void;
+
+        FORCE_INLINE
+        auto enable_preemption() -> void {
+            preemption_disabled_count_.fetch_sub(1);
+        }
+
+        FORCE_INLINE
+        auto disable_preemption() -> void {
+            preemption_disabled_count_.fetch_add(1);
+        }
+
         FORCE_INLINE
         auto set_pending(CpuMask mask = CpuMask::from_cpu_num(CpuLocal::cpunum())) -> void {
             pending_.store(pending_.load() | mask);

@@ -5,6 +5,8 @@
 #include <ours/mem/vm_mapping.hpp>
 #include <ours/cpu-local.hpp>
 
+#include <ours/task/timer-queue.hpp>
+
 #include <arch/x86/apic/xapic.hpp>
 #include <arch/x86/msr.hpp>
 #include <arch/x86/interrupt.hpp>
@@ -39,6 +41,8 @@ namespace ours {
             return kInvalidCpuNum;
         }
 
+        assigned.set(cpunum, true);
+        global_cpu_states().set_possible(cpunum, true);
         s_apicid_to_cpu[apicid] = cpunum;
         s_cpu_to_apicid[cpunum] = apicid;
         return cpunum;
@@ -163,6 +167,11 @@ namespace ours {
 
     auto apic_timer_current_count() -> Ticks {
         return s_xapic_chip.inner_.read_reg(arch::XApicRegType::TimerCurrentCount);
+    }
+
+    auto apic_handle_timer_irq() -> void {
+        log::trace("APIC-PM Tick");
+        task::timer_tick();
     }
 
     auto apic_issue_eoi() -> void {

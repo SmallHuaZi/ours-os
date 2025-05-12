@@ -14,12 +14,16 @@
 #include <ours/cpu-mask.hpp>
 #include <ours/ipi-event.hpp>
 
+#include <ustl/views/span.hpp>
+
 namespace ours {
     auto arch_mp_send_ipi(IpiTarget target, CpuMask mask, IpiEvent event) -> void;
 
     auto arch_mp_reschedule(CpuMask) -> void;
 
     auto arch_mp_suspend(CpuMask) -> void;
+
+    auto x86_wakeup_aps(CpuMask) -> void;
 
 } // namespace ours
 

@@ -15,55 +15,55 @@
 #include <ours/rights.hpp>
 #include <ours/config.hpp>
 #include <ours/signals.hpp>
+#include <ours/mutex.hpp>
 #include <ours/object/types.hpp>
+#include <ours/object/observer.hpp>
 
 #include <ustl/rc.hpp>
 #include <ustl/option.hpp>
 #include <ustl/sync/atomic.hpp>
 
 #include <ktl/name.hpp>
+#include <gktl/canary.hpp>
 
 namespace ours::object {
     class Dispatcher: public ustl::RefCounter<Dispatcher> {
         typedef Dispatcher   Self;
         typedef ustl::RefCounter<Dispatcher>    Base;
       public:
-        CXX11_CONSTEXPR
-        static auto const MAX_NAME_SIZE = 32;
-
-        typedef ktl::Name<MAX_NAME_SIZE> Name;
-
         FORCE_INLINE
-        auto id() const -> KoId {  
+        auto koid() const -> KoId {  
             return koid_;  
         }
 
-        FORCE_INLINE
-        auto name() const -> Name const & {  
-            return name_;
-        }
+        auto attach_observer(SignalObserver *, void const *handle, Signals) -> Status;
 
-        FORCE_INLINE
-        auto set_name(char const *name) -> void
-        {}
+        auto detach_observer(SignalObserver *, Signals *) -> Status;
 
-        auto add_observer()
-        {}
-
-        auto remove_observer()
-        {}
+        virtual auto on_zero() -> void {};
       protected:
-        Dispatcher(char const *name);
+        Dispatcher();
+        virtual ~Dispatcher() = default;
 
+        GKTL_CANARY(Dispatcher, canary_);
         KoId koid_;
-        Name name_;
+        Mutex mutex_;
         ustl::sync::AtomicU32  handle_count_;
-        ustl::sync::AtomicU32  signal_count_;
+        ustl::sync::Atomic<Signals>  signals_;
+
+        SignalObserverList observers_;
     };
 
-    template <typename Derived, Rights default_rights, Signals mask>
+    template <typename Derived, Rights DefaultRights, Signals ExtraSignals = Signals::None>
     class SoloDispatcher: public Dispatcher {
-
+      public:
+        CXX11_CONSTEXPR
+        static auto default_right() -> Rights {
+            return DefaultRights;
+        }
+    
+      protected:
+        GKTL_CANARY(SoloDispatcher, canary_);
     };
 
 } // namespace ours

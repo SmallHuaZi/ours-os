@@ -99,7 +99,7 @@ namespace ours {
                 break;
 
             case IrqVec::ApicTimer:
-                log::info("APIC-PM Tick");
+                apic_handle_timer_irq();
                 break;
             
             case IrqVec::IpiGeneric:
@@ -141,7 +141,7 @@ namespace ours {
             // those pending signals.
         }
 
-        auto const need_preemption = platform_finish_handling_irq(irqvec_to_irqnum(frame->vector), frame);
+        auto const need_preemption = platform_finish_handling_irq(usize(frame->vector), frame);
         if (need_preemption) {
             task::Thread::Current::preempt();
         }

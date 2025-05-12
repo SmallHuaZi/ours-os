@@ -19,11 +19,11 @@
 #define X86_GDT_USER_DATA        (5 << 3)
 #define X86_GDT_USER_CODE64      (6 << 3)
 #define X86_GDT_MAX_SELECTORS    (6 + 1) // Has also the first null descriptor
+#define X86_SEGMENT_SELECTOR_SIZE  8 
 
 #define TSS_SELECTOR(i) ((u16)(0x38 + 16 * (i)))
-/* 0x40 is used by the second half of the first TSS descriptor */
 
-/// selector priviledge level
+/// Selector privilege level
 #define SELECTOR_PL(s) ((s)&0x3)
 
 /// Descriptor types
@@ -44,6 +44,8 @@
 #include <ustl/array.hpp>
 
 namespace ours {
+    auto x86_get_gdt() -> void *;
+
     auto x86_load_gdt() -> void;
 
     auto x86_dump_gdt() -> void;

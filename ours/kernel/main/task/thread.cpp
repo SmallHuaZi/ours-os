@@ -1,5 +1,7 @@
 #include <ours/task/thread.hpp>
 
+#include <ours/task/timer.hpp>
+#include <ours/task/auto_preemption_disabler.hpp>
 #include <ours/mem/mod.hpp>
 #include <ours/mem/object-cache.hpp>
 #include <ours/sched/mod.hpp>
@@ -7,8 +9,10 @@
 
 #include <ustl/traits/char_traits.hpp>
 #include <arch/intr_disable_guard.hpp>
+#include <arch/halt.hpp>
 
 #include <gktl/init_hook.hpp>
+
 
 namespace ours::task {
     static mem::ObjectCache   *s_thread_cache;
@@ -17,12 +21,13 @@ namespace ours::task {
 
     Thread::Thread(usize priority, char const *name)
         : so_(),
-          task_state_(),
           name_(name, ustl::traits::CharTraits<char>::length(name)),
-          states_(ThreadState::Alive),
+          task_state_(),
+          thread_state_(ThreadState::Alive),
+          waiter_(),
           signals_(),
-          user_thread_(),
           arch_thread_(),
+          user_thread_(),
           aspace_()
     {}
 
@@ -63,13 +68,13 @@ namespace ours::task {
     auto Thread::resume() -> Status {
         arch::IntrDisableGuard guard{};
         // Do nothing to a dead thread.
-        if (states_ == ThreadState::Terminated) {
+        if (state() == ThreadState::Terminated) {
             return Status::Ok;
         }
 
         signals_ |= ~Signals::Suspend;
 
-        if (states_ == ThreadState::Waiting || states_ == ThreadState::Alive) {
+        if (state() == ThreadState::Blocking || state() == ThreadState::Alive) {
             sched::MainScheduler::unblock(*this);
         }
 
@@ -87,7 +92,7 @@ namespace ours::task {
         canary_.verify();
         ustl::sync::LockGuard guard(mutex_);
 
-        if (states_ != ThreadState::Terminated) {
+        if (state() != ThreadState::Terminated) {
             flags_ |= ThreadFlags::Detached;
         }
 
@@ -104,16 +109,50 @@ namespace ours::task {
         flags_ |= ThreadFlags::Detached;
     }
 
+    auto Thread::wakeup_self() -> void {
+        ustl::sync::LockGuard guard(mutex_);
+        if (thread_state_ != ThreadState::Sleeping) {
+            return;
+        }
+        // Positively sleep is always given successful status.
+        waiter_.notify(Status::Ok);
+    }
+
     auto Thread::Current::preempt() -> void {
+        sched::MainScheduler::preempt();
     }
 
     auto Thread::Current::idle() -> void {
+        auto current = get();
+
+        // Mark this thread preemptible and wait other one's preemption request.
+        current->sched_object().preemption_state().set_pending();
+
+        while (1) {
+            arch::suspend();
+        }
+    }
+
+    auto Thread::Current::sleep_for(Milliseconds ms, bool interruptible) -> Status {
+        auto thread = get();
+
+        ustl::sync::LockGuard guard(thread->mutex_);
+        Timer timer;
+        {
+            timer.activate(Deadline(ms), &Thread::wakeup_self, thread);
+            thread->set_sleeping();
+            thread->waiter_.wait(interruptible, Status::ShouldWait);
+        }
+        timer.cancel();
+        return thread->waiter_.status();
     }
 
     auto Thread::Current::exit(i32 retcode) -> void {
         auto current = Current::get();
-        sched::MainScheduler::reschedule(*current);
 
+        arch::IntrDisableGuard intr_guard;
+        AutoPreemptionDisabler preemption_disabled_guard;
+        sched::MainScheduler::reschedule(*current);
         unreachable();
     }
 

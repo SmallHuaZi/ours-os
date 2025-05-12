@@ -23,6 +23,7 @@ INTERFACE
     "mp.cpp"
     "thread.cpp"
     "syscall.cpp"
+    "bootstrap.cpp"
 )
 
 add_subdirectory("mem")

@@ -27,8 +27,8 @@ namespace ours::phys {
             [MultibootMmapEntry::BadRam ] = "Bad",
         };
 
-        // TODO(SmallHuaZi): This is a workaround, we should parse the video memory parameter to get the video memory range. 
-        // and add it to the BootMem.
+        // TODO(SmallHuaZi): This is a workaround, we should parse the video memory parameter to 
+        // get the video memory range and add it to the BootMem.
         mem->add(0xB0000, 0x10000, bootmem::RegionType::ReservedAndNoInit, 0);
         mem->protect(0xB0000, 0x10000);
 

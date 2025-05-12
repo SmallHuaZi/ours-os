@@ -17,9 +17,11 @@
 #include <ours/cpu-mask.hpp>
 #include <ours/task/types.hpp>
 
+#include <ours/task/wait-queue.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/stack.hpp>
 #include <ours/sched/sched_object.hpp>
+#include <ours/syscall/time.hpp>
 
 /// ours::object::ThreadDispatcher (PS: It is so-called user-thread)
 #include <ours/object/thread_dispatcher.hpp>
@@ -39,18 +41,20 @@ namespace ours::task {
         Alive,
         Ready,
         Running,
-        Waiting,
+        Blocking,
+        Sleeping,
         Terminated,
     };
 
     enum class ThreadFlags {
         Preemptible = BIT(0),
-        SignalPending = BIT(1),
-        Detached = BIT(2),
+        Interruptible = BIT(1),
+        SignalPending = BIT(2),
+        Detached = BIT(3),
 
         // All request from a thread which tagged it to allocate memory
         // will not be accepted.
-        MemoryAllocationDisabled = BIT(3),
+        MemoryAllocationDisabled = BIT(4),
     };
     USTL_ENABLE_ENUM_BITMASK(ThreadFlags)
 
@@ -81,9 +85,8 @@ namespace ours::task {
 
     class Thread  {
         typedef Thread Self;
+        typedef ktl::Name<32>   Name;
       public:
-        class Current;
-
         FORCE_INLINE
         static auto of(sched::SchedObject *so) -> Self * {
             return ustl::mem::container_of(so, &Self::so_);
@@ -94,6 +97,12 @@ namespace ours::task {
             return ustl::mem::container_of(arch, &Self::arch_thread_);
         }
 
+        FORCE_INLINE
+        static auto of(Waiter *waiter) -> Self * {
+            return ustl::mem::container_of(waiter, &Self::waiter_);
+        }
+
+        /// Creates a thread with `name` that will execute `entry` at `priority`. |arg|
         /// Creates a thread with `name` that will execute `entry` at `priority`. |arg|
         /// will be passed to `entry` when executed, the return value of `entry` will be
         /// passed to Exit().
@@ -117,7 +126,7 @@ namespace ours::task {
 
         FORCE_INLINE
         auto state() -> ThreadState {
-            return states_;
+            return thread_state_;
         }
 
         auto aspace() -> mem::VmAspace * {
@@ -153,26 +162,52 @@ namespace ours::task {
 
         FORCE_INLINE
         auto set_ready() -> Self & {
-            states_ = ThreadState::Ready;
+            thread_state_ = ThreadState::Ready;
             return *this;
         }
 
         FORCE_INLINE
         auto set_running() -> Self & {
-            states_ = ThreadState::Running;
+            thread_state_ = ThreadState::Running;
             return *this;
         }
 
         FORCE_INLINE
         auto set_blocking() -> Self & {
-            states_ = ThreadState::Waiting;
+            thread_state_ = ThreadState::Blocking;
             return *this;
         }
+
+        FORCE_INLINE
+        auto set_sleeping() -> Self & {
+            thread_state_ = ThreadState::Sleeping;
+            return *this;
+        }
+
+        FORCE_INLINE
+        auto set_interruptible() -> Self & {
+            flags_ |= ThreadFlags::Interruptible;
+            return *this;
+        }
+
+        FORCE_INLINE
+        auto clear_interruptible() -> Self & {
+            flags_ |= ThreadFlags::Interruptible;
+            return *this;
+        }
+
+        FORCE_INLINE
+        auto name() const -> char const * {
+            return name_.data();
+        }
+        class Current;
       private:
         friend ArchThread;
 
         NO_RETURN
         static auto trampoline() -> void;
+
+        auto wakeup_self() -> void;
 
         GKTL_CANARY(Thread, canary_);
         ArchThread arch_thread_;
@@ -186,29 +221,35 @@ namespace ours::task {
         Mutex mutex_;
         Signals signals_;
         ThreadFlags flags_;
-        ThreadState states_;
+
         TaskState task_state_;
+        ThreadState thread_state_;
+        Waiter waiter_;
         sched::SchedObject so_;
 
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
-        ustl::collections::intrusive::ListMemberHook<> proclist_hook_; // Used by process
       public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedListOptions);
-        USTL_DECLARE_HOOK_OPTION(Self, proclist_hook_, ProcListOptions);
     };
-    USTL_DECLARE_LIST(Thread, ThreadProcList, Thread::ProcListOptions);
     USTL_DECLARE_LIST(Thread, ThreadManagedList, Thread::ManagedListOptions);
+
+    template <typename F, typename... Args>
+    FORCE_INLINE
+    auto Thread::spawn(const char *name, usize priority, F entry, Args&&... args) -> Self * {
+        auto entry_point = ustl::function::bind(entry, ustl::forward<Args>(args)...);
+        return spawn(name, priority, ThreadStartEntry(entry_point));
+    }
 
     class Thread::Current {
       public:
         FORCE_INLINE
-        static auto aspace() -> mem::VmAspace * {
-            return 0;
+        static auto get() -> Self * {
+            return CpuLocal::read(s_current_thread_);
         }
 
         FORCE_INLINE
-        static auto get() -> Self * {
-            return CpuLocal::read(s_current_thread_);
+        static auto get(CpuNum cpu) -> Self * {
+            return *CpuLocal::access(&s_current_thread_, cpu);
         }
 
         FORCE_INLINE
@@ -216,6 +257,18 @@ namespace ours::task {
             auto const prev = get();
             CpuLocal::write(s_current_thread_, curr);
             return prev; 
+        }
+
+        FORCE_INLINE
+        static auto set(Self *curr, CpuNum cpunum) -> Self * {
+            auto const prev = get(cpunum);
+            *CpuLocal::access(&s_current_thread_, cpunum) = curr;
+            return prev;
+        }
+
+        FORCE_INLINE
+        static auto aspace() -> mem::VmAspace * {
+            return get()->aspace();
         }
 
         FORCE_INLINE
@@ -228,6 +281,13 @@ namespace ours::task {
             return get()->sched_object().preemption_state();
         }
 
+        template <typename Duration>
+        static auto sleep_for(Duration duration, bool interruptible) -> void;
+
+        static auto sleep_for(Milliseconds duration, bool interruptible) -> Status;
+
+        static auto sleep_until(TimePoint duration, bool interruptible) -> Status;
+
         static auto idle() -> void;
 
         NO_RETURN
@@ -239,13 +299,6 @@ namespace ours::task {
         CPU_LOCAL
         static inline Self *s_current_thread_;
     };
-
-    template <typename F, typename... Args>
-    FORCE_INLINE
-    auto Thread::spawn(const char *name, usize priority, F entry, Args&&... args) -> Self * {
-        auto entry_point = ustl::function::bind(entry, ustl::forward<Args>(args)...);
-        return spawn(name, priority, ThreadStartEntry(entry_point));
-    }
 
 } // namespace ours::task
 

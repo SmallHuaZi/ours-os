@@ -13,11 +13,12 @@
 #define OURS_OBJECT_OBSERVER_HPP 1
 
 #include <ours/types.hpp>
+#include <ours/signals.hpp>
+
 #include <ustl/collections/intrusive/list.hpp>
 
 namespace ours::object {
-    class SignalObserver
-    {
+    class SignalObserver {
         typedef SignalObserver      Self;
     public:
         SignalObserver() = default;
@@ -28,7 +29,7 @@ namespace ours::object {
         // caller will not interact with it again.
         //
         // WARNING: This is called under Dispatcher's lock
-        virtual auto on_match(SignalMask signals) -> void = 0;
+        virtual auto on_match(Signals signals) -> void = 0;
 
         // Called when the registered handle (which refers to a handle to the
         // Dispatcher object) is being destroyed/"closed"/transferred. (The
@@ -38,7 +39,7 @@ namespace ours::object {
         // caller will not interact with it again.
         //
         // WARNING: This is called under Dispatcher's lock
-        virtual auto on_cancel(SignalMask signals) -> void = 0;
+        virtual auto on_cancel(Signals signals) -> void = 0;
 
         // Determine if this observer matches the given port and key.
         //
@@ -48,16 +49,14 @@ namespace ours::object {
         virtual auto match_key(void const *port, u64 key) -> bool { 
             return false; 
         }
-
     protected:
+        friend class Dispatcher;
         virtual ~SignalObserver() = default;
 
-    private:
         // Dispatcher state, guarded by KernelObject's lock.
         void const *handle_;
-        SignalMask triggering_signals_;
+        Signals triggering_signals_;
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
-
     public:
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOption);
     };

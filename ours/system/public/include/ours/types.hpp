@@ -40,7 +40,7 @@ namespace ours {
     typedef isize MonoTicks;
     typedef isize Instant;
     typedef isize MonoInstant;
-    typedef isize TimePoint;
+    typedef isize MonoDuration;
 
     CXX11_CONSTEXPR
     static auto const kInvalidCpuNum = CpuNum(-1);

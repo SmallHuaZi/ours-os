@@ -116,6 +116,11 @@ namespace ours::sched {
         }
 
         FORCE_INLINE
+        static auto set_current_thread(task::Thread *current) -> void {
+            get()->common_data_.curr_thread_ = current;
+        }
+
+        FORCE_INLINE
         static auto current_time() -> SchedTime {
             return SchedTime(current_mono_time());
         }

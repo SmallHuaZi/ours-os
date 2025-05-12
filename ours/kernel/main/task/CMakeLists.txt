@@ -5,6 +5,8 @@ INTERFACE
 set(source_set
     "thread.cpp"
     "timer.cpp"
+    "timer-queue.cpp"
+    "wait-queue.cpp"
 )
 
 add_library(kernel_task INTERFACE)

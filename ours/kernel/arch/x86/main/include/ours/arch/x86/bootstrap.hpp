@@ -18,6 +18,7 @@
 #ifndef __ASSEMBLY__
 
 #include <ours/types.hpp>
+#include <ours/init.hpp>
 #include <arch/x86/descriptor.hpp>
 
 namespace ours {
@@ -29,13 +30,23 @@ namespace ours {
         // It is necessary to provide us a fake PIC solution in real mode
         // and protected.
         PhysAddr bootstrap_entry;
+        CpuNum this_cpu;
     };
     static_assert(offsetof(BootstrapData, pgd) == X86_BOOTSTRAP_OFFSET_PGD);
     static_assert(offsetof(BootstrapData, gdtr) == X86_BOOTSTRAP_OFFSET_GDTR);
     static_assert(offsetof(BootstrapData, bootstrap_entry) == X86_BOOTSTRAP_OFFSET_BOOTSTRAP_ENTRY);
 
+    CXX11_CONSTEXPR
+    static auto const kMinBootstrap16BufferSize = PAGE_SIZE * 3;
+
+    INIT_CODE
+    auto set_bootstrap16_buffer(PhysAddr base) -> void;
+
+    
+    INIT_CODE [[nodiscard]]
+    auto make_bootstrap_area(BootstrapData **data) -> PhysAddr;
+
 } // namespace ours
 
 #endif // __ASSEMBLY__
-
 #endif // #ifndef OURS_ARCH_X86_BOOTSTRAP_HPP

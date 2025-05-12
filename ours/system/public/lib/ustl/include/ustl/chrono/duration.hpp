@@ -14,10 +14,24 @@ namespace ustl::chrono {
     using Minutes = ::std::chrono::minutes;
     using Years = ::std::chrono::years;
 
-    template <typename Clock, typename Duration> 
-    using TimePoint = ::std::chrono::time_point<Clock, Duration>;
+    template <typename ClockT, typename DurationT> 
+    struct TimePoint: public ::std::chrono::time_point<ClockT, DurationT> {
+        typedef ::std::chrono::time_point<ClockT, DurationT>  Base;
+        typedef DurationT   Duration;
+
+        USTL_CXX11_CONSTEXPR USTL_FORCEINLINE 
+        TimePoint(Base const &base)
+            : Base(base)
+        {}
+
+        using Base::Base;
+        using Base::operator+=;
+        using Base::operator-=;
+        using Base::operator=;
+    };
 
     using ::std::chrono::duration_cast;
+    using ::std::chrono::time_point_cast;
 }
 
 #endif // #ifndef USTL_CHRONO_DURATION_HPP

@@ -3,6 +3,7 @@
 #include <ours/cpu-mask.hpp>
 #include <ours/cpu-local.hpp>
 #include <ours/task/thread.hpp>
+#include <ours/sched/scheduler.hpp>
 
 /// Init calls
 #include <ours/mem/init.hpp>
@@ -21,8 +22,23 @@
 
 namespace ours {
     INIT_CODE
+    static auto init_first_thread() -> void {
+        // We need this dummy thread as `current` thread to make a feint 
+        // that there has been a thread which is running.
+        static task::Thread dummy{0, "dummy"};
+
+        new (&dummy) decltype(dummy)(0, "dummy");
+        sched::MainScheduler::get()->init_thread(dummy, sched::BaseProfile(0));
+        sched::MainScheduler::set_current_thread(&dummy);
+        task::Thread::Current::set(&dummy);
+
+        // FIXME(SmallHuaZi): There is no a kernel stack for the first thread.
+        // Taking the following way will leak mem::Stack::kDefaultStackSize size of memory.
+        dummy.kernel_stack().init();
+    }
+
+    INIT_CODE
     static auto labour_routine() -> i32 {
-        // Reclaim memories occupied by the early infomation.
         init_arch();
         set_init_level(gktl::InitLevel::Arch);
 
@@ -31,6 +47,8 @@ namespace ours {
 
         // Ok, now there is no any routine to access the `init` area.
         mem::reclaim_init_area();
+
+        // Does we need a kernel shell?
 
         // Load userboot 
         return 0;
@@ -68,18 +86,14 @@ namespace ours {
 
         sched::init_sched();
 
-        // We need this dummy thread as `current` thread to make a feint 
-        // that there has been a thread which is running.
-        INIT_DATA static task::Thread dummy{0, "dummy"};
-        task::Thread::Current::set(&dummy);
+        init_first_thread();
 
         auto const laborer = task::Thread::spawn("laborer", 0, labour_routine);
         laborer->detach();
-        laborer->resume();
+        laborer->resume();  // At this point, the first thread is running.
 
         // Let the main thread become the idle thread. 
         task::Thread::Current::idle();
-        while (1);
     }
 
     NO_MANGLE

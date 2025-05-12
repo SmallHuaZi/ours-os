@@ -70,6 +70,10 @@ namespace ktl {
             }
             return *this;
         }
+
+        auto data() const -> char const * {
+            return name_;
+        }
       private:
         // This includes the trailing NULL.
         Char name_[N]{};

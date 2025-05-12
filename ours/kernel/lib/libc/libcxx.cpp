@@ -117,7 +117,7 @@ inline namespace __1 {
 #endif
 
     [[noreturn]]
-    void __libcpp_verbose_abort(char const* format, ...) noexcept
+    void __libcpp_verbose_abort(char const* format, ...) //noexcept
     { 
         ours::panic(format); 
     }

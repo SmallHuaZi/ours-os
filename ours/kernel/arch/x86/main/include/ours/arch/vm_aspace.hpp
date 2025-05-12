@@ -43,7 +43,11 @@ namespace ours::mem {
         auto harvest_accessed(VirtAddr va, usize n, HarvestControl action) -> Status;
 
         auto active_cpus() const -> CpuMask;
-    
+
+        FORCE_INLINE
+        auto pgd_phys() const -> PhysAddr {
+            return page_table_.pgd_phys();
+        }
     private:
         ArchVmAspace(Self const &) = default;
         ArchVmAspace(Self &&) = default;

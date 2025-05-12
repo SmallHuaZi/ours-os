@@ -22,11 +22,13 @@ namespace ours::mem {
         USTL_NO_MOVEABLE_AND_COPYABLE(Stack);
       public:
         CXX11_CONSTEXPR
-        static auto const kDefaultStackSize = KB(8); // Two pages.
+        static auto const kDefaultStackSize = KB(16); // Two pages.
 
         Stack() = default;
 
         auto init(usize size = kDefaultStackSize) -> Status;
+
+        auto init_first() -> void;
 
         FORCE_INLINE
         auto top() const -> VirtAddr {

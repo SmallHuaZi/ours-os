@@ -6,7 +6,8 @@
 
 namespace ours::sched {
     auto MainScheduler::block(task::Thread &thread) -> void {
-
+        DEBUG_ASSERT(&thread == task::Thread::Current::get(), "Block a un-running thread");
+        MainScheduler::reschedule(thread);
     }
 
     auto MainScheduler::assign_target_cpu(task::Thread &thread) -> CpuNum {
@@ -75,11 +76,10 @@ namespace ours::sched {
     }
 
     auto MainScheduler::evaluate_next_thread(task::Thread *curr, SchedTime now) -> task::Thread * {
-        task::Thread * thread = 0;
         if (auto eevdf = schedulers_[kEevdf];
             curr->sched_object().get_scheduler() == eevdf && num_runnable_ == eevdf->num_runnable_) {
             if (auto so = eevdf->evaluate_next()) {
-                thread = task::Thread::of(so);
+                return task::Thread::of(so);
             }
         }
 
@@ -124,6 +124,8 @@ namespace ours::sched {
             curr_so.preemption_state().clear_pending();
             next->set_running();
 
+            set_current_thread(next);
+
             // Make sure that the same aspace do not be changed, because that 
             // lead to flush TLB fully without global pages.
             if (curr->aspace() != next->aspace()) {
@@ -135,7 +137,7 @@ namespace ours::sched {
     }
 
     auto MainScheduler::reschedule(task::Thread &thread) -> void {
-
+        get()->reschedule_common(&thread, current_time());
     }
 
     auto MainScheduler::init_thread(task::Thread &thread, BaseProfile const &profile) -> void {
@@ -150,6 +152,7 @@ namespace ours::sched {
                 so.set_scheduler(schedulers_[kEevdf]);
                 so.affinity_mask_ = global_cpu_states().online_cpus;
                 so.time_slice_ = SchedCommonData::kDefaultMinSchedGranularity;
+                so.on_queue_ = false;
                 break;
             default:
                 panic("No other disciplines");

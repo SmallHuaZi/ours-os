@@ -81,7 +81,7 @@ namespace ours {
         }
 
         auto apic_ticks = clock_tick_to_apic_tick(duration);
-        auto const highest_set_bit = ustl::bit_floor<usize>(apic_ticks);
+        auto const highest_set_bit = apic_ticks < 2 ? 0 : ustl::bit_width<usize>(apic_ticks) - 1;
 
         u8 extra_bits = 0;
         if (highest_set_bit > 31) {
@@ -90,11 +90,10 @@ namespace ours {
 
         u8 divisor = s_apic_divisor << extra_bits;
         usize count;
-        if (divisor >= 128) {
+        if (divisor > 128) {
             divisor = 128;
             count = ustl::NumericLimits<u32>::max();
-        } else if (!divisor) {
-            divisor = 0;
+        } else {
             count = apic_ticks >> extra_bits;
             if (!count) {
                 count = 1;
@@ -108,14 +107,14 @@ namespace ours {
         return 1000;
     }
 
-    static auto platform_handle_timer_irq(HIrqNum irqnum, void *) -> irq::IrqReturn {
-        DEBUG_ASSERT(irqnum == 0);
+    // static auto platform_handle_timer_irq(HIrqNum irqnum, void *) -> irq::IrqReturn {
+    //     DEBUG_ASSERT(irqnum == 0);
 
-        s_elapsed_time_ms += get_periodic_time();
+    //     s_elapsed_time_ms += get_periodic_time();
 
-        task::timer_tick(get_periodic_time());
-        return irq::IrqReturn::Handled;
-    }
+    //     task::timer_tick(get_periodic_time());
+    //     return irq::IrqReturn::Handled;
+    // }
 
     static auto start_calibrate() -> void {
         switch (s_caliberation_clock) {

@@ -19,7 +19,7 @@ namespace ours::phys {
         auto mem = global_bootmem();
 
         // Reserve the first 1MB
-        mem->protect(0, MB(1));
+        // mem->protect(0, MB(1));
 
         // Set bootmem to allocate always starting from the top address. 
         // As much as possible to reserve more DMA-able memory.

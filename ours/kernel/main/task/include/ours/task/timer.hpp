@@ -12,64 +12,94 @@
 #define OURS_TASK_TIMER_HPP 1
 
 #include <ours/cpu-local.hpp>
-#include <gktl/canary.hpp>
+#include <ours/syscall/time.hpp>
+#include <ours/platform/timer.hpp>
 
+#include <gktl/canary.hpp>
+#include <ustl/function/fn.hpp>
+#include <ustl/function/bind.hpp>
 #include <ustl/collections/intrusive/list.hpp>
 
 namespace ours::task {
-    class Timer: public ustl::collections::intrusive::ListBaseHook<> {
+    class TimeSlack {
+        typedef Nanoseconds DurationUnit;
       public:
-        using OnExpired = void (*)(Timer*, Instant now, void *args);
+        TimeSlack() = default;
+
+        template <typename Duration>
+        TimeSlack(Duration duration)
+            : slack_(duration_cast<DurationUnit>(duration))
+        {}
 
         FORCE_INLINE
-        auto deadline() const -> Instant {
+        auto duration() const -> DurationUnit {
+            return slack_;
+        }
+      private:
+        DurationUnit slack_;
+    };
+
+    class Deadline {
+      public:
+        Deadline() = default;
+
+        template <typename Duration>
+        Deadline(Duration duration, TimeSlack slack = {})
+            : time_point_(duration_cast<TimePoint::Duration>(duration) + Nanoseconds(current_mono_time())),
+              time_slack_(slack)
+        {}
+
+        FORCE_INLINE
+        auto when() const -> TimePoint {
+            return time_point_;
+        }
+
+        FORCE_INLINE
+        auto earliest() const -> TimePoint {
+            return time_point_;
+        }
+
+        FORCE_INLINE
+        auto latest() const -> TimePoint {
+            return time_point_cast<TimePoint::Duration>(time_point_ + time_slack_.duration());
+        }
+      private:
+        TimePoint time_point_;
+        TimeSlack time_slack_;
+    };
+
+    class Timer: public ustl::collections::intrusive::ListBaseHook<> {
+        typedef Timer   Self;
+      public:
+        using OnExpired = ustl::function::Fn<auto (Self *) -> void>;
+
+        template <typename F, typename... Args>
+        auto activate(Deadline deadline, F &&f, Args &&...args) -> void {
+            OnExpired on_expired = ustl::function::bind(ustl::forward<F>(f), ustl::forward<Args>(args)...);
+            return activate(deadline, on_expired);
+        }
+
+        auto activate(Deadline deadline, OnExpired on_expired) -> void;
+
+        auto cancel() -> void;
+
+        FORCE_INLINE
+        auto on_expired() -> void {
+            DEBUG_ASSERT(on_expired_);
+            on_expired_(this);
+        }
+
+        FORCE_INLINE
+        auto deadline() const -> TimePoint {
             return deadline_;
         }
-
       private:
         GKTL_CANARY(Timer, canary_);
-        Instant deadline_;
+        TimePoint deadline_;
         OnExpired on_expired_;
-        void *args_;
         ustl::sync::Atomic<CpuNum> active_cpu_;
+        ustl::sync::Atomic<bool> cancalled_;
     };
-
-    class TimerQueue {
-        typedef TimerQueue  Self;
-      public:
-        CXX11_CONSTEXPR
-        static auto kInfiniteTime = ustl::NumericLimits<TimePoint>::max();
-
-        CXX11_CONSTEXPR
-        static auto kInfiniteTicks = ustl::NumericLimits<Ticks>::max();
-
-        auto tick(CpuNum cpu) -> void;
-
-        auto reset_preemption_timer(MonoInstant deadline) -> void;
-
-        FORCE_INLINE
-        static auto current() -> Self * {
-            return CpuLocal::access(&s_timer_queue);
-        }
-
-      private:
-        auto update_deadline() -> void;
-        auto update_mono_deadline(MonoInstant deadline) -> void;
-
-        static auto convert_mono_time_to_ticks(TimePoint) -> Ticks;
-
-        GKTL_CANARY(TimerQueue, canary_);
-        ustl::collections::intrusive::List<Timer> mono_timer_list_;
-
-        Ticks next_timer_deadline_;
-        MonoInstant preemption_timer_deadline_;
-
-        static Self s_timer_queue;
-    };
-    CPU_LOCAL
-    inline TimerQueue TimerQueue::s_timer_queue;
-
-    auto timer_tick(usize elapsed_time_ms) -> void;
 
 } // namespace ours::task
 

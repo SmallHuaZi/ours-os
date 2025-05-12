@@ -3,6 +3,8 @@
 #include <ours/irq/irq_dispatcher.hpp>
 #include <ours/cpu-local.hpp>
 
+#include <ours/task/thread.hpp>
+
 #include <ktl/new.hpp>
 
 namespace ours::irq {
@@ -36,6 +38,7 @@ namespace ours::irq {
     }
 
     auto finish_handling_irq() -> bool {
+        return task::Thread::Current::preemption_state().is_preemptible();
     }
 
 } // namespace ours::irq

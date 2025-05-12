@@ -6,9 +6,11 @@
 #include <ours/arch/x86/feature.hpp>
 #include <ours/arch/x86/descriptor.hpp>
 #include <ours/arch/x86/entry.hpp>
-#include <ours/cpu-local.hpp>
-#include <ours/start.hpp>
+#include <ours/arch/x86/bootstrap.hpp>
+#include <ours/platform/timer.hpp>
 
+#include <ours/start.hpp>
+#include <ours/cpu-local.hpp>
 #include <ours/task/thread.hpp>
 
 #include <arch/system.hpp>
@@ -94,13 +96,13 @@ namespace ours {
         auto const cpunum = apic_id_to_cpunum(current_apic_id_early());
         DEBUG_ASSERT(cpunum != kInvalidCpuNum);
 
+        set_current_cpu_online(true);
+
         CpuLocal::init_percpu(cpunum);
 
         init_local_apic_percpu();
 
         x86_init_percpu(CpuLocal::cpunum());
-
-        set_current_cpu_online(true);
 
         start_nonboot_cpu();
 
@@ -108,6 +110,36 @@ namespace ours {
         // So disable interrupts and suspend. 
         arch::disable_interrupt();
         arch::suspend();
+    }
+
+    auto x86_wakeup_aps(CpuMask targets) -> void {
+        using task::Thread;
+        // Prevent error operation.
+        targets.set(0, false);
+
+        for_each_cpu(targets, [] (CpuNum cpu) {
+            log::trace("Attemp to wake up CPU[{}]", cpu);
+            apic_send_ipi(cpu, arch::IrqVec(), ApicDeliveryMode::Init);
+        });
+
+        BootstrapData *bootstrap_data;
+        auto const trampoline = make_bootstrap_area(&bootstrap_data);
+        DEBUG_ASSERT(trampoline < MB(1));
+
+        auto now = current_mono_time();
+        log::trace("CPU[0]-time={}ns", now);
+
+        Thread::Current::sleep_for(Milliseconds(10), true);
+
+        for_each_cpu(targets, [bootstrap_data, trampoline] (CpuNum cpu) {
+            log::trace("Attemp to wake up CPU[{}]", cpu);
+
+            bootstrap_data->this_cpu = cpu;
+            apic_send_ipi(cpu, arch::IrqVec(trampoline >> PAGE_SHIFT), ApicDeliveryMode::Startup);
+
+
+            Thread::Current::sleep_for(Milliseconds(1), true);
+        });
     }
 
 } // namespace ours
