@@ -55,6 +55,8 @@ namespace std {
 
     logic_error::~logic_error()  {}
 
+    length_error::~length_error() {}
+
     auto __throw_out_of_range_fmt(char const *fmt, ...) -> void
     { ours::panic(fmt);  }
 
@@ -117,7 +119,7 @@ inline namespace __1 {
 #endif
 
     [[noreturn]]
-    void __libcpp_verbose_abort(char const* format, ...) //noexcept
+    void __libcpp_verbose_abort(char const* format, ...) noexcept
     { 
         ours::panic(format); 
     }

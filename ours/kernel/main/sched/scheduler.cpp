@@ -2,6 +2,7 @@
 #include <ours/sched/sched_object.hpp>
 #include <ours/cpu-states.hpp>
 #include <ours/task/thread.hpp>
+#include <ours/task/timer-queue.hpp>
 #include <ours/arch/mp.hpp>
 
 namespace ours::sched {
@@ -57,13 +58,18 @@ namespace ours::sched {
             if (need_migration) {
             } else {
                 so.current_cpu_ = target_cpu;
-                scheduler->enqueue_thread(thread, current_time());
+                if (!so.on_queue_) {
+                    scheduler->enqueue_thread(thread, current_time());
+                }
             }
         }
 
         if (target_cpu == CpuLocal::cpunum()) {
+            auto current = task::Thread::Current::get();
             // On local CPU, directly executes preemption.
-            preempt();
+            if (current->sched_object().preemption_state().is_preemptible()) {
+                preempt();
+            }
         } else {
             // On remote CPU, send a rescheduling IPI to it.
             mp_reschedule(CpuMask::from_cpu_num(target_cpu), 0);
@@ -78,13 +84,13 @@ namespace ours::sched {
     auto MainScheduler::evaluate_next_thread(task::Thread *curr, SchedTime now) -> task::Thread * {
         if (auto eevdf = schedulers_[kEevdf];
             curr->sched_object().get_scheduler() == eevdf && num_runnable_ == eevdf->num_runnable_) {
-            if (auto so = eevdf->evaluate_next()) {
+            if (auto so = eevdf->evaluate_next(curr->sched_object())) {
                 return task::Thread::of(so);
             }
         }
 
         for (auto scheduler : schedulers_) {
-            if (auto so = scheduler->evaluate_next()) {
+            if (auto so = scheduler->evaluate_next(curr->sched_object())) {
                 return task::Thread::of(so);
             }
         }
@@ -220,6 +226,10 @@ namespace ours::sched {
         auto shadow = s_active_schedulers.load();
         shadow.set(this_cpu_, true);
         s_active_schedulers.store(shadow);
+
+        // task::TimerQueue::current()->reset_preemption_timer(
+        //     TimePoint(task::Thread::Current::sched_object().deadline())
+        // );
     }
 
 } // namespace ours::sched

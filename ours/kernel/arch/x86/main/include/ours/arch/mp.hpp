@@ -13,6 +13,7 @@
 
 #include <ours/cpu-mask.hpp>
 #include <ours/ipi-event.hpp>
+#include <ours/init.hpp>
 
 #include <ustl/views/span.hpp>
 
@@ -24,6 +25,12 @@ namespace ours {
     auto arch_mp_suspend(CpuMask) -> void;
 
     auto x86_wakeup_aps(CpuMask) -> void;
+
+namespace task {
+    class Thread;
+} // namespace task
+    NO_MANGLE NO_RETURN INIT_CODE
+    auto x86_start_nonboot_cpu(task::Thread *, CpuNum) -> void;
 
 } // namespace ours
 

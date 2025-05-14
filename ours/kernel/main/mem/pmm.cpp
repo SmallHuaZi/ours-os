@@ -69,7 +69,7 @@ namespace ours::mem {
     }
 
     auto free_frame(PmFrame *frame, usize order) -> void {
-        frame->dump();
+        log::trace("Free frame({:X}, {})", frame_to_phys(frame), order);
         PmNode::free_frame(frame, order);
     }
 

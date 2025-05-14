@@ -66,6 +66,8 @@ namespace ours {
     auto apic_configure_isa_irq(u8 isa_irq, arch::ApicDeliveryMode del_mode, bool mask,
                                 arch::ApicDestinationMode dst_mode, u8 dst, arch::IrqVec vector) -> void;
 
+    auto apic_io_isa_to_global(u8 isa_irq) -> HIrqNum;
+
     INIT_CODE
     auto assign_cpunum_for_apic(u32 apicid) -> CpuNum;
 

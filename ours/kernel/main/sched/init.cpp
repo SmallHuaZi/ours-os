@@ -9,7 +9,7 @@ namespace ours::sched {
 
         auto tq = task::TimerQueue::current();
         new (tq) task::TimerQueue();
-        log::trace("CPU[0].rq at {:X}", VirtAddr(tq));
+        log::trace("CPU[0].timer_queue at {:X}", VirtAddr(tq));
     }
 
 } // namespace ours::sched

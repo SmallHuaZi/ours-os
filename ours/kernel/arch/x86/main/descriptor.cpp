@@ -23,7 +23,7 @@ namespace ours {
 
         FORCE_INLINE
         auto tss_selector(CpuNum cpunum) const -> u16 {
-            return X86_GDT_MAX_SELECTORS * sizeof(arch::GdtDesc32) + cpunum * sizeof(arch::GdtDesc64);
+            return sizeof(descs) + cpunum * sizeof(tss[0]);
         }
 
         FORCE_INLINE
@@ -97,11 +97,9 @@ namespace ours {
 
     /// Code bottom is about TSS
     INIT_CODE
-    auto x86_setup_tss_percpu() -> void {
-        auto const cpunum = CpuLocal::cpunum();
+    auto x86_setup_tss_percpu(CpuNum cpunum) -> void {
         DEBUG_ASSERT(cpunum < MAX_CPU, "Invalid CPU number: {}", cpunum);
-
-        auto tss = &CpuLocal::access(&g_x86_pcpu)->tss;
+        auto tss = &CpuLocal::access(&g_x86_pcpu, cpunum)->tss;
         tss->init();
 
         // Do not use s_pdgt, because it is readonly.

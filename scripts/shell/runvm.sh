@@ -44,8 +44,8 @@ qemu-system-x86_64 -drive file=ours.iso,format=raw \
     -numa dist,src=1,dst=2,val=30 \
     -numa dist,src=2,dst=1,val=30 \
     -monitor telnet::45454,server,nowait \
-    --nographic \
     -no-reboot \
     -d int,cpu_reset \
-    -D file:qemu-log.txt \
-    -serial mon:stdio
+    -D file:qemu-log.txt
+    # -serial mon:stdio
+    # --nographic \

@@ -75,6 +75,7 @@ SECTIONS {
 
     PROVIDE_HIDDEN(__init_code_start = .);
     .init.text : AT(ADDR(.init.text)) {
+        *(SORT_BY_ALIGNMENT(.init.boot.head))
         *(SORT_BY_ALIGNMENT(.init.boot*))
         *(SORT_BY_ALIGNMENT(.init.text*))
     }
@@ -83,10 +84,12 @@ SECTIONS {
     PROVIDE_HIDDEN(__init_data_start = .);
     .init.data : AT(ADDR(.init.data)) {
         /* ours::CpuLocal */
+        . = ALIGN(CONSTANT(MAXPAGESIZE));
         PROVIDE_HIDDEN(__cpu_local_start = .);
         *(SORT_BY_ALIGNMENT(.init.data.cpu_local*))
         PROVIDE_HIDDEN(__cpu_local_end = .);
 
+        . = ALIGN(CONSTANT(MAXPAGESIZE));
         *(SORT_BY_ALIGNMENT(.init.data*))
     }
     PROVIDE_HIDDEN(__init_data_end = .);

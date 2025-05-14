@@ -37,6 +37,10 @@ namespace ktl {
             set(name, len);
         }
 
+        Name(char const *name) {
+            set(name);
+        }
+
         ~Name() = default;
 
         // Copy the Name's data out. The written data is guaranteed to be

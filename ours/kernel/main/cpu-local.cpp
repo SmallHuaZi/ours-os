@@ -205,7 +205,7 @@ namespace ours {
             allocation_maps[(bit_offset + i) / kBlockBits].inner.set((bit_offset + i) % kBlockBits);
         }
 
-        dump();
+        // dump();
         return base;
     }
 
@@ -509,13 +509,13 @@ namespace ours {
         log::info("  Information per CPU : ");
         for (auto i = 0; i < MAX_CPU; ++i) {
             if (cpu_possible_mask().test(i)) {
-                log::info("    CPU[{}]: At 0x{:X}, offset=", i, cpu_base(i), cpu_offset(i));
+                log::info("    CPU[{}]: At 0x{:X}, offset={:X}", i, cpu_base(i), cpu_offset(i));
             }
         }
         log::info("  Information per NODE:");
         for (auto i = 0; i < MAX_NODE; ++i) {
             if (mem::node_possible_mask().test(i)) {
-                log::info("    NODE[{}]: At 0x{:X}, offset=", i, node_base(i), node_offset(i));
+                log::info("    NODE[{}]: At 0x{:X}, offset={:X}", i, node_base(i), node_offset(i));
             }
         }
         log::info("Information for first frame in group:");
@@ -605,8 +605,40 @@ namespace ours {
             }
         }
 
+        s_installed.set(0, false);
         // Bootstrap CPU always has the zero number.
         init_percpu(0);
+
+        {
+            clai->dump();
+
+            // Range check
+            DEBUG_ASSERT(usize(kStaticCpuLocalStart) <= usize(&s_current_cpu)); 
+            DEBUG_ASSERT(usize(&s_current_cpu) <= usize(kStaticCpuLocalEnd));
+
+            log::trace("CPU-Local({:X}, {:X})", usize(kStaticCpuLocalStart), usize(kStaticCpuLocalEnd));
+            log::trace("Current CPU {:X}", usize(&s_current_cpu));
+
+            auto expected = Self::access(&s_current_cpu);
+
+            {
+                auto base = arch::MsrIo::read<usize>(arch::MsrRegAddr::IA32GsBase);
+                DEBUG_ASSERT(base + usize(&s_current_cpu) == usize(expected));
+            }
+
+            {
+                auto const diff = usize(&s_current_cpu) - usize(kStaticCpuLocalStart);
+                auto const clbase = CpuLocalAreaInfo::global()->unit_base(CpuLocalAreaInfo::global()->cpu_to_unit(0));            
+                DEBUG_ASSERT(clbase + diff == usize(expected));
+            }
+
+            {
+                auto default_get = CpuLocal::access(&s_current_cpu);
+                auto special_get = CpuLocal::access(&s_current_cpu, 0);
+                DEBUG_ASSERT(default_get == special_get, "Should equal");
+            }
+        }
+
         return Status::Ok;
     }
 

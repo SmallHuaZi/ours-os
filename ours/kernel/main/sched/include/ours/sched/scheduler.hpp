@@ -82,10 +82,10 @@ namespace ours::sched {
 
         virtual auto yield(SchedObject &obj) -> void = 0;
 
-        virtual auto evaluate_next() -> SchedObject * = 0;
+        virtual auto evaluate_next(SchedObject &current) -> SchedObject * = 0;
 
-        virtual auto set_next(SchedObject &obj) -> void = 0;
-        virtual auto put_prev(SchedObject &obj) -> void = 0;
+        virtual auto set_next(SchedObject &next) -> void = 0;
+        virtual auto put_prev(SchedObject &prev) -> void = 0;
 
         virtual auto on_tick() -> void = 0;
       protected:
@@ -198,7 +198,7 @@ namespace ours::sched {
 } // namespace ours::sched
 
 #define OURS_SCHEDULER_API \
-    virtual auto evaluate_next() -> SchedObject *override;\
+    virtual auto evaluate_next(SchedObject &curr) -> SchedObject *override;\
     virtual auto enqueue(SchedObject &obj) -> void override;\
     virtual auto dequeue(SchedObject &obj) -> void override;\
     virtual auto on_tick() -> void override;\

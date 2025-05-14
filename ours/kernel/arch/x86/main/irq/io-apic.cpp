@@ -140,6 +140,17 @@ namespace ours {
         apic_configure_irq(irq, trigger_mode, polarity, del_mode, mask, dst_mode, dst, vector);
     }
 
+    auto apic_io_isa_to_global(u8 isa_irq) -> HIrqNum {
+        for (auto &override: s_ioapic_isa_overrides) {
+            if (override.isa_irq == isa_irq && override.remapped) {
+                return override.global_irq; 
+            }
+        }
+
+        return isa_irq;
+    }
+
+
     INIT_CODE
     auto init_io_apic(ustl::views::Span<arch::IoApic> const &ioapics,
                       ustl::views::Span<arch::IoApicIsaOverride> const &overrides) -> void {

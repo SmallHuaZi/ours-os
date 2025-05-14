@@ -73,11 +73,11 @@ namespace logz4 {
 
     template <typename... Args>
     inline auto trace(ustl::views::StringView fmt, Args &&...args) -> void
-    {  return logz4::log<Args...>(Level::Info, fmt, ustl::forward<Args>(args)...);  }
+    {  return logz4::log<Args...>(Level::Trace, fmt, ustl::forward<Args>(args)...);  }
 
     template <typename... Args>
     inline auto warn(ustl::views::StringView fmt, Args &&...args) -> void
-    {  return logz4::log<Args...>(Level::Error, fmt, ustl::forward<Args>(args)...);  }
+    {  return logz4::log<Args...>(Level::Warn, fmt, ustl::forward<Args>(args)...);  }
 
     template <typename... Args>
     inline auto error(ustl::views::StringView fmt, Args &&...args) -> void

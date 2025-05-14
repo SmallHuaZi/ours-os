@@ -199,12 +199,12 @@ namespace arch {
 
         FORCE_INLINE
         auto to_icr0() const -> u32 {
-            return wrapper_;
+            return u32(wrapper_);
         }
 
         FORCE_INLINE
         auto to_icr1() const -> u32 {
-            return (wrapper_ >> 32);
+            return u32(wrapper_ >> 32);
         }
 
         u64 wrapper_;

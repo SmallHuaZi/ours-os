@@ -24,9 +24,9 @@ namespace ours {
     auto x86_setup_gdt() -> void;
 
     /// Called once on each CPU
-    auto x86_setup_tss_percpu() -> void;
+    auto x86_setup_tss_percpu(CpuNum cpunum) -> void;
     auto x86_init_mmu_percpu() -> void;
-    auto x86_init_feature_percpu() -> void;
+    auto x86_init_feature_percpu(CpuNum cpunum) -> void;
 
     /// Called in init_arch_early()
     auto x86_setup_mmu() -> void;

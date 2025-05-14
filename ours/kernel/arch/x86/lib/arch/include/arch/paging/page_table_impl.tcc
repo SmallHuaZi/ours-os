@@ -123,17 +123,9 @@ namespace arch::paging {
         return Status::Ok;
     }
 
-    TEMPLATE FORCE_INLINE
-    auto X86_PAGE_TABLE::make_mapping_context(MapContext *context, VirtAddr va, PhysAddr *pa, usize n, MmuFlags flags)
-        -> Status {
-        auto const derived = static_cast<Derived *>(this);
-        ustl::mem::construct_at(context, va, pa, n, PAGE_SIZE, flags);
-        return Status::Ok;
-    }
-
     TEMPLATE
-    auto X86_PAGE_TABLE::prepare_map_pages(VirtAddr va, PhysAddr *pa, usize len, MmuFlags flags, MapContext *context)
-        -> Status {
+    auto X86_PAGE_TABLE::prepare_map_pages(VirtAddr va, PhysAddr *pa, usize len, usize page_size, 
+                                           MmuFlags flags, MapContext *context) -> Status {
         auto const derived = static_cast<Derived *>(this);
         if (!derived->check_virt_addr(va)) {
             return Status::InvalidArguments;
@@ -147,7 +139,8 @@ namespace arch::paging {
             }
         }
 
-        return make_mapping_context(context, va, pa, len, flags);
+        ustl::mem::construct_at(context, va, pa, len, page_size, flags);
+        return Status::Ok;
     }
 
     TEMPLATE
@@ -160,7 +153,7 @@ namespace arch::paging {
         }
 
         MapContext context;
-        auto status = prepare_map_pages(va, &pa, n, flags, &context);
+        auto status = prepare_map_pages(va, &pa, 1, n * PAGE_SIZE, flags, &context);
         if (status != Status::Ok) {
             return status;
         }
@@ -198,7 +191,7 @@ namespace arch::paging {
         }
 
         MapContext context;
-        auto status = prepare_map_pages(va, pa, len, flags, &context);
+        auto status = prepare_map_pages(va, pa, len, PAGE_SIZE, flags, &context);
         if (status != Status::Ok) {
             return status;
         } 

@@ -65,7 +65,7 @@ namespace arch {
         template <typename Int>
         static auto write(MsrRegAddr addr, Int value) -> void {
             // static_assert(internal::IsSupportedInt<Int>::value, "unsupported register access width");
-            u64 v = reinterpret_cast<u64>(value);
+            u64 v = u64(value);
             // The high-order 32 bits of each register are ignored so they need not be
             // cleared. u32 is 32 bits on x86-32 so that values will match the
             // register size, but 64 bits on x86-64 so that the compiler doesn't think

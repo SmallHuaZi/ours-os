@@ -50,7 +50,7 @@ namespace ours {
 
         // Does we need a kernel shell?
 
-        // Load userboot 
+        // The next step is to load userboot
         return 0;
     }
 

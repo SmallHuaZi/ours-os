@@ -7,6 +7,7 @@ set(platform_source_set
     "hpet.cpp"
     "timer.cpp"
     "interrupt.cpp"
+    "keyboard.cpp"
 )
 if (CONFIG_ACPI)
     list(APPEND platform_source_set "acpi.cpp")

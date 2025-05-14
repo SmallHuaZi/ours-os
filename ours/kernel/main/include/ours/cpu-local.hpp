@@ -90,16 +90,19 @@ namespace ours {
 
         INIT_CODE FORCE_INLINE
         static auto init_percpu(CpuNum cpunum) -> void {
-            CpuLocal::write(s_current_cpu, cpunum);
-
-            auto const thiscpu = CpuLocal::cpunum();
-            if (!s_installed.test(thiscpu)) {
+            if (s_installed.test(cpunum)) {
                 return;
             }
 
-            s_installed.set(thiscpu);
-            install(s_cpu_offset[thiscpu]);
-            write(s_current_cpu_offset, s_cpu_offset[thiscpu]);
+            ArchCpuLocal::install(s_cpu_offset[cpunum]);
+            ArchCpuLocal::write(VirtAddr(&s_current_cpu_offset), s_cpu_offset[cpunum]);
+            ArchCpuLocal::write(VirtAddr(&s_current_cpu), cpunum);
+            s_installed.set(cpunum);
+
+            log::trace("CPU-Local[{}] with offset={:X}",
+                cpunum,
+                VirtAddr(s_cpu_offset[cpunum])
+            );
         }
 
         static auto dump() -> void;
@@ -210,12 +213,6 @@ namespace ours {
                 DEBUG_ASSERT(cpunum != kInvalidCpuNum);
                 DEBUG_ASSERT(s_installed.test(cpunum));
             }
-        }
-
-        FORCE_INLINE
-        static auto install(usize offset) -> void {
-            ArchCpuLocal::install(offset);
-            s_installed.set(CpuLocal::cpunum());
         }
 
         /// This can save a time of indirect addressing.

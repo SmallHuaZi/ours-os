@@ -64,6 +64,9 @@ namespace ours {
     INIT_CODE
     auto platform_init_pmm() -> void;
 
+    INIT_CODE
+    auto platform_init_keyboard() -> void;
+
     /// The followings just be public to `start_kernel`
 
     NO_MANGLE INIT_CODE

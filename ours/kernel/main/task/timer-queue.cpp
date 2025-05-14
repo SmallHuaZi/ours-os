@@ -69,11 +69,13 @@ namespace ours::task {
         }
         next_timer_deadline_ = kInfiniteTicks;
 
-        for (auto &timer : timer_list_) {
+        while (!timer_list_.empty()) {
+            auto &timer = timer_list_.front();
             if (timer.deadline().time_since_epoch().count() > now) {
                 break;
             }
 
+            timer_list_.erase(timer_list_.iterator_to(timer));
             timer.on_expired();
         }
 

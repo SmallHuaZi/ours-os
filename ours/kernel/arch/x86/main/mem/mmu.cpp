@@ -76,7 +76,7 @@ namespace mem {
 
     auto x86_setup_mmu() -> void {
         // Unmap low address.
-        reinterpret_cast<arch::PteVal *>(mem::g_kernel_pgd)[0] = 0;
+        reinterpret_cast<arch::PteVal volatile *>(mem::g_kernel_pgd)[0] = 0;
         x86_tlb_global_invalidate();
     }
 

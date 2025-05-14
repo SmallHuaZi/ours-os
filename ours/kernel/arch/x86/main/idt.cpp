@@ -88,7 +88,7 @@ namespace ours {
         x86_set_vector_ist(arch::IrqVec::MachineCheck, kMachineCheckStack);
         x86_set_vector_ist(arch::IrqVec::MachineCheck, kMachineCheckStack);
 
-        x86_dump_idt();
+        // x86_dump_idt();
     }
 
     INIT_CODE

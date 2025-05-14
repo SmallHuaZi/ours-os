@@ -57,13 +57,13 @@ namespace ours {
     auto x86_init_percpu(CpuNum cpunum) -> void {
         using arch::Cr4;
 
-        x86_init_feature_percpu();
-
-        // TSS
-        x86_setup_tss_percpu();
+        x86_init_feature_percpu(cpunum);
 
         // GDT
         x86_load_gdt();
+
+        // TSS
+        x86_setup_tss_percpu(cpunum);
 
         // IDT
         x86_load_idt();

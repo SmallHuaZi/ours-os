@@ -33,7 +33,7 @@ namespace ours {
             static_assert(ustl::traits::IsIntegralV<T> || ustl::traits::IsPtrV<T>);
 
             using namespace arch;
-            MsrIo::write(MsrRegAddr::IA32KernelGsBase, base);
+            MsrIo::write(MsrRegAddr::IA32GsBase, base);
         }
 
         template <typename Integer>

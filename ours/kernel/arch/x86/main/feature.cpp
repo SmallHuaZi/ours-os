@@ -17,8 +17,8 @@ namespace ours {
     bool g_feature_has_fsgsbase = false;
 
     INIT_CODE
-    auto x86_init_feature_percpu() -> void {
-        auto cpuinfo = CpuLocal::access(&g_x86_cpu_info);
+    auto x86_init_feature_percpu(CpuNum cpunum) -> void {
+        auto cpuinfo = CpuLocal::access(&g_x86_cpu_info, cpunum);
         cpuinfo->init();
 
         g_feature_has_fsgsbase = x86_has_feature(CpuFeatureType::FsGsBase);
@@ -26,7 +26,7 @@ namespace ours {
 
     INIT_CODE
     auto x86_init_feature_early() -> void {
-        x86_init_feature_percpu();
+        x86_init_feature_percpu(0);
     }
 
 } // namespace ours

@@ -165,7 +165,6 @@ namespace arch {
         FORCE_INLINE
         auto send_ipi(u32 const apic_id, IpiRequest request) -> void {
             IntrDisableGuard guard;
-            write_reg(XApicRegType::Esr, 0);
             write_reg(XApicRegType::Icr1, request.to_icr1());
             write_reg(XApicRegType::Icr0, request.to_icr0());
             wait_for_ipi();

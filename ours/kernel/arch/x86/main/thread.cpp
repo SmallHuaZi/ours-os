@@ -18,6 +18,7 @@ namespace ours::task {
 
     static auto swap_gsbase_and_fsbase(usize new_gsbase, usize new_fsbase, 
                                        usize *old_gs_base, usize *old_fs_base) -> void {
+        g_feature_has_fsgsbase = false;
         if (g_feature_has_fsgsbase) {
             *old_fs_base = read_fsbase<usize>();
         } else {
@@ -28,9 +29,10 @@ namespace ours::task {
             write_fsbase(new_fsbase);
             *old_gs_base = exchange_gsbase_after_swap(new_gsbase);
         } else {
-            *old_gs_base = MsrIo::read<usize>(MsrRegAddr::IA32GsBase);
-            MsrIo::write(MsrRegAddr::IA32GsBase, new_gsbase);
             MsrIo::write(MsrRegAddr::IA32FsBase, new_fsbase);
+
+            *old_gs_base = MsrIo::read<usize>(MsrRegAddr::IA32KernelGsBase);
+            MsrIo::write(MsrRegAddr::IA32KernelGsBase, new_gsbase);
         }
     }
 

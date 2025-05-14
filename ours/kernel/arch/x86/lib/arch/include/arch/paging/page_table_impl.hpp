@@ -234,8 +234,7 @@ namespace arch::paging {
             return reinterpret_cast<PteVal volatile *>(phys_to_virt(pteval & X86_PG_FRAME));
         }
 
-        auto prepare_map_pages(VirtAddr, PhysAddr *, usize, MmuFlags, MapContext *) -> Status;
-        auto make_mapping_context(MapContext *, VirtAddr, PhysAddr *, usize, MmuFlags) -> Status;
+        auto prepare_map_pages(VirtAddr, PhysAddr *, usize, usize, MmuFlags, MapContext *) -> Status;
 
         /// Create a page table entry.
         auto create_mapping(LevelType, PteVal volatile *, MapContext *, MapControl, PageSynchroniser *) -> Status;

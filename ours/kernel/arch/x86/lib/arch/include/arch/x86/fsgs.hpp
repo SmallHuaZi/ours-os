@@ -12,6 +12,7 @@
 #define ARCH_X86_FSGS_HPP 1
 
 #include <arch/types.hpp>
+#include <ustl/traits/is_same.hpp>
 
 namespace arch {
     template <typename Integer>

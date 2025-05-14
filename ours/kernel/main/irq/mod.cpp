@@ -35,9 +35,11 @@ namespace ours::irq {
     }
 
     auto start_handling_irq() -> void {
+        task::Thread::Current::preemption_state().disable_preemption();
     }
 
     auto finish_handling_irq() -> bool {
+        task::Thread::Current::preemption_state().enable_preemption();
         return task::Thread::Current::preemption_state().is_preemptible();
     }
 

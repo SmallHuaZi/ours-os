@@ -158,11 +158,11 @@ namespace ours::task {
 
     INIT_CODE
     static auto init_thread_cache() -> void {
-        s_thread_cache = mem::ObjectCache::create<Thread>("vm-mapping-region-cache", mem::OcFlags::Folio);
+        s_thread_cache = mem::ObjectCache::create<Thread>("thread-cache", mem::OcFlags::Folio);
         if (!s_thread_cache) {
-            panic("Failed to create object cache for VmArea");
+            panic("Failed to create object cache for Thread");
         }
-        log::trace("MappingRegionCache has been created");
+        log::trace("ThreadCache has been created");
     }
     GKTL_INIT_HOOK(ThreadCacheInit, init_thread_cache, gktl::InitLevel::PlatformEarly);
 

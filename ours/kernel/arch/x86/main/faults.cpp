@@ -100,6 +100,7 @@ namespace ours {
 
             case IrqVec::ApicTimer:
                 apic_handle_timer_irq();
+                apic_issue_eoi();
                 break;
             
             case IrqVec::IpiGeneric:
@@ -131,7 +132,7 @@ namespace ours {
 
     NO_MANGLE
     auto arch_handle_exception(arch::IrqFrame *frame) -> void {
-        // platform_start_handling_irq(irqvec_to_irqnum(frame->vector), frame);
+        platform_start_handling_irq(usize(frame->vector), frame);
 
         x86_dispatch_exception(frame->vector, frame);
 
