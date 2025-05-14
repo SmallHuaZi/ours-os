@@ -1,6 +1,7 @@
 target
 ours.iso
 convert.py
+file:qemu-log.txt
 
 ours-dev.srctrlbm
 ours-dev.srctrldb
