@@ -1,8 +1,9 @@
 #include <ours/task/scheduler.hpp>
-#include <ours/task/sched_object.hpp>
-#include <ours/cpu-states.hpp>
+#include <ours/task/sched-entity.hpp>
 #include <ours/task/thread.hpp>
 #include <ours/task/timer-queue.hpp>
+
+#include <ours/cpu-states.hpp>
 #include <ours/arch/mp.hpp>
 
 #include <arch/intr_disable_guard.hpp>
@@ -15,10 +16,10 @@ namespace ours::task {
         ustl::sync::LockGuard guard(mutex_);
 
         update_timeline(now);
-        auto &so = thread->sched_object();
+        auto &so = thread->sched_entity();
         so.get_scheduler()->enqueue_thread(thread);
 
-        common_data_.weight_sum_ += so.weight();
+        common_data_.weight_sum += so.weight();
         num_runnable_ += 1;
     }
 
@@ -27,10 +28,10 @@ namespace ours::task {
         ustl::sync::LockGuard guard(mutex_);
 
         update_timeline(now);
-        auto &so = thread->sched_object();
+        auto &so = thread->sched_entity();
         so.get_scheduler()->dequeue_thread(thread);
 
-        common_data_.weight_sum_ -= so.weight();
+        common_data_.weight_sum -= so.weight();
         num_runnable_ -= 1;
     }
 
@@ -40,15 +41,15 @@ namespace ours::task {
             return;
         }
 
-        auto &curr_so = curr->sched_object();
+        auto &curr_so = curr->sched_entity();
         curr_so.get_scheduler()->put_prev_thread(curr);
         curr->set_ready();
 
-        auto &next_so = next->sched_object();
+        auto &next_so = next->sched_entity();
         next_so.get_scheduler()->set_next_thread(next);
         next->set_running();
 
-        common_data_.prev_thread_ = curr;
+        common_data_.prev_thread = curr;
         Thread::Current::set(next);
     }
 
@@ -102,7 +103,7 @@ namespace ours::task {
         if (next != curr) [[likely]] {
             num_switches_ += 1;
 
-            curr->sched_object().preemption_state().clear_pending();
+            curr->sched_entity().preemption_state().clear_pending();
             switch_context(curr, next);
         }
     }
@@ -115,13 +116,13 @@ namespace ours::task {
     auto MainScheduler::assign_target_cpu(Thread *thread) -> CpuNum {
         DEBUG_ASSERT(thread);
 
-        auto &so = thread->sched_object();
-        auto last_cpu = so.recent_cpu_;
+        auto &se = thread->sched_entity();
+        auto last_cpu = se.recent_cpu_;
         auto curr_cpu = CpuLocal::cpunum();
         auto starting_cpu = last_cpu == kInvalidCpuNum ? curr_cpu : last_cpu;
 
         auto const active_mask = peek_active_mask();
-        auto const available_mask = so.get_available_mask(active_mask);
+        auto const available_mask = se.get_available_mask(active_mask);
 
         auto target_cpu = kInvalidCpuNum;
         for_each_online_cpu([available_mask, &target_cpu] (CpuNum cpunum) {
@@ -132,8 +133,8 @@ namespace ours::task {
 
             // Find mininal expected runtime CPU
             if (target_cpu == kInvalidCpuNum ||
-                Current::get(target_cpu)->common_data_.total_expected_runtime_ > 
-                Current::get(cpunum)->common_data_.total_expected_runtime_) {
+                Current::get(target_cpu)->common_data_.total_expected_runtime > 
+                Current::get(cpunum)->common_data_.total_expected_runtime) {
                 target_cpu = cpunum;
             }
 
@@ -146,7 +147,7 @@ namespace ours::task {
 
     auto MainScheduler::activate_thread(Thread *thread) -> void {
         CpuNum target_cpu = kInvalidCpuNum;
-        auto &so = thread->sched_object();
+        auto &se = thread->sched_entity();
         while (target_cpu == kInvalidCpuNum) {
             target_cpu = assign_target_cpu(thread);
             auto const recent_cpu = thread->recent_cpu();
@@ -171,8 +172,8 @@ namespace ours::task {
             if (need_migration) {
                 // Now we do not handle the migration case.
             } else {
-                so.current_cpu_ = target_cpu;
-                if (!so.on_queue_) {
+                se.current_cpu_ = target_cpu;
+                if (!se.on_queue_) {
                     scheduler->enqueue_thread(thread, current_time());
                 }
             }
@@ -181,10 +182,8 @@ namespace ours::task {
         thread->mutex().unlock();
 
         if (target_cpu == CpuLocal::cpunum()) {
-            auto current = Thread::Current::get();
             // On local CPU, directly executes preemption.
-            if (current->sched_object().preemption_state().is_preemptible()) {
-                preempt();
+            if (Thread::Current::preemption_state().is_preemptible()) {
             }
         } else {
             // On remote CPU, send a rescheduling IPI to it.
@@ -196,48 +195,46 @@ namespace ours::task {
         task::TimerQueue::get(cpu)->reset_preemption_timer(deadline);
     }
 
-    auto MainScheduler::init_thread(Thread &thread, BaseProfile const &profile) -> void {
+    auto MainScheduler::init_thread(Thread *thread, BaseProfile const &profile) -> void {
         canary_.verify();
 
-        auto &so = thread.sched_object();
-        new (&so) SchedObject(profile);
+        auto &se = thread->sched_entity();
+        new (&se) SchedEntity(profile);
 
-        switch (profile.discipline) {
-            case SchedAlgorithm::Eevdf:
-                // Bind with scheduler.
-                so.set_scheduler(schedulers_[kEevdf]);
-                so.affinity_mask_ = global_cpu_states().online_cpus;
-                so.time_slice_ = SchedCommonData::kDefaultMinSchedGranularity;
-                so.on_queue_ = false;
+        IScheduler *scheduler;
+        switch (profile.algorithm) {
+            default: {
+                scheduler = CpuLocal::access(g_fair_scheduler);
                 break;
-            default:
-                panic("No other disciplines");
+            }
         }
 
-        so.time_slice_ = common_data_.minimal_granularity;
+        se.set_scheduler(scheduler);
+        scheduler->init_thread(thread);
     }
 
     auto MainScheduler::on_tick() -> void {
         canary_.verify();
 
-        ustl::sync::LockGuard guard(mutex_);
+        AutoPreemptionDisabler preemption_disabler{};
+        ustl::sync::LockGuard guard{mutex_};
         update_timeline(current_time());
-        Thread::Current::sched_object().get_scheduler()->on_tick();
+
+        auto current = Thread::Current::get();
+        Thread::Current::sched_entity().get_scheduler()->tick_thread(current);
     }
 
     auto MainScheduler::update_timeline(SchedTime now) -> void {
-        common_data_.last_updated_time_ = now;
+        common_data_.last_updated_time = now;
         common_data_.timeline = now;
     }
 
     auto MainScheduler::init() -> void {
         new (this) MainScheduler();
 
-        extern IScheduler *g_eevdf_scheduler;
-
         auto raw_schedulers = new (mem::kGafKernel) IScheduler *[1]();
         DEBUG_ASSERT(raw_schedulers);
-        auto eevdf = CpuLocal::access(g_eevdf_scheduler);
+        auto eevdf = CpuLocal::access(g_fair_scheduler);
         DEBUG_ASSERT(eevdf);
 
         raw_schedulers[0] = eevdf;
@@ -252,10 +249,6 @@ namespace ours::task {
         auto shadow = s_active_schedulers.load();
         shadow.set(this_cpu_, true);
         s_active_schedulers.store(shadow);
-
-        // task::TimerQueue::current()->reset_preemption_timer(
-        //     TimePoint(Thread::Current::sched_object().deadline())
-        // );
     }
 
 } // namespace ours::task

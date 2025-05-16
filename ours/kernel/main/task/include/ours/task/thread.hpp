@@ -8,6 +8,7 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
+#include "ours/config/compiler_attributes.hpp"
 #ifndef OURS_TASK_THREAD_HPP
 #define OURS_TASK_THREAD_HPP 1
 
@@ -18,9 +19,9 @@
 #include <ours/task/types.hpp>
 
 #include <ours/task/wait-queue.hpp>
+#include <ours/task/sched-entity.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/stack.hpp>
-#include <ours/task/sched_object.hpp>
 #include <ours/syscall/time.hpp>
 
 /// ours::object::ThreadDispatcher (PS: It is so-called user-thread)
@@ -35,12 +36,10 @@
 #include <gktl/canary.hpp>
 
 namespace ours::task {
-    class Process;
-
     enum class ThreadState {
-        Alive,
-        Ready,
-        Running,
+        Running = 0,
+        Initial = BIT(0),
+        Ready   = BIT(1),
         Blocking,
         Sleeping,
         Terminated,
@@ -85,13 +84,13 @@ namespace ours::task {
         ThreadStartEntry entry_point_;
     };
 
-    class Thread  {
+    class Thread {
         typedef Thread Self;
         typedef ktl::Name<32>   Name;
       public:
         FORCE_INLINE
-        static auto of(SchedObject *so) -> Self * {
-            return ustl::mem::container_of(so, &Self::so_);
+        static auto of(SchedEntity *se) -> Self * {
+            return ustl::mem::container_of(se, &Self::sched_entity_);
         }
 
         FORCE_INLINE
@@ -100,8 +99,8 @@ namespace ours::task {
         }
 
         FORCE_INLINE
-        static auto of(Waiter *waiter) -> Self * {
-            return ustl::mem::container_of(waiter, &Self::waiter_);
+        static auto of(WaiterState *waiter) -> Self * {
+            return ustl::mem::container_of(waiter, &Self::waiter_state_);
         }
 
         /// Creates a thread with `name` that will execute `entry` at `priority`. |arg|
@@ -134,8 +133,8 @@ namespace ours::task {
             return aspace_.as_ptr_mut();
         }
 
-        auto sched_object() -> SchedObject & {
-            return so_;
+        auto sched_entity() -> SchedEntity & {
+            return sched_entity_;
         }
 
         /// Core method family.
@@ -158,7 +157,7 @@ namespace ours::task {
 
         FORCE_INLINE
         auto recent_cpu() const -> CpuNum {
-            return so_.recent_cpu();
+            return sched_entity_.recent_cpu();
         }
 
         FORCE_INLINE
@@ -220,6 +219,7 @@ namespace ours::task {
         class Current;
       private:
         friend ArchThread;
+        friend MainScheduler;
 
         NO_RETURN
         static auto trampoline() -> void;
@@ -241,8 +241,9 @@ namespace ours::task {
 
         TaskState task_state_;
         ThreadState thread_state_;
-        Waiter waiter_;
-        SchedObject so_;
+        SchedEntity sched_entity_;
+        PreemptionState preemption_state_;
+        WaiterState waiter_state_;
 
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
       public:
@@ -289,16 +290,17 @@ namespace ours::task {
         }
 
         FORCE_INLINE
-        static auto sched_object() -> SchedObject & {
-            return get()->sched_object();
+        static auto sched_entity() -> SchedEntity & {
+            return get()->sched_entity_;
         }
 
         FORCE_INLINE
         static auto preemption_state() -> PreemptionState & {
-            return get()->sched_object().preemption_state();
+            return get()->preemption_state_;
         }
 
         template <typename Duration>
+        FORCE_INLINE
         static auto sleep_for(Duration duration, bool interruptible) -> Status {
             return sleep_for(duration_cast<Milliseconds>(duration), interruptible);
         }

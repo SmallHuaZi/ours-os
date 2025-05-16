@@ -8,8 +8,8 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_SCHED_SCHED_OBJECT_HPP
-#define OURS_SCHED_SCHED_OBJECT_HPP
+#ifndef OURS_TASK_SCHED_STATE_HPP
+#define OURS_TASK_SCHED_STATE_HPP
 
 #include <ours/cpu-mask.hpp>
 #include <ours/cpu-local.hpp>
@@ -44,10 +44,6 @@ namespace ours::task {
     // typedef cnl::Fraction<usize, cnl::Power<16>>    SchedWeight;
     typedef usize SchedWeight;
 
-    class SchedObject;
-    class IScheduler;
-    class MainScheduler;
-
     CXX11_CONSTEXPR
     static SchedWeight const kPriorityToWeightMap[] = {
         121,   149,   182,   223,   273,   335,   410,   503,   616,   754,  924,
@@ -65,7 +61,7 @@ namespace ours::task {
     }
 
     enum class SchedAlgorithm {
-        Eevdf,
+        Fair,
     };
 
     struct BaseProfile {
@@ -73,11 +69,11 @@ namespace ours::task {
 
         explicit BaseProfile(usize priority)
             : weight(priority_to_weight(priority)),
-              discipline(SchedAlgorithm::Eevdf)
+              algorithm(SchedAlgorithm::Fair)
         {}
 
         SchedWeight weight;
-        SchedAlgorithm discipline;
+        SchedAlgorithm algorithm;
     };
 
     class PreemptionState {
@@ -115,12 +111,12 @@ namespace ours::task {
         ustl::sync::Atomic<CpuMask> pending_;
     };
 
-    class SchedObject {
-        typedef SchedObject         Self;
+    class SchedEntity {
+        typedef SchedEntity         Self;
       public:
-        SchedObject() = default;
+        SchedEntity() = default;
 
-        SchedObject(BaseProfile profile)
+        SchedEntity(BaseProfile profile)
             : profile_(profile),
               managed_hook_()
         {}
@@ -178,7 +174,7 @@ namespace ours::task {
         }
       protected:
         friend class MainScheduler;
-        friend class EevdfScheduler;
+        friend class FairScheduler;
 
         FORCE_INLINE
         auto get_scheduler() -> IScheduler * {
@@ -215,4 +211,4 @@ namespace ours::task {
 
 #define SCHED_OBJECT_INTERFACE
 
-#endif // #ifndef OURS_CORE_TASK_SCHED_OBJECT_HPP
+#endif // OURS_TASK_SCHED_STATE_HPP

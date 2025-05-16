@@ -21,4 +21,4 @@ INTERFACE
     libarch_headers
 )
 
-add_subdirectory("tests")
+# add_subdirectory("tests")

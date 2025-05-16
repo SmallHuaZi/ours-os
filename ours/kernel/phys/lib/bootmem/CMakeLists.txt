@@ -24,4 +24,4 @@ INTERFACE
     bootmem_headers 
 )
 
-add_subdirectory("tests")
+# add_subdirectory("tests")

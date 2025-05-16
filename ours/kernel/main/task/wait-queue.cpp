@@ -4,19 +4,19 @@
 #include <ours/task/scheduler.hpp>
 
 namespace ours::task {
-    auto Waiter::wait(bool interruptible, Status status) -> void {
+    auto WaiterState::wait(bool interruptible, Status status) -> void {
         auto thread = Thread::of(this);
 
         status_ = status;
         thread->set_interruptible();
-        MainScheduler::block(*thread);
+        // MainScheduler::Current::deactivate_thread(thread);
         thread->clear_interruptible();
     }
 
-    auto Waiter::notify(Status status) -> void {
+    auto WaiterState::notify(Status status) -> void {
         auto thread = Thread::of(this);
         status_ = status;
-        MainScheduler::unblock(*thread);
+        // MainScheduler::deactivate_thread(thread);
     }
 
 } // namespace ours::task

@@ -1,5 +1,5 @@
 #include <ours/task/scheduler.hpp>
-#include <ours/task/sched_object.hpp>
+#include <ours/task/sched-entity.hpp>
 
 #include <ours/task/thread.hpp>
 
@@ -12,27 +12,26 @@
 using namespace ustl::collections::intrusive;
 
 namespace ours::task {
-    struct FairfObjectCompare {
+    struct DeadlineCompare {
         CXX23_STATIC
-        auto operator()(SchedObject const &x, SchedObject const &y) -> bool {
+        auto operator()(SchedEntity const &x, SchedEntity const &y) -> bool {
             return x.deadline() < y.deadline(); 
         }
     };
 
-    using RunQueueOption = AnyToSetHook<SchedObject::ManagedOption>;
-    using RunQueue = MultiSet<SchedObject, RunQueueOption, Compare<FairfObjectCompare>>;
+    using RunQueueOption = AnyToSetHook<SchedEntity::ManagedOption>;
+    using RunQueue = MultiSet<SchedEntity, RunQueueOption, Compare<DeadlineCompare>>;
 
     class FairScheduler: public IScheduler {
-        typedef IScheduler      Base;
+        typedef IScheduler     Base;
         typedef FairScheduler  Self;
       public:
         static auto durantion_cast(SchedTime duration, SchedWeight weight) -> SchedTime;
 
         FORCE_INLINE
         auto total_weight() -> SchedWeight {
-            auto thread = Thread::Current::Current::get();
-            auto &current = thread->sched_object();
-            if (current.on_queue_) {
+            auto thread = Thread::Current::get();
+            if (auto &current = thread->sched_entity(); current.on_queue_) {
                 return weight_sum_ + current.weight();
             }
 
@@ -41,15 +40,15 @@ namespace ours::task {
 
         OURS_SCHEDULER_API;
       private:
-        auto is_eligible(SchedObject const &) const -> bool;
+        auto is_eligible(SchedEntity const &) const -> bool;
 
-        auto update_current() -> void;
+        auto update_current(Thread *current) -> void;
 
         auto update_min_vruntime() -> void;
 
-        auto dequeue_object(SchedObject &object) -> void;
+        auto dequeue_object(SchedEntity &object) -> void;
 
-        auto enqueue_object(SchedObject &object) -> void;
+        auto enqueue_object(SchedEntity &object) -> void;
 
         RunQueue runqueue_;
         SchedTime min_vruntime_;
@@ -62,15 +61,6 @@ namespace ours::task {
 
     INIT_DATA
     IScheduler *g_fair_scheduler = &s_fair_scheduler;
-
-    FORCE_INLINE
-    static auto trace_thread(SchedObject &object, char const *msg) -> void {
-        // Debug code
-        {
-            auto thread = task::Thread::of(&object);
-            log::trace("{} thread={}", msg, thread->name());
-        }
-    }
 
     /// From physical time duration to virtual.
     FORCE_INLINE
@@ -98,7 +88,7 @@ namespace ours::task {
     /// 
     /// When the lag of a task is greater than or equal to zero, it is eligible,
     /// otherwise ineligible.
-    auto FairScheduler::is_eligible(SchedObject const &object) const -> bool {
+    auto FairScheduler::is_eligible(SchedEntity const &object) const -> bool {
         auto weighted_vruntime_sum = weighted_vruntime_sum_;
         auto weight_sum = weight_sum_;
         if (object.on_queue_) {
@@ -109,9 +99,11 @@ namespace ours::task {
         return weighted_vruntime_sum >= ((object.vruntime() - min_vruntime_) * weight_sum);
     }
 
-    auto FairScheduler::on_tick() -> void {
-        update_current();
+    auto FairScheduler::tick_thread(Thread *thread) -> void {
+        update_current(thread);
     }
+
+    auto FairScheduler::init_thread(Thread *thread) -> void {}
 
     /// In order to provide latency guarantees for different request sizes
     /// EEVDF selects the best runnable task from two criteria:
@@ -134,8 +126,7 @@ namespace ours::task {
         return Thread::of(&*iter);
     }
 
-    auto FairScheduler::dequeue_object(SchedObject &object) -> void {
-        trace_thread(object, "Dequeue");
+    auto FairScheduler::dequeue_object(SchedEntity &object) -> void {
         runqueue_.erase(runqueue_.iterator_to(object));
 
         weighted_vruntime_sum_ -= object.vruntime() * object.weight();
@@ -144,8 +135,8 @@ namespace ours::task {
         object.on_queue_ = false;
     }
 
-    auto FairScheduler::dequeue(SchedObject &object) -> void {
-        update_current();
+    auto FairScheduler::dequeue_thread(Thread *thread) -> void {
+        update_current(thread);
 
         if (!object.on_queue_) {
             return;
@@ -156,8 +147,7 @@ namespace ours::task {
         }
     }
 
-    auto FairScheduler::enqueue_object(SchedObject &object) -> void {
-        trace_thread(object, "Enqueue");
+    auto FairScheduler::enqueue_object(SchedEntity &object) -> void {
         runqueue_.insert(object);
 
         weighted_vruntime_sum_ += object.vruntime() * object.weight();
@@ -166,8 +156,8 @@ namespace ours::task {
         object.on_queue_ = true;
     }
 
-    auto FairScheduler::enqueue(SchedObject &object) -> void {
-        auto current = &common_data_->curr_thread_->sched_object();
+    auto FairScheduler::enqueue_thread(Thread *thread) -> void {
+        auto current = &thread->sched_entity();
         if (&object == current) {
             if (object.vlag().count() != 0) {
                 // Rectifies current scheduling object.
@@ -232,8 +222,8 @@ namespace ours::task {
         }
     }
 
-    auto FairScheduler::put_prev(SchedObject &prev) -> void {
-        if (task::Thread::of(&prev)->state() == task::ThreadState::Terminated) {
+    auto FairScheduler::put_prev_thread(Thread *prev) -> void {
+        if (prev->state() == ThreadState::Terminated) {
             return;
         };
 
@@ -244,7 +234,7 @@ namespace ours::task {
         }
     }
 
-    auto FairScheduler::set_next(SchedObject &next) -> void {
+    auto FairScheduler::set_next_thread(Thread *prev) -> void {
         if (next.on_queue_) {
             dequeue_object(next);
         }
@@ -255,5 +245,6 @@ namespace ours::task {
     }
 
     auto FairScheduler::yield() -> void {}
-    auto FairScheduler::yield(SchedObject &) -> void {}
+
+    auto FairScheduler::yield_to(Thread *thread) -> void {}
 }

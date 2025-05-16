@@ -1,7 +1,7 @@
 #include <ours/task/mod.hpp>
 
 #include <ours/task/scheduler.hpp>
-#include <ours/task/sched_object.hpp>
+#include <ours/task/sched-entity.hpp>
 #include <ours/cpu-local.hpp>
 
 namespace ours::task {

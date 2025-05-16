@@ -2,10 +2,11 @@
 
 #include <ours/task/timer.hpp>
 #include <ours/task/auto_preemption_disabler.hpp>
-#include <ours/mem/mod.hpp>
-#include <ours/mem/object-cache.hpp>
 #include <ours/task/mod.hpp>
 #include <ours/task/scheduler.hpp>
+
+#include <ours/mem/mod.hpp>
+#include <ours/mem/object-cache.hpp>
 
 #include <ustl/traits/char_traits.hpp>
 #include <arch/intr_disable_guard.hpp>
@@ -20,11 +21,11 @@ namespace ours::task {
     static ThreadManagedList s_global_thread_list;
 
     Thread::Thread(usize priority, char const *name)
-        : so_(),
+        : sched_entity_(),
           name_(name, ustl::traits::CharTraits<char>::length(name)),
           task_state_(),
           thread_state_(ThreadState::Alive),
-          waiter_(),
+          waiter_state_(),
           signals_(),
           arch_thread_(),
           user_thread_(),
@@ -51,6 +52,7 @@ namespace ours::task {
         if (Status::Ok != status) {
             return 0; 
         }
+        self->thread_state_ = ThreadState::Initial;
         self->task_state_.init(entry);
         self->arch_thread_.init(VirtAddr(Thread::trampoline));
 

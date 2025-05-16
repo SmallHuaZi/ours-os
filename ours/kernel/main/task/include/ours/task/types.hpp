@@ -8,7 +8,6 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-
 #ifndef OURS_TASK_TYPES_HPP
 #define OURS_TASK_TYPES_HPP 1
 
@@ -18,7 +17,14 @@
 namespace ours::task {
     using ThreadStartEntry = ustl::function::Fn<auto () -> i32>;
 
+    class Timer;
     class Thread;
+    class WaitQueue;
+    class TimerQueue;
+
+    class IScheduler;
+    class FairScheduler;
+    class MainScheduler;
 
 } // namespace ours::task
 

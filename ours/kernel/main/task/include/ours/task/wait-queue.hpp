@@ -16,8 +16,8 @@
 #include <ustl/collections/intrusive/set.hpp>
 
 namespace ours::task {
-    class Waiter {
-        typedef Waiter Self;
+    class WaiterState {
+        typedef WaiterState Self;
       public:
         auto wait(bool interruptible, Status status) -> void;
 
@@ -38,8 +38,8 @@ namespace ours::task {
       public:
 
       private:
-        USTL_DECLARE_MULTISET(Waiter, WaiterSet, Waiter::ManagedOption);
-        WaiterSet waiters_;
+        USTL_DECLARE_MULTISET(WaiterState, WaiterStateSet, WaiterState::ManagedOption);
+        WaiterStateSet waiters_;
     };
 
 } // namespace ours::task

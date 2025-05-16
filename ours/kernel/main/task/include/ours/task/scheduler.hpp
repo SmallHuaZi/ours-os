@@ -12,10 +12,11 @@
 #define OURS_SCHED_SCHEDULER_HPP 1
 
 #include <ours/task/types.hpp>
+#include <ours/task/thread.hpp>
+
 #include <ours/mutex.hpp>
 #include <ours/cpu-local.hpp>
 
-#include <ours/task/thread.hpp>
 #include <ours/platform/timer.hpp>
 
 #include <ustl/views/span.hpp>
@@ -43,7 +44,7 @@ namespace ours::task {
             return minimal_period_grans  * minimal_granularity;
         }
 
-        Thread *prev_thread_;
+        Thread *prev_thread;
 
         // Virtual time.
         SchedTime timeline;
@@ -53,8 +54,8 @@ namespace ours::task {
         SchedTime previous_started_time;
         SchedTime current_started_time;
         SchedTime current_preemption_time;
-        SchedTime last_updated_time_;
-        SchedDuration total_expected_runtime_;
+        SchedTime last_updated_time;
+        SchedDuration total_expected_runtime;
 
         /// Scheduling period in which every runnable task executes once in units of
         /// minimal granularity.
@@ -67,7 +68,7 @@ namespace ours::task {
         /// The smallest timeslice a thread is allocated in a single round.
         SchedDuration minimal_granularity = kDefaultMinSchedGranularity;
 
-        SchedWeight weight_sum_;
+        SchedWeight weight_sum;
     };
 
     class IScheduler {
@@ -77,15 +78,14 @@ namespace ours::task {
         virtual auto dequeue_thread(Thread *thread) -> void = 0;
 
         virtual auto yield() -> void = 0;
-
         virtual auto yield_to(Thread *thread) -> void = 0;
 
         virtual auto pick_next_thread(Thread *curr) -> Thread * = 0;
-
         virtual auto set_next_thread(Thread *curr) -> void = 0;
         virtual auto put_prev_thread(Thread *curr) -> void = 0;
 
-        virtual auto on_tick() -> void = 0;
+        virtual auto init_thread(Thread *thread) -> void = 0;
+        virtual auto tick_thread(Thread *thread) -> void = 0;
       protected:
         friend class MainScheduler;
 
@@ -115,8 +115,6 @@ namespace ours::task {
             return s_active_schedulers.load();
         }
 
-        auto deactivate_thread(Thread *) -> void;
-
         /// Deactivate a thread. This function will do the following thins:
         ///     1) Select a suitable scheduler for the given thread.
         ///     2) Add the thread onto the scheduler's running queue.
@@ -127,12 +125,14 @@ namespace ours::task {
         ///     1) The thread has been locked.
         auto activate_thread(Thread *) -> void;
 
+        auto deactivate_thread(Thread *) -> void;
+
         /// The routine called in timer interrupt routine.
         auto on_tick() -> void;
 
         auto init() -> void;
 
-        auto init_thread(Thread &, BaseProfile const &) -> void;
+        auto init_thread(Thread *, BaseProfile const &) -> void;
 
         auto reschedule(Thread *, SchedTime now) -> void;
 
@@ -224,6 +224,7 @@ namespace ours::task {
     virtual auto pick_next_thread(Thread *curr) -> Thread * override;\
     virtual auto set_next_thread(Thread *curr) -> void override;\
     virtual auto put_prev_thread(Thread *curr) -> void override;\
-    virtual auto on_tick() -> void override;
+    virtual auto init_thread(Thread *thread) -> void override;\
+    virtual auto tick_thread(Thread *curr) -> void override;
 
 #endif // #ifndef OURS_SCHED_SCHEDULER_HPP
