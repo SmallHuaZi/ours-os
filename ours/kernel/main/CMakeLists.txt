@@ -33,7 +33,6 @@ PRIVATE
 add_subdirectory(irq)
 add_subdirectory(mem)
 add_subdirectory(task)
-add_subdirectory(sched)
 add_subdirectory(tests)
 
 set(KernelMainTestFileSet 
@@ -66,7 +65,6 @@ PRIVATE
     kernel::main::irq
     kernel::main::mem
     kernel::main::task
-    kernel::main::sched
     kernel::platform
     kernel::lib::gktl
     kernel::lib::ktl

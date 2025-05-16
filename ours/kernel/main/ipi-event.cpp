@@ -1,7 +1,7 @@
 #include <ours/ipi-event.hpp>
 #include <ours/arch/mp.hpp>
 
-#include <ours/sched/scheduler.hpp>
+#include <ours/task/scheduler.hpp>
 
 namespace ours {
     WEAK_LINK
@@ -11,7 +11,7 @@ namespace ours {
         // Clear local CPU and inactive CPUs.
         auto const local_cpu = CpuLocal::cpunum();
         mask.set(local_cpu, 0);
-        mask &= sched::MainScheduler::peek_active_mask();
+        mask &= task::MainScheduler::peek_active_mask();
 
         if (!mask.count()) {
             return;

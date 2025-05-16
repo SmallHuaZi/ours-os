@@ -11,7 +11,7 @@
 #ifndef OURS_SCHED_SCHEDULER_HPP
 #define OURS_SCHED_SCHEDULER_HPP 1
 
-#include <ours/sched/types.hpp>
+#include <ours/task/types.hpp>
 #include <ours/mutex.hpp>
 #include <ours/cpu-local.hpp>
 
@@ -21,7 +21,7 @@
 #include <ustl/views/span.hpp>
 #include <ustl/chrono/duration.hpp>
 
-namespace ours::sched {
+namespace ours::task {
     struct SchedCommonData {
         CXX11_CONSTEXPR
         static auto const kDefaultMinSchedGranularity = Milliseconds(1);
@@ -43,8 +43,7 @@ namespace ours::sched {
             return minimal_period_grans  * minimal_granularity;
         }
 
-        task::Thread *curr_thread_;
-        task::Thread *prev_thread_;
+        Thread *prev_thread_;
 
         // Virtual time.
         SchedTime timeline;
@@ -74,18 +73,17 @@ namespace ours::sched {
     class IScheduler {
         typedef IScheduler  Self;
       public:
-        virtual auto enqueue(SchedObject &obj) -> void = 0;
-
-        virtual auto dequeue(SchedObject &obj) -> void = 0;
+        virtual auto enqueue_thread(Thread *thread) -> void = 0;
+        virtual auto dequeue_thread(Thread *thread) -> void = 0;
 
         virtual auto yield() -> void = 0;
 
-        virtual auto yield(SchedObject &obj) -> void = 0;
+        virtual auto yield_to(Thread *thread) -> void = 0;
 
-        virtual auto evaluate_next(SchedObject &current) -> SchedObject * = 0;
+        virtual auto pick_next_thread(Thread *curr) -> Thread * = 0;
 
-        virtual auto set_next(SchedObject &next) -> void = 0;
-        virtual auto put_prev(SchedObject &prev) -> void = 0;
+        virtual auto set_next_thread(Thread *curr) -> void = 0;
+        virtual auto put_prev_thread(Thread *curr) -> void = 0;
 
         virtual auto on_tick() -> void = 0;
       protected:
@@ -96,7 +94,7 @@ namespace ours::sched {
             return common_data_->timeline;
         }
 
-        GKTL_CANARY(Scheduler, canary_);
+        GKTL_CANARY(IScheduler, canary_);
         usize num_runnable_;
         SchedCommonData *common_data_;
     };
@@ -104,6 +102,90 @@ namespace ours::sched {
     /// The main per cpu scheduler.
     class MainScheduler {
         typedef MainScheduler   Self;
+      public:
+        class Current;
+
+        FORCE_INLINE
+        static auto current_time() -> SchedTime {
+            return SchedTime(current_mono_time());
+        }
+
+        FORCE_INLINE
+        static auto peek_active_mask() -> CpuMask {
+            return s_active_schedulers.load();
+        }
+
+        auto deactivate_thread(Thread *) -> void;
+
+        /// Deactivate a thread. This function will do the following thins:
+        ///     1) Select a suitable scheduler for the given thread.
+        ///     2) Add the thread onto the scheduler's running queue.
+        ///     3) Drop the thread's lock. 
+        ///     4) Reschedule if needed/permitted.
+        ///
+        /// Assumption:
+        ///     1) The thread has been locked.
+        auto activate_thread(Thread *) -> void;
+
+        /// The routine called in timer interrupt routine.
+        auto on_tick() -> void;
+
+        auto init() -> void;
+
+        auto init_thread(Thread &, BaseProfile const &) -> void;
+
+        auto reschedule(Thread *, SchedTime now) -> void;
+
+        auto run() -> void;
+
+        FORCE_INLINE
+        auto num_runnable() const -> usize {
+            return num_runnable_;
+        }
+
+        FORCE_INLINE
+        auto is_active() const -> bool {
+            return s_active_schedulers.load().test(this_cpu_);
+        }
+      private:
+        static auto assign_target_cpu(Thread *) -> CpuNum;
+
+        static auto reset_preemption(CpuNum cpu, TimePoint now, TimePoint deadline) -> void;
+
+        auto enqueue_thread(Thread *, SchedTime now) -> void;
+
+        auto dequeue_thread(Thread *, SchedTime now) -> void;
+
+        auto update_timeline(SchedTime now) -> void;
+
+        auto switch_context(Thread *curr, Thread *next) -> void;
+
+        // Attempts to steal work from other busy CPUs and move it to the local run
+        // queues. Returns a pointer to the stolen thread that is now associated with
+        // the local Scheduler instance, or nullptr is no work was stolen.
+        auto steal_work() -> Thread *;
+
+        /// Pick next most eligible thread and return it. Under multi-processor environment,
+        /// it will attempts to steal a task on remote CPUs.
+        auto pick_next_thread(Thread *, SchedTime now) -> Thread *;
+
+        auto put_prev_and_set_next_thread(Thread *prev, Thread *next) -> void;
+
+        GKTL_CANARY(MainScheduler, canary_);
+        Mutex mutex_;
+        CpuNum this_cpu_;
+        usize num_runnable_;
+        usize num_switches_;
+        SchedCommonData common_data_;
+        ustl::views::Span<IScheduler *> schedulers_;
+
+        Thread *idler_;
+
+        static inline ustl::sync::Atomic<CpuMask> s_active_schedulers;
+        static inline ustl::sync::Atomic<CpuMask> s_idle_schedulers;
+    };
+
+    class MainScheduler::Current {
       public:
         FORCE_INLINE
         static auto get() -> Self * {
@@ -116,95 +198,32 @@ namespace ours::sched {
         }
 
         FORCE_INLINE
-        static auto set_current_thread(task::Thread *current) -> void {
-            get()->common_data_.curr_thread_ = current;
-        }
-
-        FORCE_INLINE
-        static auto current_time() -> SchedTime {
-            return SchedTime(current_mono_time());
-        }
-
-        FORCE_INLINE
-        static auto peek_active_mask() -> CpuMask {
-            return s_active_schedulers.load();
-        }
-
-        FORCE_INLINE
         static auto tick(SchedTime now) -> void {
             get()->on_tick();
         }
 
-        static auto block(task::Thread &) -> void;
-
-        static auto unblock(task::Thread &) -> void;
-
         static auto preempt() -> void;
 
-        static auto reschedule(task::Thread &) -> void;
-
-        /// The routine called in timer interrupt routine.
-        auto on_tick() -> void;
-
-        auto init() -> void;
-
         FORCE_INLINE
-        auto num_runnable() const -> usize {
-            return num_runnable_;
+        static auto schedule() -> void {
+            auto thread = Thread::Current::get();
+            get()->reschedule(thread, SchedTime(current_mono_time()));
         }
-
-        FORCE_INLINE
-        auto is_active() const -> bool {
-            return s_active_schedulers.load().test(this_cpu_);
-        }
-
-        auto init_thread(task::Thread &, BaseProfile const &) -> void;
       private:
-        static auto assign_target_cpu(task::Thread &) -> CpuNum;
-
-        auto enqueue_thread(task::Thread &, SchedTime now) -> void;
-
-        auto dequeue_thread(task::Thread &) -> void;
-
-        auto update_timeline(SchedTime now) -> void;
-
-        auto reschedule_common(task::Thread *, SchedTime now) -> void;
-
-        auto evaluate_next_thread(task::Thread *, SchedTime now) -> task::Thread *;
-
-        auto put_prev_thread(task::Thread *thread) -> void;
-        auto set_next_thread(task::Thread *thread) -> void;
-
-        enum SchedulerType {
-            kEevdf,
-        };
-
-        GKTL_CANARY(MainScheduler, canary_);
-        Mutex mutex_;
-        CpuNum this_cpu_;
-        usize num_runnable_;
-        usize num_switches_;
-        SchedCommonData common_data_;
-        ustl::views::Span<IScheduler *> schedulers_;
-
-        ai_percpu static Self s_main_scheduler;
-        static inline ustl::sync::Atomic<CpuMask> s_active_schedulers;
-        static inline ustl::sync::Atomic<CpuMask> s_idle_schedulers;
+        CPU_LOCAL
+        static inline MainScheduler s_main_scheduler;
     };
 
-    CPU_LOCAL
-    inline MainScheduler MainScheduler::s_main_scheduler;
-
-} // namespace ours::sched
+} // namespace ours::task
 
 #define OURS_SCHEDULER_API \
-    virtual auto evaluate_next(SchedObject &curr) -> SchedObject *override;\
-    virtual auto enqueue(SchedObject &obj) -> void override;\
-    virtual auto dequeue(SchedObject &obj) -> void override;\
-    virtual auto on_tick() -> void override;\
-    virtual auto set_next(SchedObject &obj) -> void override;\
-    virtual auto put_prev(SchedObject &obj) -> void override;\
+    virtual auto enqueue_thread(Thread *thread) -> void override;\
+    virtual auto dequeue_thread(Thread *thread) -> void override;\
     virtual auto yield() -> void override;\
-    virtual auto yield(SchedObject &obj) -> void override;
+    virtual auto yield_to(Thread *thread) -> void override;\
+    virtual auto pick_next_thread(Thread *curr) -> Thread * override;\
+    virtual auto set_next_thread(Thread *curr) -> void override;\
+    virtual auto put_prev_thread(Thread *curr) -> void override;\
+    virtual auto on_tick() -> void override;
 
 #endif // #ifndef OURS_SCHED_SCHEDULER_HPP

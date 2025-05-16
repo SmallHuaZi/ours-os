@@ -11,10 +11,17 @@
 #ifndef OURS_TASK_MOD_HPP
 #define OURS_TASK_MOD_HPP 1
 
-#include <ours/irq/mod.hpp>
+#include <ours/status.hpp>
+#include <ours/task/types.hpp>
 
 namespace ours::task {
     auto timer_tick() -> void;
+
+    auto schedule() -> void;
+
+    auto activate_thread(Thread *thread) -> Status;
+
+    auto deactivate_thread(Thread *thread) -> Status;
 
 } // namespace ours::task
 

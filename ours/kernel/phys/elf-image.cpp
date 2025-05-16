@@ -1,4 +1,5 @@
 #include <ours/phys/kernel-image.hpp>
+#include <ours/phys/print.hpp>
 
 #include <eftl/elf/dynamic.hpp>
 #include <eftl/elf/link.hpp>
@@ -26,6 +27,7 @@ namespace ours::phys {
     }
 
     auto ElfImage::load_at(PhysAddr phys_addr) -> ustl::Result<PhysAddr, Status> {
+        println("----------------Load kernel-----------------");
         bool const result = loadinfo_.visit_segments([this, phys_addr] (auto &segment) {
             auto const addr = phys_addr + view_.virt_addr_to_offset(segment.va_start);
             if ((addr % segment.alignment) != 0) {
@@ -37,6 +39,10 @@ namespace ours::phys {
                 segment.content.end(),
                 reinterpret_cast<std::decay_t<decltype(*segment.content.end())> *>(addr)
             );
+            println("Segment range=[{:X}, {:X})", 
+                VirtAddr(segment.content.begin()),
+                VirtAddr(segment.content.end())
+            );
 
             return true;
         });
@@ -44,6 +50,7 @@ namespace ours::phys {
         if (!result) {
             return ustl::err(Status::MisAligned);
         }
+        println("-----------------------------------------");
 
         pa_load_ = phys_addr;
         return ustl::ok(pa_load_ + view_.virt_addr_to_offset(view_.entry_point()));

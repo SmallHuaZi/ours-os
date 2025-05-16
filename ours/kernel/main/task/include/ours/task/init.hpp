@@ -8,12 +8,14 @@
 /// For additional information, please refer to the following website:
 /// https://opensource.org/license/gpl-2-0
 ///
-#ifndef OURS_SCHED_INIT_HPP
-#define OURS_SCHED_INIT_HPP 1
+#ifndef OURS_TASK_INIT_HPP
+#define OURS_TASK_INIT_HPP 1
 
-namespace ours::sched {
-    auto init_sched() -> void;
+namespace ours::task {
+    auto init_task_early() -> void;
 
-} // namespace ours::sched
+    auto init_task() -> void;
 
-#endif // #ifndef OURS_SCHED_INIT_HPP
+} // namespace ours::task
+
+#endif // #ifndef OURS_TASK_INIT_HPP

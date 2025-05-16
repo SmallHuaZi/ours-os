@@ -3,6 +3,11 @@ INTERFACE
     "include"
 )
 set(source_set
+    "fair.cpp"
+    "scheduler.cpp"
+    "init.cpp"
+    "mod.cpp"
+
     "thread.cpp"
     "timer.cpp"
     "timer-queue.cpp"
@@ -18,4 +23,8 @@ INTERFACE
 target_link_libraries(kernel_task 
 INTERFACE
     kernel::main::headers
+)
+target_link_options(kernel_task
+INTERFACE
+    "-T${CMAKE_CURRENT_SOURCE_DIR}/task.ld"
 )

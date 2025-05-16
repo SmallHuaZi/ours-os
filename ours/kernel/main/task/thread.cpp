@@ -4,8 +4,8 @@
 #include <ours/task/auto_preemption_disabler.hpp>
 #include <ours/mem/mod.hpp>
 #include <ours/mem/object-cache.hpp>
-#include <ours/sched/mod.hpp>
-#include <ours/sched/scheduler.hpp>
+#include <ours/task/mod.hpp>
+#include <ours/task/scheduler.hpp>
 
 #include <ustl/traits/char_traits.hpp>
 #include <arch/intr_disable_guard.hpp>
@@ -54,7 +54,7 @@ namespace ours::task {
         self->task_state_.init(entry);
         self->arch_thread_.init(VirtAddr(Thread::trampoline));
 
-        sched::MainScheduler::get()->init_thread(*self, sched::BaseProfile(priority));
+        MainScheduler::get()->init_thread(*self, BaseProfile(priority));
 
         s_global_thread_list.push_back(*self);
         return self;
@@ -75,7 +75,7 @@ namespace ours::task {
         signals_ |= ~Signals::Suspend;
 
         if (state() == ThreadState::Blocking || state() == ThreadState::Alive) {
-            sched::MainScheduler::unblock(*this);
+            MainScheduler::(*this);
         }
 
         return Status::Ok;
@@ -119,7 +119,7 @@ namespace ours::task {
     }
 
     auto Thread::Current::preempt() -> void {
-        sched::MainScheduler::preempt();
+        MainScheduler::preempt();
     }
 
     auto Thread::Current::idle() -> void {
@@ -152,7 +152,10 @@ namespace ours::task {
 
         arch::IntrDisableGuard intr_guard;
         AutoPreemptionDisabler preemption_disabled_guard;
-        sched::MainScheduler::reschedule(*current);
+        current->set_terminate();
+        log::trace("Thread {} exit", current->name());
+
+        MainScheduler::reschedule(*current);
         unreachable();
     }
 

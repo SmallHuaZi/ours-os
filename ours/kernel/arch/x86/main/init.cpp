@@ -83,8 +83,6 @@ namespace ours {
 
         x86_init_percpu(0);
 
-        x86_dump_gdt();
-        
         x86_init_mmu_early();
 
         set_current_cpu_online(true);

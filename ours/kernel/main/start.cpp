@@ -3,12 +3,12 @@
 #include <ours/cpu-mask.hpp>
 #include <ours/cpu-local.hpp>
 #include <ours/task/thread.hpp>
-#include <ours/sched/scheduler.hpp>
+#include <ours/task/scheduler.hpp>
 
 /// Init calls
 #include <ours/mem/init.hpp>
 #include <ours/irq/init.hpp>
-#include <ours/sched/init.hpp>
+#include <ours/task/init.hpp>
 #include <ours/platform/init.hpp>
 
 #include <ours/phys/handoff.hpp>
@@ -22,22 +22,6 @@
 
 namespace ours {
     INIT_CODE
-    static auto init_first_thread() -> void {
-        // We need this dummy thread as `current` thread to make a feint 
-        // that there has been a thread which is running.
-        static task::Thread dummy{0, "dummy"};
-
-        new (&dummy) decltype(dummy)(0, "dummy");
-        sched::MainScheduler::get()->init_thread(dummy, sched::BaseProfile(0));
-        sched::MainScheduler::set_current_thread(&dummy);
-        task::Thread::Current::set(&dummy);
-
-        // FIXME(SmallHuaZi): There is no a kernel stack for the first thread.
-        // Taking the following way will leak mem::Stack::kDefaultStackSize size of memory.
-        dummy.kernel_stack().init();
-    }
-
-    INIT_CODE
     static auto labour_routine() -> i32 {
         init_arch();
         set_init_level(gktl::InitLevel::Arch);
@@ -50,12 +34,14 @@ namespace ours {
 
         // Does we need a kernel shell?
 
-        // The next step is to load userboot
+        // The 2nd stage has finished, and next is to load userboot.
         return 0;
     }
 
     /// Called from arch-code.
-    /// Note: Invoke it after finishing the collection to early architecture specific information passed from `PhysBoot`.
+    /// Note: Invoke it after finishing the collection to early architecture 
+    /// specific information passed from `PhysBoot`.
+    ///
     /// Assumptions:
     ///     1). The early memory allocator has been initialized.
     NO_MANGLE INIT_CODE
@@ -84,9 +70,7 @@ namespace ours {
         irq::init_irq();
         set_init_level(gktl::InitLevel::Irq);
 
-        sched::init_sched();
-
-        init_first_thread();
+        task::init_task();
 
         auto const laborer = task::Thread::spawn("laborer", 0, labour_routine);
         laborer->detach();

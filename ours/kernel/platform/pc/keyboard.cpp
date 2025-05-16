@@ -696,7 +696,7 @@ namespace ours {
             false, 
             arch::ApicDestinationMode::Physical, 
             0, 
-            arch::IrqVec(u8(arch::IrqVec::PlatformIrqMin) + 1)
+            arch::IrqVec(u8(arch::IrqVec::PlatformIrqMin) + irq)
         );
         DEBUG_ASSERT(status == Status::Ok);
         apic_unmask_irq(irq);

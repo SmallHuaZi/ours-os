@@ -1,6 +1,6 @@
 #include <ours/task/timer-queue.hpp>
 
-#include <ours/sched/scheduler.hpp>
+#include <ours/task/scheduler.hpp>
 #include <ours/irq/mod.hpp>
 #include <ours/platform/timer.hpp>
 
@@ -65,7 +65,7 @@ namespace ours::task {
         // Tickless
         if (now >= preemption_timer_deadline_.time_since_epoch().count()) {
             preemption_timer_deadline_ = kInfiniteTime;
-            sched::MainScheduler::tick(sched::SchedTime(now));
+            MainScheduler::tick(SchedTime(now));
         }
         next_timer_deadline_ = kInfiniteTicks;
 
@@ -85,7 +85,7 @@ namespace ours::task {
     auto timer_tick() -> void {
         // We always update scheduling information first.
         auto const this_cpu = CpuLocal::cpunum();
-        TimerQueue::current()->tick(this_cpu);
+        TimerQueue::get()->tick(this_cpu);
     }
 
 } // namespace ours::task

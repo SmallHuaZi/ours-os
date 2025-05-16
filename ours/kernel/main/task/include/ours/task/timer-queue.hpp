@@ -29,10 +29,14 @@ namespace ours::task {
         auto reset_preemption_timer(TimePoint deadline) -> void;
 
         FORCE_INLINE
-        static auto current() -> Self * {
+        static auto get() -> Self * {
             return CpuLocal::access(&s_timer_queue);
         }
 
+        FORCE_INLINE
+        static auto get(CpuNum cpu) -> Self * {
+            return CpuLocal::access(&s_timer_queue, cpu);
+        }
       private:
         friend class Timer;
         auto insert_timer(Timer &timer, TimePoint earliest, TimePoint latest) -> void;

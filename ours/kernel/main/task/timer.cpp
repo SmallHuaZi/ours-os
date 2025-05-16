@@ -9,7 +9,7 @@ namespace ours::task {
         on_expired_ = on_expired;
         cancalled_.store(false, ustl::sync::MemoryOrder::Release);
 
-        TimerQueue::current()->insert_timer(*this, deadline.earliest(), deadline.latest());
+        TimerQueue::get()->insert_timer(*this, deadline.earliest(), deadline.latest());
     }
 
     auto Timer::cancel() -> void {

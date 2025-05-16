@@ -13,14 +13,41 @@
 
 #include <ours/cpu-mask.hpp>
 #include <ours/cpu-local.hpp>
-#include <ours/sched/types.hpp>
+#include <ours/task/types.hpp>
 
+#include <ustl/chrono/duration.hpp>
 #include <ustl/sync/atomic.hpp>
 #include <ustl/collections/intrusive/any_hook.hpp>
 
-#include <cnl/fraction.hpp>
+// #include <cnl/fraction.hpp>
 
-namespace ours::sched {
+namespace ours::task {
+    using ustl::chrono::Nanoseconds;
+    using ustl::chrono::Microseconds;
+    using ustl::chrono::Milliseconds;
+
+    typedef ustl::chrono::Nanoseconds   SchedTime;
+    typedef ustl::chrono::Nanoseconds   SchedDuration;
+
+    /// High weight accompanied by low virtual time flow rate.
+    ///
+    /// The unit convertion between real time and virtual as following:
+    ///     V(t) = t / TotalWeight;
+    ///     t = V(t) * TotalWeight;
+    ///
+    /// For a task, 
+    /// define S(i) as the service time obtained by the task i
+    /// define Ve(i) = the start time point of S(i) and the eligible time in EEVDF
+    /// define Vd(i) = the end time point of S(i)
+    ///     S(i) = (Vd(i) - Ve(i)) * W(i);
+    ///     Vd(i) = Ve(i) + Si(i) / W(i)
+    // typedef cnl::Fraction<usize, cnl::Power<16>>    SchedWeight;
+    typedef usize SchedWeight;
+
+    class SchedObject;
+    class IScheduler;
+    class MainScheduler;
+
     CXX11_CONSTEXPR
     static SchedWeight const kPriorityToWeightMap[] = {
         121,   149,   182,   223,   273,   335,   410,   503,   616,   754,  924,
@@ -37,7 +64,7 @@ namespace ours::sched {
         return kPriorityToWeightMap[priority];
     }
 
-    enum class SchedDiscipline {
+    enum class SchedAlgorithm {
         Eevdf,
     };
 
@@ -46,11 +73,11 @@ namespace ours::sched {
 
         explicit BaseProfile(usize priority)
             : weight(priority_to_weight(priority)),
-              discipline(SchedDiscipline::Eevdf)
+              discipline(SchedAlgorithm::Eevdf)
         {}
 
         SchedWeight weight;
-        SchedDiscipline discipline;
+        SchedAlgorithm discipline;
     };
 
     class PreemptionState {
@@ -184,7 +211,7 @@ namespace ours::sched {
         USTL_DECLARE_HOOK_OPTION(Self, managed_hook_, ManagedOption);
     };
 
-} // namespace ours::sched
+} // namespace ours::task
 
 #define SCHED_OBJECT_INTERFACE
 

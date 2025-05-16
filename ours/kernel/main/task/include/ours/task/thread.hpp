@@ -20,7 +20,7 @@
 #include <ours/task/wait-queue.hpp>
 #include <ours/mem/types.hpp>
 #include <ours/mem/stack.hpp>
-#include <ours/sched/sched_object.hpp>
+#include <ours/task/sched_object.hpp>
 #include <ours/syscall/time.hpp>
 
 /// ours::object::ThreadDispatcher (PS: It is so-called user-thread)
@@ -45,16 +45,18 @@ namespace ours::task {
         Sleeping,
         Terminated,
     };
+    USTL_ENABLE_ENUM_BITMASK(ThreadState)
 
     enum class ThreadFlags {
         Preemptible = BIT(0),
         Interruptible = BIT(1),
         SignalPending = BIT(2),
         Detached = BIT(3),
+        Idle = BIT(4),
 
         // All request from a thread which tagged it to allocate memory
         // will not be accepted.
-        MemoryAllocationDisabled = BIT(4),
+        MemoryAllocationDisabled = BIT(5),
     };
     USTL_ENABLE_ENUM_BITMASK(ThreadFlags)
 
@@ -88,7 +90,7 @@ namespace ours::task {
         typedef ktl::Name<32>   Name;
       public:
         FORCE_INLINE
-        static auto of(sched::SchedObject *so) -> Self * {
+        static auto of(SchedObject *so) -> Self * {
             return ustl::mem::container_of(so, &Self::so_);
         }
 
@@ -102,7 +104,6 @@ namespace ours::task {
             return ustl::mem::container_of(waiter, &Self::waiter_);
         }
 
-        /// Creates a thread with `name` that will execute `entry` at `priority`. |arg|
         /// Creates a thread with `name` that will execute `entry` at `priority`. |arg|
         /// will be passed to `entry` when executed, the return value of `entry` will be
         /// passed to Exit().
@@ -133,7 +134,7 @@ namespace ours::task {
             return aspace_.as_ptr_mut();
         }
 
-        auto sched_object() -> sched::SchedObject & {
+        auto sched_object() -> SchedObject & {
             return so_;
         }
 
@@ -179,6 +180,12 @@ namespace ours::task {
         }
 
         FORCE_INLINE
+        auto set_terminate() -> Self & {
+            thread_state_ = ThreadState::Terminated;
+            return *this;
+        }
+
+        FORCE_INLINE
         auto set_sleeping() -> Self & {
             thread_state_ = ThreadState::Sleeping;
             return *this;
@@ -197,8 +204,18 @@ namespace ours::task {
         }
 
         FORCE_INLINE
+        auto is_dead() const -> bool {
+            return thread_state_ == ThreadState::Terminated;
+        }
+
+        FORCE_INLINE
         auto name() const -> char const * {
             return name_.data();
+        }
+
+        FORCE_INLINE
+        auto mutex() -> Mutex & {
+            return mutex_;
         }
         class Current;
       private:
@@ -225,7 +242,7 @@ namespace ours::task {
         TaskState task_state_;
         ThreadState thread_state_;
         Waiter waiter_;
-        sched::SchedObject so_;
+        SchedObject so_;
 
         ustl::collections::intrusive::ListMemberHook<> managed_hook_;
       public:
@@ -272,17 +289,19 @@ namespace ours::task {
         }
 
         FORCE_INLINE
-        static auto sched_object() -> sched::SchedObject & {
+        static auto sched_object() -> SchedObject & {
             return get()->sched_object();
         }
 
         FORCE_INLINE
-        static auto preemption_state() -> sched::PreemptionState & {
+        static auto preemption_state() -> PreemptionState & {
             return get()->sched_object().preemption_state();
         }
 
         template <typename Duration>
-        static auto sleep_for(Duration duration, bool interruptible) -> void;
+        static auto sleep_for(Duration duration, bool interruptible) -> Status {
+            return sleep_for(duration_cast<Milliseconds>(duration), interruptible);
+        }
 
         static auto sleep_for(Milliseconds duration, bool interruptible) -> Status;
 
